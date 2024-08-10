@@ -12,20 +12,27 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
+import environ
 
+env = environ.Env()
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+APPS_DIR = BASE_DIR / "apps"
+
+# Load local django environment variables.
+env.read_env(str(BASE_DIR / "config/envs/.django.env"))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-mpr*w$8(jttk%o88)76d@etbd@@8@_$!yty1!3c_b+6-_*17e+"
+SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DJANGO_DEBUG")
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
 
 
 # Application definition
@@ -40,7 +47,7 @@ DJANGO_APPS = [
 ]
 
 LOCAL_APPS = [
-    "authx",
+    "apps.authx",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + LOCAL_APPS
@@ -55,7 +62,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "api.urls"
+ROOT_URLCONF = "apps.conf.urls"
 
 TEMPLATES = [
     {
@@ -73,7 +80,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "api.wsgi.application"
+WSGI_APPLICATION = "apps.conf.wsgi.application"
 
 
 # Database

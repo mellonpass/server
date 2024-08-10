@@ -3,4 +3,5 @@ from django.apps import AppConfig
 
 class AuthxConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
-    name = "authx"
+    label = "authx"
+    name = "apps.authx"
