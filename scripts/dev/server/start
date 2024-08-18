@@ -5,8 +5,8 @@ set -o errexit
 # Remove after docker-compose setup.
 source config/envs/.django.env
 
-poetry run  manage.py migrate
-poetry run manage.py createsuperuser --noinput || true
+poetry run python manage.py migrate
+poetry run python manage.py createsuperuser --noinput || true
 
 echo "Running server in local env ..."
 exec poetry run python manage.py runserver "0.0.0.0:8000"

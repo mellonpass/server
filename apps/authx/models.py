@@ -1,14 +1,70 @@
-from django.contrib.auth.models import AbstractUser
-from django.db.models import EmailField, Model
+from uuid import uuid4
+
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
+from django.db.models import (
+    BooleanField,
+    CharField,
+    DateTimeField,
+    EmailField,
+    IntegerField,
+    Model,
+    UUIDField,
+)
 
 
-class User(AbstractUser):
+class CustomUserManager(BaseUserManager):
+    def create_user(self, email, password=None, **fields):
+        """
+        Creates and saves a User with the given email and password.
+        """
+        if not email:
+            raise ValueError("Users must have an email address")
+
+        user = self.model(email=self.normalize_email(email), **fields)
+
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password, **fields):
+        u = self.create_user(email, password=password, **fields)
+        u.is_staff = True
+        u.is_superuser = True
+        u.save(using=self._db)
+        return u
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    """User model.
+
+    The `password` field is used to contain the login hash created from the client-side.
+    The server does not accept the user's password in plain text.
+
+    Due to the built-in security of Django, the password received from the client-side
+    is also encrypted once again.
+    """
+
+    uuid = UUIDField(unique=True, blank=True, null=False, default=uuid4)
     email = EmailField(unique=True, blank=False, null=False)
+    name = CharField(max_length=150, null=False, blank=True, default="")
+
+    is_active = BooleanField(default=True)
+    is_staff = BooleanField(default=False)
+
+    date_joined = DateTimeField(auto_now_add=True)
+    updated = DateTimeField(auto_now=True)
+
+    objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
 
-    # Creating superuser method still requires the username to be filled.
-    REQUIRED_FIELDS = ["username"]
+    def __str__(self):
+        return self.email
 
 
 class UserToken(Model):
@@ -16,4 +72,10 @@ class UserToken(Model):
     This model allow us to have control over a user access like revocation of a user's device.
     """
 
-    pass
+    refresh_token_id = CharField(max_length=150, null=False, blank=False, default="")
+    session_id = IntegerField(unique=True, null=False, blank=False)
+    revoked = BooleanField(null=True, blank=True)
+    expiration = DateTimeField(null=False, blank=False)
+
+    created = DateTimeField(auto_now_add=True)
+    updated = DateTimeField(auto_now=True)
