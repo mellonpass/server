@@ -5,7 +5,7 @@ from apps.authx.models import User
 
 
 class UserAdmin(BaseUserAdmin):
-    list_display = ("email", "name", "is_superuser", "is_active")
+    list_display = ("email", "name", "is_superuser", "is_active", "date_joined", "updated")
     fieldsets = (
         (
             None,
