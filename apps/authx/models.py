@@ -22,20 +22,20 @@ class CustomUserManager(BaseUserManager):
         Creates and saves a User with the given email and password.
         """
         if not email:
-            raise ValueError("Users must have an email address")
+            raise ValueError("Users must have an email address.")
 
         user = self.model(email=self.normalize_email(email), **fields)
 
         user.set_password(password)
-        user.save(using=self._db)
+        user.save()
         return user
 
     def create_superuser(self, email, password, **fields):
-        u = self.create_user(email, password=password, **fields)
-        u.is_staff = True
-        u.is_superuser = True
-        u.save(using=self._db)
-        return u
+        user = self.create_user(email, password=password, **fields)
+        user.is_staff = True
+        user.is_superuser = True
+        user.save()
+        return user
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -45,7 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     The server does not accept the user's password in plain text.
 
     Due to the built-in security of Django, the password received from the client-side
-    is also encrypted once again.
+    is also hashed once again.
     """
 
     uuid = UUIDField(unique=True, blank=True, null=False, default=uuid4)

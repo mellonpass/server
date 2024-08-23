@@ -5,7 +5,17 @@ from apps.authx.models import User
 
 
 class UserAdmin(BaseUserAdmin):
-    list_display = ("email", "name", "is_superuser", "is_active", "date_joined", "updated")
+    add_form_template = "admin/authx/user/add_form.html"
+
+    list_display = (
+        "email",
+        "name",
+        "is_superuser",
+        "is_staff",
+        "is_active",
+        "date_joined",
+        "updated",
+    )
     fieldsets = (
         (
             None,
@@ -13,7 +23,9 @@ class UserAdmin(BaseUserAdmin):
                 "fields": [
                     "email",
                     "name",
+                    "password",
                     "is_superuser",
+                    "is_staff",
                     "is_active",
                     "date_joined",
                     "updated",
@@ -25,12 +37,8 @@ class UserAdmin(BaseUserAdmin):
         (
             None,
             {
-                "fields": [
-                    "email",
-                    "name",
-                    "is_superuser",
-                    "is_active",
-                ]
+                "classes": ("wide",),
+                "fields": ("email", "password1", "password2"),
             },
         ),
     )
