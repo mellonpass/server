@@ -1,5 +1,14 @@
 import strawberry
 
+from apps.authx.api.mutations import UserMutation
+
+
+@strawberry.type
+class Mutation:
+    @strawberry.field
+    def user(self) -> UserMutation:
+        return UserMutation()
+
 
 @strawberry.type
 class Query:
@@ -8,4 +17,4 @@ class Query:
         return "v1"
 
 
-schema = strawberry.Schema(Query)
+schema = strawberry.Schema(query=Query, mutation=Mutation)
