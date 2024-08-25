@@ -1,6 +1,6 @@
-# MellonPass API
+# MellonPass Server 
 
-API server for the **MellonPass** client application.
+MellonPass backend server (GraphQL, docker, database)
 
 ## Requirements
 - Python 3.11+
@@ -15,7 +15,4 @@ API server for the **MellonPass** client application.
 - Use `docker run --name mellonpass-db --env-file config/envs/.postgres.env -p 5432:5432 -d postgres:15-alpine` to start the database server.
 
 Server is running at `http://127.0.0.1:8000` and Django admin is accessible via `http://127.0.0.1:8000/admin`.
-
-
-
 
