@@ -13,6 +13,7 @@ from django.db.models import (
     IntegerField,
     Model,
     UUIDField,
+    TextField,
 )
 
 
@@ -55,12 +56,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=50, null=False, blank=True, default="", help_text="Password hint."
     )
 
-    protected_symmetric_key = CharField(
-        max_length=128,
+    protected_symmetric_key = TextField(
         null=False,
         blank=True,
         default="",
-        help_text="PSK must be in PBKDF2 format.",
     )
 
     is_active = BooleanField(default=True)
