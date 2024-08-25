@@ -18,4 +18,5 @@ class CreateAccountInput:
     email: str
     name: str
     login_hash: str
+    protected_symmetric_key: str
     hint: Optional[str] = None
