@@ -1,13 +1,13 @@
 import strawberry
 
-from apps.authx.api.mutations import UserMutation
+from apps.authx.api.mutations import AccountMutation
 
 
 @strawberry.type
 class Mutation:
     @strawberry.field
-    def user(self) -> UserMutation:
-        return UserMutation()
+    def account(self) -> AccountMutation:
+        return AccountMutation()
 
 
 @strawberry.type

@@ -51,6 +51,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     uuid = UUIDField(unique=True, blank=True, null=False, default=uuid4)
     email = EmailField(unique=True, blank=False, null=False)
     name = CharField(max_length=150, null=False, blank=True, default="")
+    hint = CharField(
+        max_length=50, null=False, blank=True, default="", help_text="Password hint."
+    )
 
     is_active = BooleanField(default=True)
     is_staff = BooleanField(default=False)

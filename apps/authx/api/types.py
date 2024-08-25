@@ -1,16 +1,21 @@
-import strawberry
 from uuid import UUID
+from typing import Optional
+
+import strawberry
 
 
 @strawberry.type
-class User:
+class Account:
     uuid: UUID
     email: str
     name: str
 
 
 @strawberry.input
-class CreateUserInput:
+class CreateAccountInput:
+    # TODO: would it be possible to add email validation
+    # on this level? Model level validation is fine.
     email: str
     name: str
     login_hash: str
+    hint: Optional[str] = None

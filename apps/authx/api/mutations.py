@@ -1,12 +1,12 @@
 import strawberry
-from apps.authx.services import create_user
-from apps.authx.api.types import CreateUserInput, User
+from apps.authx.services import create_account
+from apps.authx.api.types import CreateAccountInput, Account
 
 
 @strawberry.type
-class UserMutation:
+class AccountMutation:
     @strawberry.mutation
-    def create(self, info, input: CreateUserInput) -> User:
-        user_dict = strawberry.asdict(input)
-        user = create_user(**user_dict)
-        return User(uuid=user.uuid, name=user.name, email=user.email)
+    def create(self, info, input: CreateAccountInput) -> Account:
+        account_dict = strawberry.asdict(input)
+        account = create_account(**account_dict)
+        return Account(uuid=account.uuid, name=account.name, email=account.email)
