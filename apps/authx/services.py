@@ -1,4 +1,4 @@
-from apps.authx.models import User, UserSymmetricKey
+from apps.authx.models import User
 from typing import Optional
 
 
@@ -9,9 +9,10 @@ def create_account(
     protected_symmetric_key: str,
     hint: Optional[str] = None,
 ) -> User:
-    user = User.objects.create_user(
-        email=email, password=login_hash, name=name, hint=hint
+    return User.objects.create_user(
+        email=email,
+        password=login_hash,
+        name=name,
+        hint=hint,
+        protected_symmetric_key=protected_symmetric_key,
     )
-
-    UserSymmetricKey.objects.create(user=user, pskey=protected_symmetric_key)
-    return user

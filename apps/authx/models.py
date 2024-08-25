@@ -13,8 +13,6 @@ from django.db.models import (
     IntegerField,
     Model,
     UUIDField,
-    OneToOneField,
-    PROTECT,
 )
 
 
@@ -56,6 +54,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     hint = CharField(
         max_length=50, null=False, blank=True, default="", help_text="Password hint."
     )
+
+    protected_symmetric_key = CharField(
+        max_length=128,
+        null=False,
+        blank=True,
+        default="",
+        help_text="PSK must be in PBKDF2 format.",
+    )
+
     is_active = BooleanField(default=True)
     is_staff = BooleanField(default=False)
 
@@ -69,18 +76,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
-
-
-class UserSymmetricKey(Model):
-    uuid = UUIDField(unique=True, blank=True, null=False, default=uuid4)
-    pskey = CharField(max_length=128, blank=False, null=False)
-
-    created = DateTimeField(auto_now_add=True)
-    updated = DateTimeField(auto_now=True)
-
-    user = OneToOneField(
-        User, related_name="usk", blank=False, null=False, on_delete=PROTECT
-    )
 
 
 class UserToken(Model):
