@@ -6,7 +6,7 @@ from apps.authx.api.mutations import AccountMutation
 @strawberry.type
 class Mutation:
     @strawberry.field
-    def account(self) -> AccountMutation:
+    def Account(self) -> AccountMutation:
         return AccountMutation()
 
 

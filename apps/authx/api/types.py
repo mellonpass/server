@@ -19,4 +19,4 @@ class CreateAccountInput:
     name: str
     login_hash: str
     protected_symmetric_key: str
-    hint: Optional[str] = None
+    hint: Optional[str] = strawberry.UNSET
