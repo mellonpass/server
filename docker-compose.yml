@@ -1,0 +1,28 @@
+version: '3'
+
+networks:
+  mellonpass-network:
+    driver: bridge
+
+volumes:
+  mellonpass-postgres-data: {}
+
+services:
+  mellonpass_db:
+    image: postgres:15-alpine
+    container_name: mellonpass_db
+    ports:
+      - "5440:5440"
+    expose:
+      - "5440"
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PORT=5440
+      - PGPORT=5440
+    volumes:
+      - mellonpass-postgres-data:/var/lib/postgresql/data:z
+    networks:
+      - mellonpass-network
