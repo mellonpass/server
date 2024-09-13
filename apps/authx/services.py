@@ -1,5 +1,9 @@
+from typing import Optional, Tuple
+
+from django.contrib.auth import authenticate, login
+from django.http import HttpRequest
+
 from apps.authx.models import User
-from typing import Optional
 
 
 def create_account(
@@ -16,3 +20,14 @@ def create_account(
         hint=hint,
         protected_symmetric_key=protected_symmetric_key,
     )
+
+
+def login_user(
+    email: str, login_hash: str, request: HttpRequest
+) -> Tuple[Optional[User], bool]:
+    user = authenticate(username=email, password=login_hash)
+    if user is not None:
+        login(request, user)
+        return user, True
+    else:
+        return None, False

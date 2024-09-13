@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Annotated, Optional, Union
 from uuid import UUID
 
 import strawberry
@@ -20,3 +20,24 @@ class CreateAccountInput:
     login_hash: str
     protected_symmetric_key: str
     hint: Optional[str] = strawberry.UNSET
+
+
+@strawberry.input
+class LoginInput:
+    email: str
+    login_hash: str
+
+
+@strawberry.type
+class LoginSuccessful:
+    psk: Annotated[str, "The protected symmetric key property."]
+
+
+@strawberry.type
+class LoginFailed:
+    message: str
+
+
+LoginPayload = Annotated[
+    Union[LoginSuccessful, LoginFailed], strawberry.union("LoginPayload")
+]
