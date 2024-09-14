@@ -12,9 +12,9 @@ services:
     image: postgres:15-alpine
     container_name: mellonpass_db
     ports:
-      - "5440:5440"
+      - 5440:5440
     expose:
-      - "5440"
+      - 5440
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=postgres

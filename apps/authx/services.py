@@ -1,6 +1,6 @@
 from typing import Optional, Tuple
 
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpRequest
 
 from apps.authx.models import User
@@ -31,3 +31,7 @@ def login_user(
         return user, True
     else:
         return None, False
+
+
+def logout_user(request: HttpRequest):
+    logout(request)

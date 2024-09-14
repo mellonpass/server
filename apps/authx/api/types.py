@@ -29,7 +29,7 @@ class LoginInput:
 
 
 @strawberry.type
-class LoginSuccessful:
+class LoginSuccess:
     psk: Annotated[str, "The protected symmetric key property."]
 
 
@@ -39,5 +39,11 @@ class LoginFailed:
 
 
 LoginPayload = Annotated[
-    Union[LoginSuccessful, LoginFailed], strawberry.union("LoginPayload")
+    Union[LoginSuccess, LoginFailed], strawberry.union("LoginPayload")
 ]
+
+
+@strawberry.type
+class LogoutPayload:
+    is_success: bool
+    message: str
