@@ -13,6 +13,8 @@ django-environ = "^0.11.2"
 django-extensions = "^3.2.3"
 dj-database-url = "^2.2.0"
 psycopg2 = "^2.9.9"
+cryptography = "^43.0.1"
+pyjwt = "^2.9.0"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -23,6 +25,8 @@ flake8 = "^7.1.1"
 django-stubs = "^5.0.4"
 ipdb = "^0.13.13"
 pytest-django = "^4.8.0"
+factory-boy = "^3.3.1"
+freezegun = "^1.5.1"
 
 [build-system]
 requires = ["poetry-core"]

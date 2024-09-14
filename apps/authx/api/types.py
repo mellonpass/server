@@ -31,6 +31,8 @@ class LoginInput:
 @strawberry.type
 class LoginSuccess:
     psk: Annotated[str, "The protected symmetric key property."]
+    access_token: str
+    refresh_token: str
 
 
 @strawberry.type

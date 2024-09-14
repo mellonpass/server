@@ -12,6 +12,7 @@ from apps.authx.api.types import (
     LogoutPayload,
 )
 from apps.authx.services import create_account, login_user, logout_user
+from apps.jwt.services import generate_jwt_from_user
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +30,12 @@ class AccountMutation:
             **strawberry.asdict(input), request=info.context.request
         )
         if is_success:
-            # TODO: should return pair of access/refresh tokens and the protected key.
-            return LoginSuccess(psk=user.protected_symmetric_key)
+            user_token_detail = generate_jwt_from_user(user)
+            return LoginSuccess(
+                psk=user.protected_symmetric_key,
+                access_token=user_token_detail["access_token"],
+                refresh_token=user_token_detail["refresh_token"],
+            )
         return LoginFailed(
             message=(
                 "Failed to login account. Invalid email and master password combination."

@@ -53,6 +53,7 @@ THIRD_PARTY_APPS = [
 
 LOCAL_APPS = [
     "apps.authx",
+    "apps.jwt",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -147,3 +148,6 @@ AUTH_PASSWORD_VALIDATORS = []
 PASSWORD_HASHERS = [
     "apps.authx.hashers.MellonPassPBKDF2PasswordHasher",
 ]
+
+JWT_PRIVATE_KEY_PATH = env("JWT_PRIVATE_KEY_PATH")
+JWT_PUBLIC_KEY_PATH = env("JWT_PUBLIC_KEY_PATH")
