@@ -46,6 +46,7 @@ class AccountMutation:
             store_refresh_token(
                 token=user_token_detail["refresh_token"],
                 session_key=info.context.request.session.session_key,
+                user=user,
             )
 
             return LoginSuccess(

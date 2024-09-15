@@ -10,11 +10,12 @@ class RefreshTokenAdmin(admin.ModelAdmin):
         "jti",
         "exp",
         "datetime_revoked",
+        "user",
     )
 
     list_display = (
+        "user",
         "jti",
-        "session_key",
         "revoked",
         "datetime_revoked",
         "is_expired",
@@ -22,6 +23,9 @@ class RefreshTokenAdmin(admin.ModelAdmin):
 
     def is_expired(self, obj):
         return obj.is_expired
+
+    def has_add_permission(self, request):
+        return False
 
     def save_model(self, request, obj, form, change):
         if obj.revoked and obj.datetime_revoked is None:

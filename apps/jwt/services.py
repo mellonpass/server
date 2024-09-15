@@ -105,12 +105,13 @@ def _load_public_key() -> ec.EllipticCurvePublicKey:
         )
 
 
-def store_refresh_token(token: str, session_key: str) -> RefreshToken:
+def store_refresh_token(token: str, session_key: str, user: User) -> RefreshToken:
     decoded_refresh_token = jwt.decode(token, options={"verify_signature": False})
     return RefreshToken.objects.create(
         jti=decoded_refresh_token["jti"],
         exp=timezone.make_aware(datetime.fromtimestamp(decoded_refresh_token["exp"])),
         session_key=session_key,
+        user=user,
     )
 
 

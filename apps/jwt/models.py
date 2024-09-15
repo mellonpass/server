@@ -1,4 +1,12 @@
-from django.db.models import BooleanField, CharField, DateTimeField, Model
+from django.conf import settings
+from django.db.models import (
+    CASCADE,
+    BooleanField,
+    CharField,
+    DateTimeField,
+    ForeignKey,
+    Model,
+)
 from django.utils import timezone
 
 
@@ -18,6 +26,10 @@ class RefreshToken(Model):
 
     created = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)
+
+    user = ForeignKey(
+        settings.AUTH_USER_MODEL, null=False, blank=False, on_delete=CASCADE
+    )
 
     def revoke(self):
         self.revoke = True
