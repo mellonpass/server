@@ -1,4 +1,3 @@
-from django.contrib.sessions.models import Session
 from django.db.models import BooleanField, CharField, DateTimeField, Model
 from django.utils import timezone
 
@@ -25,5 +24,9 @@ class RefreshToken(Model):
         self.datetime_revoked = timezone.now()
         self.save()
 
+    @property
     def is_expired(self):
         return self.exp <= timezone.now()
+
+    def __str__(self) -> str:
+        return self.jti
