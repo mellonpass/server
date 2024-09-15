@@ -5,6 +5,15 @@ from apps.jwt.models import RefreshToken
 
 
 class RefreshTokenAdmin(admin.ModelAdmin):
+
+    list_display = (
+        "user",
+        "jti",
+        "session_key",
+        "is_active",
+        "datetime_revoked",
+    )
+
     readonly_fields = (
         "session_key",
         "jti",
@@ -13,16 +22,9 @@ class RefreshTokenAdmin(admin.ModelAdmin):
         "user",
     )
 
-    list_display = (
-        "user",
-        "jti",
-        "revoked",
-        "datetime_revoked",
-        "is_expired",
-    )
-
-    def is_expired(self, obj):
-        return obj.is_expired
+    @admin.display(boolean=True)
+    def is_active(self, obj) -> bool:
+        return not obj.revoked and not obj.is_expired
 
     def has_add_permission(self, request):
         return False

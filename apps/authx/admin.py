@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.sessions.models import Session
 
 from apps.authx.models import User
 
@@ -48,4 +49,37 @@ class UserAdmin(BaseUserAdmin):
     ordering = ("email",)
 
 
+class SessionAdmin(admin.ModelAdmin):
+    list_display = (
+        "session_key",
+        "user",
+        "device",
+        "user_login",
+    )
+    readonly_fields = (
+        "session_key",
+        "expire_date",
+        "session_data",
+        "raw_session_data",
+    )
+
+    def device(self, obj):
+        return obj.get_decoded().get("device_information", "unknown")
+
+    def user(self, obj):
+        user_id = obj.get_decoded()["_auth_user_id"]
+        return User.objects.get(pk=user_id)
+
+    def user_login(self, obj):
+        user_id = obj.get_decoded()["_auth_user_id"]
+        return User.objects.get(pk=user_id).last_login
+
+    def raw_session_data(self, obj):
+        return obj.get_decoded()
+
+    def has_add_permission(self, request):
+        return False
+
+
 admin.site.register(User, UserAdmin)
+admin.site.register(Session, SessionAdmin)

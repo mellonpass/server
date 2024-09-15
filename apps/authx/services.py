@@ -1,7 +1,9 @@
 from typing import Optional, Tuple
 
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.sessions.backends.db import SessionStore
 from django.http import HttpRequest
+from user_agents import parse
 
 from apps.authx.models import User
 
@@ -35,3 +37,11 @@ def login_user(
 
 def logout_user(request: HttpRequest):
     logout(request)
+
+
+def store_user_agent_by_session_key(session: SessionStore, user_agent: str):
+    ua = parse(user_agent)
+    session["device_information"] = (
+        f"{ua.device.family} {ua.browser.family} - {ua.get_device()}"
+    )
+    session.save()

@@ -12,7 +12,12 @@ from apps.authx.api.types import (
     LogoutPayload,
     UserAlreadyAuthenticated,
 )
-from apps.authx.services import create_account, login_user, logout_user
+from apps.authx.services import (
+    create_account,
+    login_user,
+    logout_user,
+    store_user_agent_by_session_key,
+)
 from apps.jwt.services import (
     generate_jwt_from_user,
     revoke_refresh_token_by_session_key,
@@ -47,6 +52,11 @@ class AccountMutation:
                 token=user_token_detail["refresh_token"],
                 session_key=info.context.request.session.session_key,
                 user=user,
+            )
+
+            store_user_agent_by_session_key(
+                info.context.request.session,
+                info.context.request.META.get("HTTP_USER_AGENT", "unknown"),
             )
 
             return LoginSuccess(
