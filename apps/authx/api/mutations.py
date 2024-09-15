@@ -10,9 +10,14 @@ from apps.authx.api.types import (
     LoginPayload,
     LoginSuccess,
     LogoutPayload,
+    UserAlreadyAuthenticated,
 )
 from apps.authx.services import create_account, login_user, logout_user
-from apps.jwt.services import generate_jwt_from_user
+from apps.jwt.services import (
+    generate_jwt_from_user,
+    revoke_refresh_token_by_session_key,
+    store_refresh_token,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,21 +31,29 @@ class AccountMutation:
 
     @strawberry.mutation
     def login(self, info, input: LoginInput) -> LoginPayload:
+        if info.context.request.user.is_authenticated:
+            email = info.context.request.user.email
+            return UserAlreadyAuthenticated(
+                message=f"User {email} is already authenticated."
+            )
+
         user, is_success = login_user(
             **strawberry.asdict(input), request=info.context.request
         )
         if is_success:
             user_token_detail = generate_jwt_from_user(user)
+
+            store_refresh_token(
+                token=user_token_detail["refresh_token"],
+                session_key=info.context.request.session.session_key,
+            )
+
             return LoginSuccess(
                 psk=user.protected_symmetric_key,
                 access_token=user_token_detail["access_token"],
                 refresh_token=user_token_detail["refresh_token"],
             )
-        return LoginFailed(
-            message=(
-                "Failed to login account. Invalid email and master password combination."
-            )
-        )
+        return LoginFailed()
 
     @strawberry.mutation
     def logout(self, info) -> LogoutPayload:
@@ -50,6 +63,7 @@ class AccountMutation:
         if not user.is_authenticated:
             return LogoutPayload(is_success=False, message="User is not authenticated.")
 
+        revoke_refresh_token_by_session_key(info.context.request.session.session_key)
         logout_user(info.context.request)
         return LogoutPayload(
             is_success=True, message=f"User {user.email} successfully logged out."

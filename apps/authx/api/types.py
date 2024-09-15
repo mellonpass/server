@@ -37,11 +37,19 @@ class LoginSuccess:
 
 @strawberry.type
 class LoginFailed:
+    message: str = strawberry.field(
+        default="Failed to login account. Invalid email and master password combination."
+    )
+
+
+@strawberry.type
+class UserAlreadyAuthenticated:
     message: str
 
 
 LoginPayload = Annotated[
-    Union[LoginSuccess, LoginFailed], strawberry.union("LoginPayload")
+    Union[LoginSuccess, LoginFailed, UserAlreadyAuthenticated],
+    strawberry.union("LoginPayload"),
 ]
 
 

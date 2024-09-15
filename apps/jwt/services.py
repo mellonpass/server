@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Dict, Tuple, TypedDict, Union
 from uuid import uuid4
 
@@ -10,6 +10,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.authx.models import User
+from apps.jwt.models import RefreshToken
 
 logger = logging.getLogger(__name__)
 
@@ -102,3 +103,18 @@ def _load_public_key() -> ec.EllipticCurvePublicKey:
         return serialization.load_pem_public_key(
             serialized_public_key.encode("utf-8"),
         )
+
+
+def store_refresh_token(token: str, session_key: str) -> RefreshToken:
+    decoded_refresh_token = jwt.decode(token, options={"verify_signature": False})
+    return RefreshToken.objects.create(
+        jti=decoded_refresh_token["jti"],
+        exp=timezone.make_aware(datetime.fromtimestamp(decoded_refresh_token["exp"])),
+        session_key=session_key,
+    )
+
+
+def revoke_refresh_token_by_session_key(session_key: str):
+    RefreshToken.objects.filter(session_key=session_key).update(
+        revoked=True, datetime_revoked=timezone.now()
+    )

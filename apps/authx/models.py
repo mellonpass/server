@@ -10,8 +10,6 @@ from django.db.models import (
     CharField,
     DateTimeField,
     EmailField,
-    IntegerField,
-    Model,
     TextField,
     UUIDField,
 )
