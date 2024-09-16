@@ -6,13 +6,7 @@ from apps.jwt.models import RefreshToken
 
 class RefreshTokenAdmin(admin.ModelAdmin):
 
-    list_display = (
-        "user",
-        "session_key",
-        "is_active",
-        "datetime_revoked",
-        "exp"
-    )
+    list_display = ("user", "session_key", "is_active", "datetime_revoked", "exp")
 
     readonly_fields = (
         "session_key",

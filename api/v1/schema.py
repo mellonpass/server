@@ -1,10 +1,11 @@
 import strawberry
 
 from apps.authx.api.v1 import schema as account_schema
+from apps.jwt.api.v1 import schema as refresh_token_schema
 
 
 @strawberry.type
-class Mutation(account_schema.Mutation):
+class Mutation(account_schema.Mutation, refresh_token_schema.Mutation):
     pass
 
 

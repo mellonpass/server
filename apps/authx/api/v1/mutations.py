@@ -20,7 +20,7 @@ from apps.authx.services import (
 )
 from apps.jwt.services import (
     generate_jwt_from_user,
-    revoke_refresh_token_by_session_key,
+    revoke_refresh_tokens_by_session_key,
     store_refresh_token,
 )
 
@@ -74,7 +74,7 @@ class AccountMutation:
         if not user.is_authenticated:
             return LogoutPayload(is_success=False, message="User is not authenticated.")
 
-        revoke_refresh_token_by_session_key(info.context.request.session.session_key)
+        revoke_refresh_tokens_by_session_key(info.context.request.session.session_key)
         logout_user(info.context.request)
         return LogoutPayload(
             is_success=True, message=f"User {user.email} successfully logged out."

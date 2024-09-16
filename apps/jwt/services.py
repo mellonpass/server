@@ -39,6 +39,7 @@ def generate_jwt_from_user(user: User) -> UserJWTDetail:
         **base_payload,
         "exp": (issued_at + timedelta(seconds=REFRESH_TOKEN_DURATION)).timestamp(),
         "jti": str(uuid4()),
+        "scopes": ["refresh_token"],
     }
     access_token = jwt.encode(
         access_token_payload, _load_private_key(), algorithm="ES256"
@@ -115,7 +116,29 @@ def store_refresh_token(token: str, session_key: str, user: User) -> RefreshToke
     )
 
 
-def revoke_refresh_token_by_session_key(session_key: str):
+def revoke_refresh_tokens_by_session_key(session_key: str):
     RefreshToken.objects.filter(session_key=session_key).update(
         revoked=True, datetime_revoked=timezone.now()
     )
+
+
+def is_valid_refresh_token(token: str) -> Tuple[bool, str]:
+    is_valid, data = verify_jwt(token)
+
+    if not is_valid:
+        return is_valid, data
+
+    if "scopes" not in data or not "refresh_token" in data["scopes"]:
+        return False, "Invalid refresh token."
+
+    qs = RefreshToken.objects.filter(jti=data["jti"])
+
+    if not qs.exists():
+        return False, "Refresh token does not exists."
+
+    refresh_token = qs.get()
+
+    if refresh_token.revoked or refresh_token.is_expired:
+        return False, "Refresh token is revoked or expired."
+
+    return True, "Refresh token is valid."
