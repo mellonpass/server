@@ -2,7 +2,7 @@ import logging
 
 import strawberry
 
-from apps.authx.api.types import (
+from apps.authx.api.v1.types import (
     Account,
     CreateAccountInput,
     LoginFailed,

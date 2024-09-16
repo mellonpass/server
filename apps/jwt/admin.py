@@ -8,10 +8,10 @@ class RefreshTokenAdmin(admin.ModelAdmin):
 
     list_display = (
         "user",
-        "jti",
         "session_key",
         "is_active",
         "datetime_revoked",
+        "exp"
     )
 
     readonly_fields = (

@@ -1,13 +1,11 @@
 import strawberry
 
-from apps.authx.api.mutations import AccountMutation
+from apps.authx.api.v1 import schema as account_schema
 
 
 @strawberry.type
-class Mutation:
-    @strawberry.field
-    def Account(self) -> AccountMutation:
-        return AccountMutation()
+class Mutation(account_schema.Mutation):
+    pass
 
 
 @strawberry.type
