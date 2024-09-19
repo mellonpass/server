@@ -6,23 +6,64 @@ networks:
 
 volumes:
   mellonpass-postgres-data: {}
+  mellonpass-rabbitmq-data: {}
 
 services:
+  mellonpass_server: &mellonpass_server
+    build:
+      context: .
+      args:
+        POETRY_INSTALL_OPTS: '--no-root'
+      target: local
+      dockerfile: Dockerfile
+    container_name: mellonpass_server
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+    env_file:
+      - ./config/envs/.django.env
+    volumes:
+      - .:/code:z
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mellonpass_db
+      - mellonpass_rabbitmq
+    networks:
+      - mellonpass-network
+    command: /start_web
+
   mellonpass_db:
     image: postgres:15-alpine
     container_name: mellonpass_db
     ports:
-      - 5440:5440
+      - 5432:5432
     expose:
-      - 5440
+      - 5432
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_PORT=5440
-      - PGPORT=5440
+      - POSTGRES_PORT=5432
     volumes:
       - mellonpass-postgres-data:/var/lib/postgresql/data:z
+    networks:
+      - mellonpass-network
+
+  mellonpass_rabbitmq:
+    image: rabbitmq:3.13.7-management-alpine
+    container_name: mellonpass_rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    expose:
+      - 5672
+      - 15672
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbit
+      - RABBITMQ_DEFAULT_PASS=rabbit
+    volumes:
+      - mellonpass-rabbitmq-data:/var/lib/rabbitmq:z
     networks:
       - mellonpass-network
