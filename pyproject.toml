@@ -19,6 +19,9 @@ pyyaml = "^6.0.2"
 ua-parser = "^0.18.0"
 user-agents = "^2.2.0"
 django-debug = "^0.1.1"
+celery = "^5.4.0"
+django-celery-results = "^2.5.1"
+django-celery-beat = "^2.7.0"
 
 
 [tool.poetry.group.dev.dependencies]

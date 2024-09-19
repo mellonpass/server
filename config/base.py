@@ -49,6 +49,8 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "django_extensions",
+    "django_celery_results",
+    "django_celery_beat",
 ]
 
 LOCAL_APPS = [
@@ -151,3 +153,12 @@ PASSWORD_HASHERS = [
 
 JWT_PRIVATE_KEY_PATH = env("JWT_PRIVATE_KEY_PATH")
 JWT_PUBLIC_KEY_PATH = env("JWT_PUBLIC_KEY_PATH")
+
+# CELERY
+# ------------------------------------------------------------------------
+# timezone for celery tasks
+CELERY_TIMEZONE = TIME_ZONE
+# hard time limit
+CELERY_TASK_TIME_LIMIT = 60 * 30
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_CACHE_BACKEND = "django-cache"
