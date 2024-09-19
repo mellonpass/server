@@ -1,5 +1,5 @@
 from factory import Faker
-from factory.django import DjangoModelFactory, Password
+from factory.django import DjangoModelFactory
 
 from apps.authx.models import User
 

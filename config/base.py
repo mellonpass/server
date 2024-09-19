@@ -14,6 +14,7 @@ from pathlib import Path
 
 import dj_database_url
 import environ
+from celery.schedules import crontab
 
 env = environ.Env()
 
@@ -157,8 +158,24 @@ JWT_PUBLIC_KEY_PATH = env("JWT_PUBLIC_KEY_PATH")
 # CELERY
 # ------------------------------------------------------------------------
 # timezone for celery tasks
-CELERY_TIMEZONE = TIME_ZONE
+if USE_TZ:
+    CELERY_TIMEZONE = TIME_ZONE
+
 # hard time limit
 CELERY_TASK_TIME_LIMIT = 60 * 30
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_CACHE_BACKEND = "django-cache"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TASK_SERIALIZER = "json"
+
+# list of periodic tasks
+CELERY_BEAT_SCHEDULE = {
+    "revoke_inactive_refresh_tokens": {
+        "task": "apps.jwt.tasks.revoke_inactive_refresh_tokens",
+        "schedule": crontab(minute=0, hour=0),
+    },
+    "remove_revoked_refresh_tokens": {
+        "task": "apps.jwt.tasks.remove_revoked_refresh_tokens",
+        "schedule": crontab(minute=0, hour=0),
+    },
+}
