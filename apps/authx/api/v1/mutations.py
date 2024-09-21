@@ -9,6 +9,7 @@ from apps.authx.api.v1.types import (
     LoginInput,
     LoginPayload,
     LoginSuccess,
+    LoginToken,
     LogoutPayload,
     UserAlreadyAuthenticated,
 )
@@ -20,9 +21,10 @@ from apps.authx.services import (
     store_user_ip_address_by_request,
 )
 from apps.jwt.services import (
-    generate_jwt_from_user,
-    revoke_refresh_tokens_by_session_key,
-    store_refresh_token,
+    ACCESS_TOKEN_DURATION,
+    generate_access_token_from_user,
+    generate_refresh_token_from_user_and_session,
+    revoke_refresh_tokens,
 )
 
 logger = logging.getLogger(__name__)
@@ -47,12 +49,10 @@ class AccountMutation:
             **strawberry.asdict(input), request=info.context.request
         )
         if is_success:
-            user_token_detail = generate_jwt_from_user(user)
 
-            store_refresh_token(
-                token=user_token_detail["refresh_token"],
-                session_key=info.context.request.session.session_key,
-                user=user,
+            access_token = generate_access_token_from_user(user)
+            refresh_token = generate_refresh_token_from_user_and_session(
+                user=user, session_key=info.context.request.session.session_key
             )
 
             store_user_agent_by_request(info.context.request)
@@ -60,8 +60,12 @@ class AccountMutation:
 
             return LoginSuccess(
                 psk=user.protected_symmetric_key,
-                access_token=user_token_detail["access_token"],
-                refresh_token=user_token_detail["refresh_token"],
+                token=LoginToken(
+                    access_token=access_token,
+                    refresh_token=refresh_token.refresh_token_id,
+                    expires_in=ACCESS_TOKEN_DURATION,
+                    token_type="Bearer",
+                ),
             )
         return LoginFailed()
 
@@ -73,7 +77,7 @@ class AccountMutation:
         if not user.is_authenticated:
             return LogoutPayload(is_success=False, message="User is not authenticated.")
 
-        revoke_refresh_tokens_by_session_key(info.context.request.session.session_key)
+        revoke_refresh_tokens(info.context.request.session.session_key)
         logout_user(info.context.request)
         return LogoutPayload(
             is_success=True, message=f"User {user.email} successfully logged out."

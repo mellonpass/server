@@ -10,7 +10,8 @@ class RefreshTokenAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "session_key",
-        "jti",
+        "refresh_token_id",
+        "replaced_by",
         "exp",
         "datetime_revoked",
         "user",

@@ -10,4 +10,6 @@ class RefreshTokenFactory(DjangoModelFactory):
         model = RefreshToken
 
     session_key = FuzzyText(length=15)
-    jti = Faker("uuid4")
+    # Use dummy uuid4, in real world we used a hexed
+    # version of a hashed uuid4.
+    refresh_token_id = Faker("uuid4")

@@ -17,9 +17,18 @@ class RefreshToken(Model):
     """
 
     session_key = CharField(max_length=150, null=False, blank=False, default="")
-
-    jti = CharField(max_length=150, unique=True, null=False, blank=False, default="")
+    refresh_token_id = CharField(
+        max_length=150, unique=True, null=False, blank=False, default=""
+    )
     exp = DateTimeField(null=False, blank=False)
+
+    replaced_by = CharField(
+        max_length=150,
+        null=False,
+        blank=True,
+        default="",
+        help_text="Another refresh token id.",
+    )
 
     revoked = BooleanField(null=False, blank=False, default=False)
     datetime_revoked = DateTimeField(null=True, blank=True, default=None)
@@ -41,4 +50,4 @@ class RefreshToken(Model):
         return self.exp <= timezone.now()
 
     def __str__(self) -> str:
-        return self.jti
+        return self.refresh_token_id
