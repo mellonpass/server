@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -o errexit
+
+celery -A config.celery_app worker -l INFO

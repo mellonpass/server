@@ -67,3 +67,16 @@ services:
       - mellonpass-rabbitmq-data:/var/lib/rabbitmq:z
     networks:
       - mellonpass-network
+
+  mellonpass_worker:
+    <<: *mellonpass_server
+    container_name: mellonpass_worker
+    depends_on:
+      - mellonpass_rabbitmq
+      - mellonpass_server
+    ports: []
+    volumes:
+      - .:/code:z
+    command: /start_worker
+    networks:
+      - mellonpass-network

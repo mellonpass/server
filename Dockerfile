@@ -103,6 +103,10 @@ FROM final-build as local
 COPY deploy/dev/start_web /start_web
 RUN chmod +x /start_web
 
+# Copy Celery worker script
+COPY deploy/dev/start_worker /start_worker
+RUN chmod +x /start_worker
+
 # FINAL PRODUCTION BUILD STAGE
 # ---------------------------------------------------------------------------
 FROM final-build as production
