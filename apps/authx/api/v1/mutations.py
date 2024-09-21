@@ -16,7 +16,8 @@ from apps.authx.services import (
     create_account,
     login_user,
     logout_user,
-    store_user_agent_by_session_key,
+    store_user_agent_by_request,
+    store_user_ip_address_by_request,
 )
 from apps.jwt.services import (
     generate_jwt_from_user,
@@ -54,10 +55,8 @@ class AccountMutation:
                 user=user,
             )
 
-            store_user_agent_by_session_key(
-                info.context.request.session,
-                info.context.request.META.get("HTTP_USER_AGENT", "unknown"),
-            )
+            store_user_agent_by_request(info.context.request)
+            store_user_ip_address_by_request(info.context.request)
 
             return LoginSuccess(
                 psk=user.protected_symmetric_key,

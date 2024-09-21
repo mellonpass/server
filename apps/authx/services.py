@@ -1,11 +1,14 @@
+import logging
 from typing import Optional, Tuple
 
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.sessions.backends.db import SessionStore
 from django.http import HttpRequest
+from ipware import get_client_ip
 from user_agents import parse
 
 from apps.authx.models import User
+
+logger = logging.getLogger(__name__)
 
 
 def create_account(
@@ -39,9 +42,21 @@ def logout_user(request: HttpRequest):
     logout(request)
 
 
-def store_user_agent_by_session_key(session: SessionStore, user_agent: str):
-    ua = parse(user_agent)
+def store_user_agent_by_request(request: HttpRequest):
+    session = request.session
+    ua = parse(request.META.get("HTTP_USER_AGENT", "unknown"))
     session["device_information"] = (
         f"{ua.device.family} {ua.browser.family} - {ua.get_device()}"
     )
     session.save()
+
+
+def store_user_ip_address_by_request(request: HttpRequest):
+    session = request.session
+    client_ip, _ = get_client_ip(request)
+    if client_ip is None:
+        logger.warning(
+            "Unable to get the client's IP address with session %s", session.session_key
+        )
+    else:
+        session["device_ip"] = client_ip

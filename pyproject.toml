@@ -22,6 +22,7 @@ django-debug = "^0.1.1"
 celery = "^5.4.0"
 django-celery-results = "^2.5.1"
 django-celery-beat = "^2.7.0"
+django-ipware = "^7.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
