@@ -80,3 +80,16 @@ services:
     command: /start_worker
     networks:
       - mellonpass-network
+
+  mellonpass_beat:
+    <<: *mellonpass_server
+    container_name: mellonpass_beat
+    depends_on:
+      - mellonpass_rabbitmq
+      - mellonpass_server
+    ports: []
+    volumes:
+      - .:/code:z
+    command: /start_beat
+    networks:
+      - mellonpass-network

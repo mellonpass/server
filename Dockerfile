@@ -107,6 +107,10 @@ RUN chmod +x /start_web
 COPY deploy/dev/start_worker /start_worker
 RUN chmod +x /start_worker
 
+# Copy Celery beat script
+COPY deploy/dev/start_beat /start_beat
+RUN chmod +x /start_beat
+
 # FINAL PRODUCTION BUILD STAGE
 # ---------------------------------------------------------------------------
 FROM final-build as production
