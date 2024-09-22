@@ -1,3 +1,4 @@
+from typing import Dict
 from uuid import uuid4
 
 from django.conf import settings
@@ -11,6 +12,7 @@ from django.db.models import (
     TextField,
     UUIDField,
 )
+from django.forms.models import model_to_dict
 
 
 class CipherType(TextChoices):
@@ -30,8 +32,8 @@ class Cipher(Model):
         null=False,
         blank=False,
     )
-    data = TextField(null=False, blank=False)
     key = CharField(max_length=180, null=False, blank=False)
+    data = TextField(null=False, blank=False)
 
     owner = ForeignKey(
         settings.AUTH_USER_MODEL, null=False, blank=False, on_delete=RESTRICT

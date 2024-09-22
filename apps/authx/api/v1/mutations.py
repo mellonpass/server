@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 @strawberry.type
 class AccountMutation:
     @strawberry.mutation
-    def create(self, info, input: CreateAccountInput) -> Account:
+    def create_account(self, info, input: CreateAccountInput) -> Account:
         account = create_account(**strawberry.asdict(input))
         return Account(uuid=account.uuid, name=account.name, email=account.email)
 
