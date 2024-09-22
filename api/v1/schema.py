@@ -10,12 +10,6 @@ Mutation = merge_types(
     (account_schema.Mutation, refresh_token_schema.Mutation, cipher_schema.Mutation),
 )
 
-
-@strawberry.type
-class Query:
-    @strawberry.field
-    def version(self) -> str:
-        return "v1"
-
+Query = merge_types("Query", (cipher_schema.CipherQuery,))
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
