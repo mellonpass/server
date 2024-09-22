@@ -54,10 +54,7 @@ THIRD_PARTY_APPS = [
     "django_celery_beat",
 ]
 
-LOCAL_APPS = [
-    "apps.authx",
-    "apps.jwt",
-]
+LOCAL_APPS = ["apps.authx", "apps.jwt", "apps.cipher"]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
