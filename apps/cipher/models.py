@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, Optional, Union, overload
 from uuid import uuid4
 
 from django.conf import settings
@@ -12,34 +12,33 @@ from django.db.models import (
     ForeignKey,
     Index,
     Model,
+    PositiveIntegerField,
     TextChoices,
     TextField,
     UUIDField,
 )
+from django.utils.translation import gettext_lazy as _
 
 
 class CipherType(TextChoices):
-    LOGIN = "LOGIN"
+    LOGIN = "LOGIN", _("Login")
+    SECURE_NOTE = "SECURE_NOTE", _("Secure note")
 
 
 class Cipher(Model):
     uuid = UUIDField(unique=True, null=False, blank=False, default=uuid4)
     type = CharField(
-        max_length=15,
+        max_length=25,
         null=False,
         blank=False,
         choices=CipherType.choices,
     )
-    name = CharField(
-        max_length=100,
-        null=False,
-        blank=False,
-    )
+    name = TextField(null=False, blank=False, help_text="Encrypted cipher data name.")
 
     key = CharField(max_length=180, null=False, blank=False)
 
-    data_id = UUIDField(null=False, blank=False)
-    data = GenericForeignKey("content_type", "data_id")
+    data_id = PositiveIntegerField()
+    data: "CipherData" = GenericForeignKey("content_type", "data_id")
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
 
     owner = ForeignKey(
@@ -56,23 +55,46 @@ class Cipher(Model):
         indexes = [
             Index(fields=["content_type", "data_id"]),
         ]
+        unique_together = (
+            "content_type",
+            "data_id",
+        )
 
 
 class CipherModelMixin(Model):
+    uuid = UUIDField(
+        unique=True, null=False, blank=False, default=uuid4, editable=False
+    )
+
     ciphers = GenericRelation(Cipher)
 
     @property
     def cipher(self) -> Optional[Cipher]:
         return self.ciphers.first()
 
+    def to_json(self) -> Dict:
+        skip_fields = ("id", "uuid")
+        data = {}
+        for f in self._meta.concrete_fields:
+            if f.name in skip_fields:
+                continue
+            data[f.name] = f.value_from_object(self)
+        return data
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}:{self.uuid}"
+
     class Meta:
         abstract = True
 
 
+CipherData = CipherModelMixin
+
+
 class CipherDataLogin(CipherModelMixin):
-    username = TextField(null=False, blank=False)
-    password = TextField(null=False, blank=False)
+    username = TextField(null=False, blank=False, help_text="Encrypted username.")
+    password = TextField(null=False, blank=False, help_text="Encrypted password.")
 
 
 class CipherDataSecureNote(CipherModelMixin):
-    note = TextField(null=False, blank=False)
+    note = TextField(null=False, blank=False, help_text="Encrypted secure note.")

@@ -5,14 +5,16 @@ from typing import Annotated, Iterable, Union
 import strawberry
 import strawberry.annotation
 from strawberry import relay
+from strawberry.scalars import JSON
 
 from apps.cipher.models import Cipher as CipherModel
-from apps.cipher.services import get_ciphers_by_uuids
+from apps.cipher.services import get_ciphers_by_owner_and_uuids
 
 
 @strawberry.enum
 class CipherTypeEnum(Enum):
     LOGIN = "LOGIN"
+    SECURE_NOTE = "SECURE_NOTE"
 
 
 @strawberry.type
@@ -22,7 +24,7 @@ class Cipher(relay.Node):
     type: CipherTypeEnum
     name: str
     key: str
-    data: str
+    data: JSON
     created: datetime
 
     @classmethod
@@ -33,6 +35,13 @@ class Cipher(relay.Node):
         node_ids: Iterable[str],
         required: bool = False,
     ):
+        qs = get_ciphers_by_owner_and_uuids(
+            owner=info.context.request.user, uuids=node_ids
+        )
+
+        if qs.count() == 0:
+            return []
+
         return [
             Cipher(
                 uuid=cipher.uuid,
@@ -40,10 +49,10 @@ class Cipher(relay.Node):
                 type=cipher.type,
                 name=cipher.name,
                 key=cipher.key,
-                data=cipher.data,
+                data=cipher.data.to_json(),
                 created=cipher.created,
             )
-            for cipher in get_ciphers_by_uuids(uuids=node_ids)
+            for cipher in qs
         ]
 
 
@@ -59,7 +68,7 @@ class CipherConnection(relay.ListConnection[Cipher]):
             type=node.type,
             name=node.name,
             key=node.key,
-            data=node.data,
+            data=node.data.to_json(),
             created=node.created,
         )
 
@@ -85,4 +94,4 @@ class CreateCipherInput:
     type: CipherTypeEnum
     name: str
     key: str
-    data: str
+    data: JSON

@@ -12,7 +12,9 @@ from apps.cipher.services import create_cipher
 @strawberry.type
 class CipherMutation:
     @strawberry.mutation
-    def create_cipher(self, info, input: CreateCipherInput) -> CipherCreatePayload:
+    def create_cipher(
+        self, info: strawberry.Info, input: CreateCipherInput
+    ) -> CipherCreatePayload:
         user = info.context.request.user
         cipher = create_cipher(
             owner=user,
@@ -29,7 +31,7 @@ class CipherMutation:
                 type=cipher.type,
                 name=cipher.name,
                 key=cipher.key,
-                data=cipher.data,
+                data=cipher.data.to_json(),
                 created=cipher.created,
             )
         )
