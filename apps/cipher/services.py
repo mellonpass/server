@@ -27,13 +27,9 @@ def _build_cipher_data(
         case CipherType.SECURE_NOTE:
             cipher_data = CipherDataSecureNote(note=data["note"])
         case _:
-            raise ServiceValidationError(f"Invalid CipherType {type}.")
+            raise ServiceValidationError(f"Invalid CipherType {cipher_type}.")
     cipher_data.save()
     return cipher_data
-
-
-def get_cipher_by_uuid(uuid: UUID) -> Cipher:
-    return Cipher.objects.get(uuid=uuid)
 
 
 def get_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> QuerySet[Cipher]:
