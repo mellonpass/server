@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Iterable, Union
+from typing import Annotated, Iterable, List, Union
 
 import strawberry
 import strawberry.annotation
@@ -15,6 +15,9 @@ from apps.cipher.services import get_ciphers_by_owner_and_uuids
 class CipherTypeEnum(Enum):
     LOGIN = "LOGIN"
     SECURE_NOTE = "SECURE_NOTE"
+
+
+# Types
 
 
 @strawberry.type
@@ -38,10 +41,6 @@ class Cipher(relay.Node):
         qs = get_ciphers_by_owner_and_uuids(
             owner=info.context.request.user, uuids=node_ids
         )
-
-        if qs.count() == 0:
-            return []
-
         return [
             Cipher(
                 uuid=cipher.uuid,
@@ -87,6 +86,14 @@ CipherCreatePayload = Annotated[
     Union[CipherCreateSuccess, CipherCreateForbidden],
     strawberry.union("CipherCreatePayload"),
 ]
+
+
+@strawberry.type
+class CipherDeletePayload:
+    delete_ids: List[strawberry.ID]
+
+
+# Inputs
 
 
 @strawberry.input
