@@ -7,11 +7,12 @@ from apps.cipher.api.v1.types import (
     CreateCipherInput,
 )
 from apps.cipher.services import create_cipher
+from apps.core.graphql.permissions import IsAuthenticated
 
 
 @strawberry.type
 class CipherMutation:
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def create_cipher(
         self, info: strawberry.Info, input: CreateCipherInput
     ) -> CipherCreatePayload:
