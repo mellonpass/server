@@ -23,6 +23,7 @@ celery = "^5.4.0"
 django-celery-results = "^2.5.1"
 django-celery-beat = "^2.7.0"
 django-ipware = "^7.0.1"
+marshmallow = "^3.22.0"
 
 
 [tool.poetry.group.dev.dependencies]

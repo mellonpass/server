@@ -51,7 +51,7 @@ class CipherMutation:
             owner=info.context.request.user, uuids=[_id.node_id for _id in ids]
         )
         return CipherDeletePayload(
-            delete_ids=[
+            deleted_ids=[
                 relay.GlobalID("Cipher", str(_uuid)) for _uuid in affected_uuids
             ]
         )

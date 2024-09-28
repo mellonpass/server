@@ -90,7 +90,7 @@ CipherCreatePayload = Annotated[
 
 @strawberry.type
 class CipherDeletePayload:
-    delete_ids: List[strawberry.ID]
+    deleted_ids: List[strawberry.ID]
 
 
 # Inputs
