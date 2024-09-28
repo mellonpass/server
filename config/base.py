@@ -177,3 +177,6 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(minute=0, hour=0),
     },
 }
+
+# refirect url after a successful account creation (login url).
+ACCOUNT_CREATE_SUCCESS_REDIRECT_URL = env("ACCOUNT_CREATE_SUCCESS_REDIRECT_URL")

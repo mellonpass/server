@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from marshmallow import ValidationError
 
-from apps.authx.serializers import AccountSerializer
+from apps.authx.serializers import AccountCreateSerializer
 from apps.authx.services import create_account
 
 
@@ -19,9 +19,9 @@ def account_view(request: HttpRequest, *args, **kwargs):
         )
 
     try:
-        serializer = AccountSerializer()
+        serializer = AccountCreateSerializer()
         account_data = serializer.load(json.loads(request.body))
         user = create_account(**account_data)
         return JsonResponse(serializer.dump(user), status=HTTPStatus.CREATED)
     except ValidationError as error:
-        return JsonResponse(error.messages, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse({"error": error.messages}, status=HTTPStatus.BAD_REQUEST)
