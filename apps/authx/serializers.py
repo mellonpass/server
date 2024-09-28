@@ -12,3 +12,8 @@ class AccountCreateSerializer(Schema):
     success_redirect_url = fields.Str(
         dump_only=True, dump_default=settings.ACCOUNT_CREATE_SUCCESS_REDIRECT_URL
     )
+
+
+class AuthenticationSerializer(Schema):
+    email = fields.Email(required=True, load_only=True)
+    login_hash = fields.Str(required=True, load_only=True)
