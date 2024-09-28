@@ -180,3 +180,11 @@ CELERY_BEAT_SCHEDULE = {
 
 # refirect url after a successful account creation (login url).
 ACCOUNT_CREATE_SUCCESS_REDIRECT_URL = env("ACCOUNT_CREATE_SUCCESS_REDIRECT_URL")
+
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": env("REDIS_URL"),
+    }
+}

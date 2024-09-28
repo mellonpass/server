@@ -5,8 +5,12 @@ networks:
     driver: bridge
 
 volumes:
-  mellonpass-postgres-data: {}
-  mellonpass-rabbitmq-data: {}
+  mellonpass-postgres-data:
+    driver: local
+  mellonpass-rabbitmq-data:
+    driver: local
+  mellonpass-redis-data:
+    driver: local
 
 services:
   mellonpass_server: &mellonpass_server
@@ -17,7 +21,7 @@ services:
       target: local
       dockerfile: Dockerfile
     container_name: mellonpass_server
-    restart: unless-stopped
+    restart: always
     stdin_open: true
     tty: true
     env_file:
@@ -29,6 +33,7 @@ services:
     depends_on:
       - mellonpass_db
       - mellonpass_rabbitmq
+      - mellonpass_redis
     networks:
       - mellonpass-network
     command: /start_web
@@ -38,8 +43,6 @@ services:
     container_name: mellonpass_db
     ports:
       - 5432:5432
-    expose:
-      - 5432
     environment:
       - POSTGRES_HOST=postgres
       - POSTGRES_DB=postgres
@@ -57,9 +60,6 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
-    expose:
-      - 5672
-      - 15672
     environment:
       - RABBITMQ_DEFAULT_USER=rabbit
       - RABBITMQ_DEFAULT_PASS=rabbit
@@ -91,5 +91,18 @@ services:
     volumes:
       - .:/code:z
     command: /start_beat
+    networks:
+      - mellonpass-network
+
+  mellonpass_redis:
+    image: redis:7.2.5-alpine
+    container_name: mellonpass_redis
+    command: /bin/sh -c 'redis-server --appendonly yes --requirepass $${REDIS_PASSWORD}'
+    ports:
+      - 6379:6379
+    environment:
+      REDIS_PASSWORD: redis
+    volumes:
+      - mellonpass-redis-data:/data:z
     networks:
       - mellonpass-network
