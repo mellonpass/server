@@ -1,6 +1,7 @@
 import json
 from http import HTTPStatus
 
+from django.db import transaction
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -13,6 +14,7 @@ from apps.authx.serializers import AccountCreateSerializer, AuthenticationSerial
 from apps.authx.services import (
     create_account,
     login_user,
+    logout_user,
     store_user_agent_by_request,
     store_user_ip_address_by_request,
 )
@@ -29,7 +31,8 @@ def client_ip(group, request: HttpRequest):
     return client_ip
 
 
-@ratelimit(key=client_ip, rate="10/m")
+@transaction.atomic()  # TODO: add unit test
+@ratelimit(key=client_ip, rate="3/m")
 @require_POST
 @csrf_exempt
 def account_view(request: HttpRequest, *args, **kwargs):
@@ -39,9 +42,23 @@ def account_view(request: HttpRequest, *args, **kwargs):
         )
 
     try:
+        sid = transaction.savepoint()
+
         serializer = AccountCreateSerializer()
         account_data = serializer.load(json.loads(request.body))
         user = create_account(**account_data)
+
+        # This will become `True` if user the same IP created more than 10 accounts
+        # per minute. Also does not commit account creation.
+        was_limited = getattr(request, "limited", False)
+        if was_limited:
+            return JsonResponse(
+                {"error": "Blocked, try again later", "code": "FORBIDDEN"},
+                status=HTTPStatus.FORBIDDEN,
+            )
+
+        transaction.savepoint_commit(sid)
+
         return JsonResponse({"data": serializer.dump(user)}, status=HTTPStatus.CREATED)
     except ValidationError as error:
         return JsonResponse({"error": error.messages}, status=HTTPStatus.BAD_REQUEST)
@@ -64,7 +81,9 @@ def auth_view(request: HttpRequest, *args, **kwargs):
 
     if request.user.is_authenticated:
         return JsonResponse(
-            {"message": f"User {request.user.email} already authenticated."},
+            {
+                "message": f"User {request.user.email} already authenticated. Logout current user first!"
+            },
             status=HTTPStatus.OK,
         )
 
@@ -115,4 +134,21 @@ def auth_view(request: HttpRequest, *args, **kwargs):
 @require_POST
 @csrf_exempt
 def logout_view(request: HttpRequest):
-    pass
+    if request.content_type != "application/json":
+        return JsonResponse(
+            {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"message": "No user is authenticated."}, status=HTTPStatus.NOT_ACCEPTABLE
+        )
+
+    user_email = request.user.email
+    revoke_refresh_tokens(request.session.session_key)
+    logout_user(request)
+
+    return JsonResponse(
+        {"message": f"User {user_email} has successfully logged out."},
+        status=HTTPStatus.ACCEPTED,
+    )
