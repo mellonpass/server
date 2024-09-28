@@ -5,6 +5,8 @@ from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django_ratelimit.decorators import ratelimit
+from ipware import get_client_ip
 from marshmallow import ValidationError
 
 from apps.authx.serializers import AccountCreateSerializer, AuthenticationSerializer
@@ -21,6 +23,13 @@ from apps.jwt.services import (
 )
 
 
+# Used for ratelimiting. Detect CLIENT_IP or authenticated user access
+def client_ip(group, request: HttpRequest):
+    client_ip, _ = get_client_ip(request)
+    return client_ip
+
+
+@ratelimit(key=client_ip, rate="10/m")
 @require_POST
 @csrf_exempt
 def account_view(request: HttpRequest, *args, **kwargs):
@@ -43,12 +52,28 @@ def account_view(request: HttpRequest, *args, **kwargs):
         )
 
 
+@ratelimit(key="post:email", rate="5/m", block=False)
+@ratelimit(key=client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
 def auth_view(request: HttpRequest, *args, **kwargs):
     if request.content_type != "application/json":
         return JsonResponse(
             {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
+        )
+
+    if request.user.is_authenticated:
+        return JsonResponse(
+            {"message": f"User {request.user.email} already authenticated."},
+            status=HTTPStatus.OK,
+        )
+
+    # This will be `True`` if the login failed 5x in 1min.
+    was_limited = getattr(request, "limited", False)
+    if was_limited:
+        return JsonResponse(
+            {"error": "Blocked, try again later", "code": "FORBIDDEN"},
+            status=HTTPStatus.FORBIDDEN,
         )
 
     serializer = AuthenticationSerializer()
@@ -78,7 +103,16 @@ def auth_view(request: HttpRequest, *args, **kwargs):
 
     return JsonResponse(
         {
-            "error": "Invalid credentials provided. Please check your email and master password."
+            "error": (
+                "Invalid credentials provided. "
+                "Please check your email and master password."
+            )
         },
         status=HTTPStatus.BAD_REQUEST,
     )
+
+
+@require_POST
+@csrf_exempt
+def logout_view(request: HttpRequest):
+    pass
