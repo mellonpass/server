@@ -6,6 +6,7 @@ from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
 from ipware import get_client_ip
 from marshmallow import ValidationError
@@ -25,14 +26,23 @@ from apps.jwt.services import (
 )
 
 
-# Used for ratelimiting. Detect CLIENT_IP or authenticated user access
-def client_ip(group, request: HttpRequest):
+# Used for ratelimiting.
+# Detect CLIENT_IP properly using ipware.
+def rl_client_ip(group, request: HttpRequest):
     client_ip, _ = get_client_ip(request)
     return client_ip
 
 
-@transaction.atomic()  # TODO: add unit test
-@ratelimit(key=client_ip, rate="3/m")
+# Used for ratelimiting.
+# Detect login with the same email.
+def rl_email(group, request: HttpRequest):
+    serializer = AuthenticationSerializer()
+    auth_data = serializer.load(json.loads(request.body))
+    return auth_data["email"]
+
+
+@transaction.atomic()  # TODO: add a unit test
+@ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
 def account_view(request: HttpRequest, *args, **kwargs):
@@ -53,8 +63,8 @@ def account_view(request: HttpRequest, *args, **kwargs):
         was_limited = getattr(request, "limited", False)
         if was_limited:
             return JsonResponse(
-                {"error": "Blocked, try again later", "code": "FORBIDDEN"},
-                status=HTTPStatus.FORBIDDEN,
+                {"error": "Blocked, try again later.", "code": "TOO_MANY_REQUESTS"},
+                status=HTTPStatus.TOO_MANY_REQUESTS,
             )
 
         transaction.savepoint_commit(sid)
@@ -69,8 +79,8 @@ def account_view(request: HttpRequest, *args, **kwargs):
         )
 
 
-@ratelimit(key="post:email", rate="5/m", block=False)
-@ratelimit(key=client_ip, rate="5/m", block=False)
+@ratelimit(key=rl_email, rate="5/m", block=False)
+@ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
 def auth_view(request: HttpRequest, *args, **kwargs):
@@ -87,16 +97,30 @@ def auth_view(request: HttpRequest, *args, **kwargs):
             status=HTTPStatus.OK,
         )
 
-    # This will be `True`` if the login failed 5x in 1min.
-    was_limited = getattr(request, "limited", False)
-    if was_limited:
+    same_client_ip_usage = get_usage(
+        request, key=rl_client_ip, rate="5/m", fn=auth_view
+    )
+    same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=auth_view)
+
+    if same_client_ip_usage["should_limit"]:
         return JsonResponse(
-            {"error": "Blocked, try again later", "code": "FORBIDDEN"},
-            status=HTTPStatus.FORBIDDEN,
+            {"error": "Blocked, try again later.", "code": "TOO_MANY_REQUESTS"},
+            status=HTTPStatus.TOO_MANY_REQUESTS,
         )
 
     serializer = AuthenticationSerializer()
     auth_data = serializer.load(json.loads(request.body))
+
+    # TODO: add a unit test.
+    if same_email_usage["should_limit"]:
+        print(request.body)
+        return JsonResponse(
+            {
+                "error": f"Too many login atttempts for the {auth_data['email']} email.",
+                "code": "TOO_MANY_REQUESTS",
+            },
+            status=HTTPStatus.TOO_MANY_REQUESTS,
+        )
 
     user, is_success = login_user(**auth_data, request=request)
 
@@ -125,7 +149,10 @@ def auth_view(request: HttpRequest, *args, **kwargs):
             "error": (
                 "Invalid credentials provided. "
                 "Please check your email and master password."
-            )
+            ),
+            "remaining_attempt": int(
+                same_client_ip_usage["limit"] - same_client_ip_usage["count"]
+            ),
         },
         status=HTTPStatus.BAD_REQUEST,
     )
