@@ -1,5 +1,6 @@
-from api.v1.schema import schema
 import pytest
+
+from api.v1.schema import schema
 
 pytestmark = pytest.mark.django_db
 
