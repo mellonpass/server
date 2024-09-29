@@ -64,9 +64,11 @@ def refresh_token_view(request: HttpRequest):
 
     success_response = JsonResponse(
         {
-            "access_token": access_token,
-            "expires_in": ACCESS_TOKEN_DURATION,
-            "token_type": "Bearer",
+            "data": {
+                "access_token": access_token,
+                "expires_in": ACCESS_TOKEN_DURATION,
+                "token_type": "Bearer",
+            }
         },
         status=HTTPStatus.ACCEPTED,
     )

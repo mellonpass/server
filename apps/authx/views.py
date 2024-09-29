@@ -18,7 +18,8 @@ from apps.authx.services import (
     store_user_agent_by_request,
     store_user_ip_address_by_request,
 )
-from apps.core.utils import rl_client_ip
+from apps.core.utils.http import INVALID_CONTENT_TYPE, INVALID_INPUT, RATELIMIT_EXCEEDED
+from apps.core.utils.ip import rl_client_ip
 from apps.jwt.services import (
     ACCESS_TOKEN_DURATION,
     generate_access_token_from_user,
@@ -35,15 +36,15 @@ def rl_email(group, request: HttpRequest):
     return auth_data["email"]
 
 
-# TODO: add a unit test.
 @transaction.atomic()
-@ratelimit(key=rl_client_ip, rate="5/m", block=False)
+@ratelimit(key=rl_client_ip, rate="3/m", block=False)
 @require_POST
 @csrf_exempt
 def account_view(request: HttpRequest, *args, **kwargs):
     if request.content_type != "application/json":
         return JsonResponse(
-            {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
+            {"error": "Invalid request content-type.", "code": INVALID_CONTENT_TYPE},
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     try:
@@ -57,19 +58,24 @@ def account_view(request: HttpRequest, *args, **kwargs):
         # per minute. Also does not commit account creation.
         was_limited = getattr(request, "limited", False)
         if was_limited:
+            transaction.savepoint_rollback(sid)
             return JsonResponse(
-                {"error": "Blocked, try again later.", "code": "TOO_MANY_REQUESTS"},
+                {"error": "Blocked, try again later.", "code": RATELIMIT_EXCEEDED},
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
 
-        transaction.savepoint_commit(sid)
-
         return JsonResponse({"data": serializer.dump(user)}, status=HTTPStatus.CREATED)
     except ValidationError as error:
-        return JsonResponse({"error": error.messages}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse(
+            {"validation_error": error.messages, "code": INVALID_INPUT},
+            status=HTTPStatus.BAD_REQUEST,
+        )
     except IntegrityError as error:
         return JsonResponse(
-            {"error": f"Email {account_data['email']} already exists."},
+            {
+                "error": f"Email {account_data['email']} already exists.",
+                "code": INVALID_INPUT,
+            },
             status=HTTPStatus.BAD_REQUEST,
         )
 
