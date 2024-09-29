@@ -9,7 +9,7 @@ from django.urls import reverse
 
 from apps.authx.models import User
 from apps.authx.tests.factories import UserFactory
-from apps.core.utils.http import INVALID_CONTENT_TYPE, INVALID_INPUT, RATELIMIT_EXCEEDED
+from apps.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 
 pytestmark = pytest.mark.django_db
 
@@ -52,7 +52,7 @@ def test_account_create_invalid_content_type(client: Client):
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid request content-type."
-    assert response.json()["code"] == INVALID_CONTENT_TYPE
+    assert response.json()["code"] == INVALID_REQUEST
 
 
 @override_settings(RATELIMIT_ENABLE=False)

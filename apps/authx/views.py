@@ -18,7 +18,7 @@ from apps.authx.services import (
     store_user_agent_by_request,
     store_user_ip_address_by_request,
 )
-from apps.core.utils.http import INVALID_CONTENT_TYPE, INVALID_INPUT, RATELIMIT_EXCEEDED
+from apps.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 from apps.core.utils.ip import rl_client_ip
 from apps.jwt.services import (
     ACCESS_TOKEN_DURATION,
@@ -43,7 +43,7 @@ def rl_email(group, request: HttpRequest):
 def account_view(request: HttpRequest, *args, **kwargs):
     if request.content_type != "application/json":
         return JsonResponse(
-            {"error": "Invalid request content-type.", "code": INVALID_CONTENT_TYPE},
+            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
             status=HTTPStatus.BAD_REQUEST,
         )
 
@@ -93,7 +93,7 @@ def auth_view(request: HttpRequest, *args, **kwargs):
 
     if same_client_ip_usage["should_limit"]:
         return JsonResponse(
-            {"error": "Blocked, try again later.", "code": "TOO_MANY_REQUESTS"},
+            {"error": "Blocked, try again later.", "code": RATELIMIT_EXCEEDED},
             status=HTTPStatus.TOO_MANY_REQUESTS,
         )
 
@@ -101,29 +101,34 @@ def auth_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": f"Too many login atttempts using the same email.",
-                "code": "TOO_MANY_REQUESTS",
+                "code": RATELIMIT_EXCEEDED,
             },
             status=HTTPStatus.TOO_MANY_REQUESTS,
         )
 
     if request.content_type != "application/json":
         return JsonResponse(
-            {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
+            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     if request.user.is_authenticated:
         return JsonResponse(
             {
-                "message": f"User {request.user.email} already authenticated. Logout current user first!"
+                "error": f"User {request.user.email} already authenticated. Logout current user first!",
+                "code": INVALID_INPUT,
             },
-            status=HTTPStatus.OK,
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     try:
         serializer = AuthenticationSerializer()
         auth_data = serializer.load(json.loads(request.body))
     except ValidationError as error:
-        return JsonResponse({"error": error.messages}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse(
+            {"validation_error": error.messages, "code": INVALID_INPUT},
+            status=HTTPStatus.BAD_REQUEST,
+        )
 
     user, is_success = login_user(**auth_data, request=request)
 
@@ -159,6 +164,7 @@ def auth_view(request: HttpRequest, *args, **kwargs):
                 "Invalid credentials provided. "
                 "Please check your email and master password."
             ),
+            "code": INVALID_INPUT,
             "remaining_attempt": int(
                 same_client_ip_usage["limit"] - same_client_ip_usage["count"]
             ),
@@ -173,12 +179,14 @@ def auth_view(request: HttpRequest, *args, **kwargs):
 def logout_view(request: HttpRequest):
     if request.content_type != "application/json":
         return JsonResponse(
-            {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
+            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     if not request.user.is_authenticated:
         return JsonResponse(
-            {"message": "No user is authenticated."}, status=HTTPStatus.NOT_ACCEPTABLE
+            {"error": "No user is authenticated.", "code": INVALID_INPUT},
+            status=HTTPStatus.NOT_ACCEPTABLE,
         )
 
     user_email = request.user.email
