@@ -8,7 +8,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
-from ipware import get_client_ip
 from marshmallow import ValidationError
 
 from apps.authx.serializers import AccountCreateSerializer, AuthenticationSerializer
@@ -19,18 +18,13 @@ from apps.authx.services import (
     store_user_agent_by_request,
     store_user_ip_address_by_request,
 )
+from apps.core.utils import rl_client_ip
 from apps.jwt.services import (
+    ACCESS_TOKEN_DURATION,
     generate_access_token_from_user,
     generate_refresh_token_from_user_and_session,
     revoke_refresh_tokens,
 )
-
-
-# Used for ratelimiting.
-# Detect CLIENT_IP properly using ipware.
-def rl_client_ip(group, request: HttpRequest):
-    client_ip, _ = get_client_ip(request)
-    return client_ip
 
 
 # Used for ratelimiting.
@@ -41,7 +35,8 @@ def rl_email(group, request: HttpRequest):
     return auth_data["email"]
 
 
-@transaction.atomic()  # TODO: add a unit test
+# TODO: add a unit test.
+@transaction.atomic()
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
@@ -79,11 +74,32 @@ def account_view(request: HttpRequest, *args, **kwargs):
         )
 
 
+# TODO: add a unit test.
 @ratelimit(key=rl_email, rate="5/m", block=False)
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
 def auth_view(request: HttpRequest, *args, **kwargs):
+    same_client_ip_usage = get_usage(
+        request, key=rl_client_ip, rate="5/m", fn=auth_view
+    )
+    same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=auth_view)
+
+    if same_client_ip_usage["should_limit"]:
+        return JsonResponse(
+            {"error": "Blocked, try again later.", "code": "TOO_MANY_REQUESTS"},
+            status=HTTPStatus.TOO_MANY_REQUESTS,
+        )
+
+    if same_email_usage["should_limit"]:
+        return JsonResponse(
+            {
+                "error": f"Too many login atttempts using the same email.",
+                "code": "TOO_MANY_REQUESTS",
+            },
+            status=HTTPStatus.TOO_MANY_REQUESTS,
+        )
+
     if request.content_type != "application/json":
         return JsonResponse(
             {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
@@ -97,30 +113,11 @@ def auth_view(request: HttpRequest, *args, **kwargs):
             status=HTTPStatus.OK,
         )
 
-    same_client_ip_usage = get_usage(
-        request, key=rl_client_ip, rate="5/m", fn=auth_view
-    )
-    same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=auth_view)
-
-    if same_client_ip_usage["should_limit"]:
-        return JsonResponse(
-            {"error": "Blocked, try again later.", "code": "TOO_MANY_REQUESTS"},
-            status=HTTPStatus.TOO_MANY_REQUESTS,
-        )
-
-    serializer = AuthenticationSerializer()
-    auth_data = serializer.load(json.loads(request.body))
-
-    # TODO: add a unit test.
-    if same_email_usage["should_limit"]:
-        print(request.body)
-        return JsonResponse(
-            {
-                "error": f"Too many login atttempts for the {auth_data['email']} email.",
-                "code": "TOO_MANY_REQUESTS",
-            },
-            status=HTTPStatus.TOO_MANY_REQUESTS,
-        )
+    try:
+        serializer = AuthenticationSerializer()
+        auth_data = serializer.load(json.loads(request.body))
+    except ValidationError as error:
+        return JsonResponse({"error": error.messages}, status=HTTPStatus.BAD_REQUEST)
 
     user, is_success = login_user(**auth_data, request=request)
 
@@ -138,7 +135,13 @@ def auth_view(request: HttpRequest, *args, **kwargs):
         store_user_ip_address_by_request(request)
 
         success_response = JsonResponse(
-            {"data": {"access_token": access_token}},
+            {
+                "data": {
+                    "access_token": access_token,
+                    "expires_in": ACCESS_TOKEN_DURATION,
+                    "token_type": "Bearer",
+                }
+            },
             status=HTTPStatus.ACCEPTED,
         )
         success_response.set_cookie("x-mp-refresh-token", refresh_token)
@@ -158,6 +161,7 @@ def auth_view(request: HttpRequest, *args, **kwargs):
     )
 
 
+# TODO: add a unit test.
 @require_POST
 @csrf_exempt
 def logout_view(request: HttpRequest):

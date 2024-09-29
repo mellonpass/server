@@ -17,3 +17,7 @@ class AccountCreateSerializer(Schema):
 class AuthenticationSerializer(Schema):
     email = fields.Email(required=True, load_only=True)
     login_hash = fields.Str(required=True, load_only=True)
+
+
+class RefreshTokenSerializer(Schema):
+    token = fields.Str(required=True, load_only=True)

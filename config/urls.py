@@ -21,6 +21,7 @@ from strawberry.django.views import GraphQLView
 
 from api.v1.schema import schema
 from apps.authx.views import account_view, auth_view, logout_view
+from apps.jwt.views import refresh_token_view
 
 urlpatterns = [
     path("accounts", view=account_view),
@@ -28,4 +29,5 @@ urlpatterns = [
     path("auth", view=auth_view),
     path("graphql/v1", GraphQLView.as_view(schema=schema)),
     path("logout", view=logout_view),
+    path("refresh-token", view=refresh_token_view),
 ]

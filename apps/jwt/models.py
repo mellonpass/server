@@ -20,7 +20,8 @@ class RefreshToken(Model):
     refresh_token_id = CharField(
         max_length=150, unique=True, null=False, blank=False, default=""
     )
-    exp = DateTimeField(null=False, blank=False)
+    exp = DateTimeField(null=False, blank=False, help_text="Token expiration date.")
+    nbf = DateTimeField(null=False, blank=False, help_text="Active not before date.")
 
     replaced_by = CharField(
         max_length=150,
@@ -46,8 +47,15 @@ class RefreshToken(Model):
         self.save()
 
     @property
-    def is_expired(self):
+    def is_expired(self) -> bool:
         return self.exp <= timezone.now()
+
+    @property
+    def is_nbf_active(self) -> bool:
+        """Check if refresh token is under nbf effect.
+        Refresh token with active nbf cannot be processed.
+        """
+        return timezone.now() <= self.nbf
 
     def __str__(self) -> str:
         return self.refresh_token_id
