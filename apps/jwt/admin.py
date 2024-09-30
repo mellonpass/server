@@ -27,7 +27,7 @@ class RefreshTokenAdmin(admin.ModelAdmin):
 
     @admin.display(boolean=True)
     def is_active(self, obj) -> bool:
-        return (not obj.revoked and not obj.is_expired) or obj.is_nbf_active
+        return not obj.revoked and not obj.is_expired and obj.is_nbf_active
 
     def has_add_permission(self, request):
         return False

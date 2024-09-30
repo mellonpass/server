@@ -19,7 +19,7 @@ ACCESS_TOKEN_DURATION = 60 * 15  # 15m
 REFRESH_TOKEN_DURATION = ((60 * 60) * 24) * 15  # 15d
 # Refresh token can be used 30 seconds before
 # access token expiration.
-REFRESH_TOKEN_NBF_DURATION = 30  # ACCESS_TOKEN_DURATION - 30  # 14:30m
+REFRESH_TOKEN_NBF_DURATION = ACCESS_TOKEN_DURATION - 30  # 14:30m
 
 
 def generate_access_token_from_user(user: User) -> str:

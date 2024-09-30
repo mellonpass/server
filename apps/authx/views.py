@@ -1,6 +1,7 @@
 import json
 from http import HTTPStatus
 
+from django.conf import settings
 from django.db import transaction
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
@@ -80,31 +81,31 @@ def account_view(request: HttpRequest, *args, **kwargs):
         )
 
 
-# TODO: add a unit test.
 @ratelimit(key=rl_email, rate="5/m", block=False)
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
 def auth_view(request: HttpRequest, *args, **kwargs):
-    same_client_ip_usage = get_usage(
-        request, key=rl_client_ip, rate="5/m", fn=auth_view
-    )
-    same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=auth_view)
-
-    if same_client_ip_usage["should_limit"]:
-        return JsonResponse(
-            {"error": "Blocked, try again later.", "code": RATELIMIT_EXCEEDED},
-            status=HTTPStatus.TOO_MANY_REQUESTS,
+    if settings.RATELIMIT_ENABLE:
+        same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=auth_view)
+        same_client_ip_usage = get_usage(
+            request, key=rl_client_ip, rate="5/m", fn=auth_view
         )
 
-    if same_email_usage["should_limit"]:
-        return JsonResponse(
-            {
-                "error": f"Too many login atttempts using the same email.",
-                "code": RATELIMIT_EXCEEDED,
-            },
-            status=HTTPStatus.TOO_MANY_REQUESTS,
-        )
+        if same_email_usage["should_limit"]:
+            return JsonResponse(
+                {
+                    "error": f"Too many login atttempts using the same email.",
+                    "code": RATELIMIT_EXCEEDED,
+                },
+                status=HTTPStatus.TOO_MANY_REQUESTS,
+            )
+
+        if same_client_ip_usage["should_limit"]:
+            return JsonResponse(
+                {"error": "Blocked, try again later.", "code": RATELIMIT_EXCEEDED},
+                status=HTTPStatus.TOO_MANY_REQUESTS,
+            )
 
     if request.content_type != "application/json":
         return JsonResponse(
@@ -115,7 +116,7 @@ def auth_view(request: HttpRequest, *args, **kwargs):
     if request.user.is_authenticated:
         return JsonResponse(
             {
-                "error": f"User {request.user.email} already authenticated. Logout current user first!",
+                "error": f"User {request.user.email} is already authenticated. Logout current user first!",
                 "code": INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
@@ -158,19 +159,24 @@ def auth_view(request: HttpRequest, *args, **kwargs):
         success_response.set_cookie("x-mp-refresh-token", refresh_token)
         return success_response
 
-    return JsonResponse(
-        {
-            "error": (
-                "Invalid credentials provided. "
-                "Please check your email and master password."
-            ),
-            "code": INVALID_INPUT,
-            "remaining_attempt": int(
-                same_client_ip_usage["limit"] - same_client_ip_usage["count"]
-            ),
-        },
-        status=HTTPStatus.BAD_REQUEST,
-    )
+    error_data = {
+        "error": (
+            "Invalid credentials provided. "
+            "Please check your email and master password."
+        ),
+        "code": INVALID_INPUT,
+    }
+
+    if settings.RATELIMIT_ENABLE:
+        error_data.update(
+            {
+                "remaining_attempt": int(
+                    same_client_ip_usage["limit"] - same_client_ip_usage["count"]
+                ),
+            }
+        )
+
+    return JsonResponse(error_data, status=HTTPStatus.FORBIDDEN)
 
 
 # TODO: add a unit test.
