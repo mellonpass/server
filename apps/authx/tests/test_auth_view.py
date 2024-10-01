@@ -9,22 +9,12 @@ from django.test.client import Client
 from django.urls import reverse
 
 from apps.authx.models import User
-from apps.authx.tests.factories import UserFactory
+from apps.authx.tests.conftest import TEST_USER_LOGIN_HASH
 from apps.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 from apps.jwt.models import RefreshToken
 from apps.jwt.services import ACCESS_TOKEN_DURATION, verify_jwt
 
 pytestmark = pytest.mark.django_db
-
-TEST_USER_LOGIN_HASH = "myhash"
-
-
-@pytest.fixture
-def user():
-    user = UserFactory()
-    user.set_password(TEST_USER_LOGIN_HASH)
-    user.save()
-    return user
 
 
 @override_settings(RATELIMIT_ENABLE=False)

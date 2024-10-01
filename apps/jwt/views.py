@@ -10,6 +10,7 @@ from django_ratelimit.decorators import ratelimit
 from marshmallow import ValidationError
 
 from apps.authx.serializers import RefreshTokenSerializer
+from apps.core.utils.http import INVALID_INPUT, INVALID_REQUEST, REQUEST_FORBIDDEN
 from apps.jwt.models import RefreshToken
 from apps.jwt.services import (
     ACCESS_TOKEN_DURATION,
@@ -20,18 +21,21 @@ from apps.jwt.services import (
 )
 
 
-# TODO: add a unit test.
 @require_POST
 @csrf_exempt
 def refresh_token_view(request: HttpRequest):
     if request.content_type != "application/json":
         return JsonResponse(
-            {"message": "Invalid request content-type."}, status=HTTPStatus.BAD_REQUEST
+            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     if not request.user.is_authenticated:
         return JsonResponse(
-            {"message": "Unable to refresh token without a session."},
+            {
+                "error": "Unable to refresh token without a session.",
+                "code": INVALID_REQUEST,
+            },
             status=HTTPStatus.NOT_ACCEPTABLE,
         )
 
@@ -39,7 +43,10 @@ def refresh_token_view(request: HttpRequest):
         serialzier = RefreshTokenSerializer()
         token_data = serialzier.load(json.loads(request.body))
     except ValidationError as error:
-        return JsonResponse({"error": error.messages}, status=HTTPStatus.BAD_REQUEST)
+        return JsonResponse(
+            {"validation_error": error.messages, "code": INVALID_INPUT},
+            status=HTTPStatus.BAD_REQUEST,
+        )
 
     # add typing to `result`.
     result: Union[RefreshToken, str]
@@ -48,7 +55,7 @@ def refresh_token_view(request: HttpRequest):
 
     if not is_valid:
         return JsonResponse(
-            {"error": result, "code": "FORBIDDEN"}, status=HTTPStatus.FORBIDDEN
+            {"error": result, "code": REQUEST_FORBIDDEN}, status=HTTPStatus.FORBIDDEN
         )
 
     access_token = generate_access_token_from_user(request.user)
