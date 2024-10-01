@@ -19,7 +19,7 @@ pytestmark = pytest.mark.django_db
 TEST_USER_LOGIN_HASH = "myhash"
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def user():
     user = UserFactory()
     user.set_password(TEST_USER_LOGIN_HASH)
@@ -51,9 +51,12 @@ def test_auth_view(client: Client, user: User):
     active_session = Session.objects.get(session_key=rtoken.session_key)
 
     # There should be only 1 active refresh token per session.
-    RefreshToken.objects.filter(
-        session_key=rtoken.session_key, revoked=False
-    ).count() == 1
+    assert (
+        RefreshToken.objects.filter(
+            session_key=rtoken.session_key, revoked=False
+        ).count()
+        == 1
+    )
 
     # session should have client device details.
     session_data = active_session.get_decoded()

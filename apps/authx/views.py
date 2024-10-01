@@ -179,7 +179,6 @@ def auth_view(request: HttpRequest, *args, **kwargs):
     return JsonResponse(error_data, status=HTTPStatus.FORBIDDEN)
 
 
-# TODO: add a unit test.
 @require_POST
 @csrf_exempt
 def logout_view(request: HttpRequest):
@@ -191,7 +190,7 @@ def logout_view(request: HttpRequest):
 
     if not request.user.is_authenticated:
         return JsonResponse(
-            {"error": "No user is authenticated.", "code": INVALID_INPUT},
+            {"error": "No user is authenticated.", "code": INVALID_REQUEST},
             status=HTTPStatus.NOT_ACCEPTABLE,
         )
 
