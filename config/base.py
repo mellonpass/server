@@ -188,3 +188,7 @@ CACHES = {
         "LOCATION": env("REDIS_URL"),
     }
 }
+
+# Ratelimit
+# https://django-ratelimit.readthedocs.io/en/stable/settings.html
+RATELIMIT_ENABLE = True

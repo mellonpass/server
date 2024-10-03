@@ -52,7 +52,6 @@ def generate_refresh_token_from_user_and_session(
     )
 
 
-# TODO: add a unit test.
 def verify_jwt(token: str) -> Tuple[bool, Union[str, Dict]]:
     try:
         payload = jwt.decode(

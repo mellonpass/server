@@ -39,6 +39,7 @@ def test_logout_view(client: Client, user: User):
     assert (
         response.json()["message"] == f"User {user.email} has successfully logged out."
     )
+    assert response.cookies.get("x-mp-refresh-token").value in ["", None]
 
     # previous refresh token should be revoked.
     rt.refresh_from_db(fields=["revoked"])

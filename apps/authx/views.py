@@ -198,7 +198,9 @@ def logout_view(request: HttpRequest):
     revoke_refresh_tokens(request.session.session_key)
     logout_user(request)
 
-    return JsonResponse(
+    response = JsonResponse(
         {"message": f"User {user_email} has successfully logged out."},
         status=HTTPStatus.ACCEPTED,
     )
+    response.delete_cookie("x-mp-refresh-token")
+    return response
