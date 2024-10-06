@@ -14,4 +14,4 @@ class MPGrahpQLView(GraphQLView):
         return view
 
 
-mp_graphql_view = MPGrahpQLView.as_view(schema=schema, allow_queries_via_get=False)
+mp_graphql_view = MPGrahpQLView.as_view(schema=schema, allow_queries_via_get=False, graphql_ide=None)
