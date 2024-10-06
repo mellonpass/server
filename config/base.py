@@ -202,5 +202,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = ["GET", "POST"]
 
 # JWTAuthToken
-JWT_AUTH_ENABLE = False
-JWT_AUTH_PROTECTD_VIEWS = ["mp.core.graphql.views.mp_graphql_view"]
+JWT_AUTH_ENABLE = True
+JWT_AUTH_PROTECTD_VIEWS = ["mp_graphql.views.mp_graphql_view"]
