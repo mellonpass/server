@@ -19,9 +19,9 @@ from django.contrib import admin
 from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
+from api.graphql.views import mp_graphql_view
 from mp.authx.views import account_view, auth_view, logout_view
 from mp.jwt.views import refresh_token_view
-from mp_graphql.views import mp_graphql_view
 
 urlpatterns = [
     path("accounts", view=account_view, name="account"),

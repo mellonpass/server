@@ -1,7 +1,7 @@
 from django.utils.decorators import classonlymethod
 from strawberry.django.views import GraphQLView
 
-from mp_graphql.schema import schema
+from api.graphql.schema import schema
 
 
 class MPGrahpQLView(GraphQLView):
@@ -14,4 +14,6 @@ class MPGrahpQLView(GraphQLView):
         return view
 
 
-mp_graphql_view = MPGrahpQLView.as_view(schema=schema, allow_queries_via_get=False, graphql_ide=None)
+mp_graphql_view = MPGrahpQLView.as_view(
+    schema=schema, allow_queries_via_get=False, graphql_ide=None
+)
