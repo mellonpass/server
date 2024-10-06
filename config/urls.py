@@ -17,17 +17,17 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path
-from strawberry.django.views import GraphQLView
+from django.views.decorators.csrf import csrf_exempt
 
-from api.v1.schema import schema
-from apps.authx.views import account_view, auth_view, logout_view
-from apps.jwt.views import refresh_token_view
+from mp.authx.views import account_view, auth_view, logout_view
+from mp.core.graphql.views import mp_graphql_view
+from mp.jwt.views import refresh_token_view
 
 urlpatterns = [
     path("accounts", view=account_view, name="account"),
     path("admin/", admin.site.urls),
     path("auth", view=auth_view, name="auth-login"),
-    path("graphql/v1", GraphQLView.as_view(schema=schema)),
+    path("graphql", csrf_exempt(mp_graphql_view)),
     path("logout", view=logout_view, name="auth-logout"),
     path("refresh-token", view=refresh_token_view, name="auth-refresh-token"),
 ]

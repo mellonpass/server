@@ -20,7 +20,7 @@ env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-APPS_DIR = BASE_DIR / "apps"
+APPS_DIR = BASE_DIR / "mp"
 
 # Load local django environment variables.
 env.read_env(str(BASE_DIR / "config/envs/.django.env"))
@@ -52,13 +52,15 @@ THIRD_PARTY_APPS = [
     "django_extensions",
     "django_celery_results",
     "django_celery_beat",
+    "corsheaders",
 ]
 
-LOCAL_APPS = ["apps.authx", "apps.jwt", "apps.cipher"]
+LOCAL_APPS = ["mp.authx", "mp.jwt", "mp.cipher"]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -66,6 +68,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "mp.core.middleware.jwt.JWTAuthTokenMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -146,7 +149,7 @@ AUTH_USER_MODEL = "authx.User"
 AUTH_PASSWORD_VALIDATORS = []
 
 PASSWORD_HASHERS = [
-    "apps.authx.hashers.MellonPassPBKDF2PasswordHasher",
+    "mp.authx.hashers.MellonPassPBKDF2PasswordHasher",
 ]
 
 JWT_PRIVATE_KEY_PATH = env("JWT_PRIVATE_KEY_PATH")
@@ -169,11 +172,11 @@ CELERY_TASK_SERIALIZER = "json"
 # list of periodic tasks
 CELERY_BEAT_SCHEDULE = {
     "revoke_inactive_refresh_tokens": {
-        "task": "apps.jwt.tasks.revoke_inactive_refresh_tokens",
+        "task": "mp.jwt.tasks.revoke_inactive_refresh_tokens",
         "schedule": crontab(minute=0, hour=0),
     },
     "remove_revoked_refresh_tokens": {
-        "task": "apps.jwt.tasks.remove_revoked_refresh_tokens",
+        "task": "mp.jwt.tasks.remove_revoked_refresh_tokens",
         "schedule": crontab(minute=0, hour=0),
     },
 }
@@ -192,3 +195,12 @@ CACHES = {
 # Ratelimit
 # https://django-ratelimit.readthedocs.io/en/stable/settings.html
 RATELIMIT_ENABLE = True
+
+# Django CORS header
+# https://github.com/adamchainz/django-cors-headers?tab=readme-ov-file#configuration
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_METHODS = ["GET", "POST"]
+
+# JWTAuthToken
+JWT_AUTH_ENABLE = False
+JWT_AUTH_PROTECTD_VIEWS = ["mp.core.graphql.views.mp_graphql_view"]

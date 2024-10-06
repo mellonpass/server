@@ -26,6 +26,7 @@ django-ipware = "^7.0.1"
 marshmallow = "^3.22.0"
 redis = "^5.1.0"
 django-ratelimit = "^4.1.0"
+django-cors-headers = "^4.4.0"
 
 
 [tool.poetry.group.dev.dependencies]

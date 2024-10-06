@@ -11,6 +11,8 @@ volumes:
     driver: local
   mellonpass-redis-data:
     driver: local
+  mellonpass-cache-data:
+    driver: local
 
 services:
   mellonpass_server: &mellonpass_server
@@ -28,6 +30,8 @@ services:
       - ./config/envs/.django.env
     volumes:
       - .:/code:z
+      # used for test.
+      - mellonpass-cache-data:/var/tmp/django_cache
     ports:
       - "8000:8000"
     depends_on:
