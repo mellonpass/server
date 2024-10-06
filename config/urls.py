@@ -27,7 +27,7 @@ urlpatterns = [
     path("accounts", view=account_view, name="account"),
     path("admin/", admin.site.urls),
     path("auth", view=auth_view, name="auth-login"),
-    path("graphql", csrf_exempt(mp_graphql_view)),
+    path("graphql", csrf_exempt(mp_graphql_view), name="graphql"),
     path("logout", view=logout_view, name="auth-logout"),
     path("refresh-token", view=refresh_token_view, name="auth-refresh-token"),
 ]

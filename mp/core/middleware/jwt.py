@@ -11,6 +11,7 @@ from mp.core.utils.http import REQUEST_FORBIDDEN, UNAUTHORIZED_REQUEST
 from mp.jwt.services import verify_jwt
 
 
+# TODO: add a unit test.
 class JWTAuthTokenMiddleware:
 
     def __init__(self, get_response):
@@ -30,11 +31,11 @@ class JWTAuthTokenMiddleware:
         ]:
             return
 
-        jwt_token = request.COOKIES.get("x-mp-access-token", None)
+        jwt_token = request.headers.get("Authorization", None).split(" ")[1]
         # check if access token header is present.
         if jwt_token in ["", None]:
             return JsonResponse(
-                {"error": "Unauthorized request.", "code": UNAUTHORIZED_REQUEST},
+                {"error": "You're not logged in.", "code": UNAUTHORIZED_REQUEST},
                 status=HTTPStatus.UNAUTHORIZED,
             )
 
