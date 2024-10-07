@@ -31,14 +31,25 @@ class JWTAuthTokenMiddleware:
         ]:
             return
 
-        jwt_token = request.headers.get("Authorization", None).split(" ")[1]
+        auth_header = request.headers.get("Authorization", None)
         # check if access token header is present.
-        if jwt_token in ["", None]:
+        if auth_header in ["", None]:
             return JsonResponse(
                 {"error": "You're not logged in.", "code": UNAUTHORIZED_REQUEST},
                 status=HTTPStatus.UNAUTHORIZED,
             )
 
+        token_type = "Bearer "
+        if not auth_header.startswith(token_type):
+            return JsonResponse(
+                {
+                    "error": "Misformatted authorization header.",
+                    "code": UNAUTHORIZED_REQUEST,
+                },
+                status=HTTPStatus.UNAUTHORIZED,
+            )
+
+        jwt_token = auth_header.split(token_type)[1]
         is_valid, result = verify_jwt(jwt_token)
         if not is_valid:
             return JsonResponse(
