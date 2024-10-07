@@ -12,13 +12,14 @@ from mp.cipher.graphql.types import (
     CreateCipherInput,
 )
 from mp.cipher.services import create_cipher, delete_ciphers_by_owner_and_uuids
+from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
 
 
 @strawberry.type
 class CipherMutation:
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def create_cipher(
         self, info: strawberry.Info, input: CreateCipherInput
     ) -> CipherCreatePayload:
@@ -43,7 +44,7 @@ class CipherMutation:
             )
         )
 
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def delete_ciphers(
         self, info: strawberry.Info, ids: List[relay.GlobalID]
     ) -> CipherDeletePayload:
