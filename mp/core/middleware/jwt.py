@@ -32,7 +32,8 @@ class JWTAuthTokenMiddleware:
             return
 
         auth_header = request.headers.get("Authorization", None)
-        # check if access token header is present.
+
+        # only allow authenticated user and request with authorization header.
         if not request.user.is_authenticated or auth_header in ["", None]:
             return JsonResponse(
                 {"error": "You're not logged in.", "code": UNAUTHORIZED_REQUEST},
@@ -52,6 +53,13 @@ class JWTAuthTokenMiddleware:
         jwt_token = auth_header.split(token_type)[1]
         is_valid, result = verify_jwt(jwt_token)
 
+        if not is_valid:
+            return JsonResponse(
+                {"error": result, "code": REQUEST_FORBIDDEN},
+                status=HTTPStatus.FORBIDDEN,
+            )
+
+        # make sure that the token and the user matched!
         if str(request.user.uuid) != result["sub"]:
             return JsonResponse(
                 {
@@ -60,11 +68,5 @@ class JWTAuthTokenMiddleware:
                     ),
                     "code": REQUEST_FORBIDDEN,
                 },
-                status=HTTPStatus.FORBIDDEN,
-            )
-
-        if not is_valid:
-            return JsonResponse(
-                {"error": result, "code": REQUEST_FORBIDDEN},
                 status=HTTPStatus.FORBIDDEN,
             )
