@@ -18,6 +18,7 @@ from mp.jwt.services import (
     generate_refresh_token_from_user_and_session,
     is_valid_refresh_token,
     revoke_refresh_tokens,
+    store_client_information_from_request,
 )
 
 
@@ -68,6 +69,8 @@ def refresh_token_view(request: HttpRequest):
         refresh_token_id=result.refresh_token_id,
         new_refresh_token_id=refresh_token.refresh_token_id,
     )
+
+    store_client_information_from_request(request)
 
     success_response = JsonResponse(
         {

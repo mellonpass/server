@@ -53,8 +53,6 @@ class SessionAdmin(admin.ModelAdmin):
     list_display = (
         "session_key",
         "user",
-        "device",
-        "device_ip",
         "user_login",
     )
     readonly_fields = (
@@ -63,12 +61,6 @@ class SessionAdmin(admin.ModelAdmin):
         "session_data",
         "raw_session_data",
     )
-
-    def device(self, obj):
-        return obj.get_decoded().get("device_information", "unknown")
-
-    def device_ip(self, obj):
-        return obj.get_decoded().get("device_ip", "unknown")
 
     def user(self, obj):
         user_id = obj.get_decoded()["_auth_user_id"]

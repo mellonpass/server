@@ -61,8 +61,8 @@ def test_refresh_token(client: Client, user: User, user_login_reponse):
     assert is_valid
     assert payload["sub"] == str(user.uuid)
 
-    new_refresh_token = response.cookies.get("x-mp-refresh-token").value
-    assert new_refresh_token != old_refresh_token
+    new_rf_cookie = response.cookies.get("x-mp-refresh-token").value
+    assert new_rf_cookie != old_refresh_token
 
     rt_qs = RefreshToken.objects.filter(session_key=session_id)
     # should have two refresh token from login and refresh token exchange.
@@ -72,7 +72,10 @@ def test_refresh_token(client: Client, user: User, user_login_reponse):
     assert rt_qs.get(refresh_token_id=old_refresh_token).revoked
 
     # new refresh token active.
-    assert not rt_qs.get(refresh_token_id=new_refresh_token).revoked
+    new_refresh_token = rt_qs.get(refresh_token_id=new_rf_cookie)
+    assert not new_refresh_token.revoked
+    assert new_refresh_token.client_information == "Other Other - Other"
+    assert new_refresh_token.client_ip == "127.0.0.1"
 
 
 @override_settings(RATELIMIT_ENABLE=False)

@@ -12,13 +12,7 @@ from django_ratelimit.decorators import ratelimit
 from marshmallow import ValidationError
 
 from mp.authx.serializers import AccountCreateSerializer, AuthenticationSerializer
-from mp.authx.services import (
-    create_account,
-    login_user,
-    logout_user,
-    store_user_agent_by_request,
-    store_user_ip_address_by_request,
-)
+from mp.authx.services import create_account, login_user, logout_user
 from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 from mp.core.utils.ip import rl_client_ip
 from mp.jwt.services import (
@@ -26,6 +20,7 @@ from mp.jwt.services import (
     generate_access_token_from_user,
     generate_refresh_token_from_user_and_session,
     revoke_refresh_tokens,
+    store_client_information_from_request,
 )
 
 
@@ -146,8 +141,7 @@ def login_view(request: HttpRequest, *args, **kwargs):
             user=user, session_key=request.session.session_key
         )
 
-        store_user_agent_by_request(request)
-        store_user_ip_address_by_request(request)
+        store_client_information_from_request(request)
 
         success_response = JsonResponse(
             {
@@ -193,7 +187,7 @@ def logout_view(request: HttpRequest):
 
     if not request.user.is_authenticated:
         return JsonResponse(
-            {"error": "No user is authenticated.", "code": INVALID_REQUEST},
+            {"error": "No authenticated user.", "code": INVALID_REQUEST},
             status=HTTPStatus.NOT_ACCEPTABLE,
         )
 

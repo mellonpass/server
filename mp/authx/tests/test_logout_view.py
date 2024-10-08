@@ -62,5 +62,5 @@ def test_logout_view_no_authenticated_user(client: Client):
     url = reverse("auth-logout")
     response = client.post(path=url, content_type="application/json")
     assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
-    assert response.json()["error"] == "No user is authenticated."
+    assert response.json()["error"] == "No authenticated user."
     assert response.json()["code"] == INVALID_REQUEST

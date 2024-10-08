@@ -16,12 +16,15 @@ class RefreshToken(Model):
     Enable server to deactivate/revoke if the refres token is obsolete or compromised.
     """
 
-    session_key = CharField(max_length=150, null=False, blank=False, default="")
+    session_key = CharField(max_length=70, null=False, blank=False, default="")
     refresh_token_id = CharField(
         max_length=150, unique=True, null=False, blank=False, default=""
     )
     exp = DateTimeField(null=False, blank=False, help_text="Token expiration date.")
     nbf = DateTimeField(null=False, blank=False, help_text="Active not before date.")
+
+    client_information = CharField(max_length=100, null=False, blank=False)
+    client_ip = CharField(max_length=50, null=False, blank=False)
 
     replaced_by = CharField(
         max_length=150,

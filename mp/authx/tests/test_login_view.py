@@ -37,7 +37,6 @@ def test_login_view(client: Client, user: User):
     rtoken = RefreshToken.objects.get(
         refresh_token_id=response.cookies.get("x-mp-refresh-token").value
     )
-    active_session = Session.objects.get(session_key=rtoken.session_key)
 
     # There should be only 1 active refresh token per session.
     assert (
@@ -47,11 +46,8 @@ def test_login_view(client: Client, user: User):
         == 1
     )
 
-    # session should have client device details.
-    session_data = active_session.get_decoded()
-    assert int(session_data["_auth_user_id"]) == user.id
-    assert session_data["device_ip"] == "127.0.0.1"
-    assert session_data["device_information"] == "Other Other - Other"
+    assert rtoken.client_information == "Other Other - Other"
+    assert rtoken.client_ip == "127.0.0.1"
 
 
 @override_settings(RATELIMIT_ENABLE=False)

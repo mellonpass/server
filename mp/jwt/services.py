@@ -7,7 +7,10 @@ import jwt
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from django.conf import settings
+from django.http import HttpRequest
 from django.utils import timezone
+from ipware import get_client_ip
+from user_agents import parse
 
 from mp.authx.models import User
 from mp.jwt.models import RefreshToken
@@ -147,3 +150,24 @@ def is_valid_refresh_token(token: str) -> Tuple[bool, Union[RefreshToken, str]]:
         return False, "Refresh token is revoked or expired."
 
     return True, refresh_token
+
+
+# TODO: add a unit test.
+def store_client_information_from_request(request: HttpRequest):
+    ua = parse(request.META.get("HTTP_USER_AGENT", "unknown"))
+    client_information = f"{ua.device.family} {ua.browser.family} - {ua.get_device()}"
+
+    session = request.session
+    client_ip, _ = get_client_ip(request)
+    if client_ip is None:
+        logger.warning(
+            "Unable to get the client's IP address from session %s", session.session_key
+        )
+        client_ip = "unknown"
+
+    active_refresh_token = RefreshToken.objects.get(
+        session_key=session.session_key, revoked=False
+    )
+    active_refresh_token.client_information = client_information
+    active_refresh_token.client_ip = client_ip
+    active_refresh_token.save()

@@ -1,3 +1,5 @@
+import datetime
+
 from django.contrib import admin
 from django.utils import timezone
 
@@ -8,7 +10,8 @@ class RefreshTokenAdmin(admin.ModelAdmin):
 
     list_display = (
         "user",
-        "session_key",
+        "client_information",
+        "client_ip",
         "is_active",
         "datetime_revoked",
         "exp",
@@ -23,10 +26,12 @@ class RefreshTokenAdmin(admin.ModelAdmin):
         "nbf",
         "datetime_revoked",
         "user",
+        "client_information",
+        "client_ip",
     )
 
     @admin.display(boolean=True)
-    def is_active(self, obj) -> bool:
+    def is_active(self, obj: RefreshToken) -> bool:
         return not obj.revoked and not obj.is_expired and obj.is_nbf_active
 
     def has_add_permission(self, request):
