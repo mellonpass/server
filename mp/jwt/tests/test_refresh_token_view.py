@@ -9,6 +9,7 @@ from mp.authx.models import User
 from mp.authx.tests.factories import UserFactory
 from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, REQUEST_FORBIDDEN
 from mp.jwt.models import RefreshToken
+from mp.jwt.services import ACCESS_TOKEN_DURATION, verify_jwt
 
 pytestmark = pytest.mark.django_db
 
@@ -40,7 +41,7 @@ def user_login_reponse(mocker, client: Client, user: User):
     )
 
 
-def test_refresh_token(client: Client, user_login_reponse):
+def test_refresh_token(client: Client, user: User, user_login_reponse):
     assert user_login_reponse.status_code == HTTPStatus.ACCEPTED
 
     old_refresh_token = user_login_reponse.cookies.get("x-mp-refresh-token").value
@@ -51,6 +52,14 @@ def test_refresh_token(client: Client, user_login_reponse):
         path=url, content_type="application/json", data={"token": old_refresh_token}
     )
     assert response.status_code == HTTPStatus.ACCEPTED
+
+    data = response.json()["data"]
+    assert data["expires_in"] == ACCESS_TOKEN_DURATION
+    assert data["token_type"] == "Bearer"
+
+    is_valid, payload = verify_jwt(data["access_token"])
+    assert is_valid
+    assert payload["sub"] == str(user.uuid)
 
     new_refresh_token = response.cookies.get("x-mp-refresh-token").value
     assert new_refresh_token != old_refresh_token

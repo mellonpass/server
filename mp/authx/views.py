@@ -22,6 +22,7 @@ from mp.authx.services import (
 from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 from mp.core.utils.ip import rl_client_ip
 from mp.jwt.services import (
+    ACCESS_TOKEN_DURATION,
     generate_access_token_from_user,
     generate_refresh_token_from_user_and_session,
     revoke_refresh_tokens,
@@ -149,10 +150,16 @@ def login_view(request: HttpRequest, *args, **kwargs):
         store_user_ip_address_by_request(request)
 
         success_response = JsonResponse(
-            {"message": "Successfully logged-in."}, status=HTTPStatus.ACCEPTED
+            {
+                "data": {
+                    "access_token": access_token,
+                    "expires_in": ACCESS_TOKEN_DURATION,
+                    "token_type": "Bearer",
+                }
+            },
+            status=HTTPStatus.ACCEPTED,
         )
         success_response.set_cookie("x-mp-refresh-token", refresh_token)
-        success_response.set_cookie("x-mp-access-token", access_token)
         return success_response
 
     error_data = {

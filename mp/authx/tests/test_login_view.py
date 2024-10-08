@@ -12,12 +12,12 @@ from mp.authx.models import User
 from mp.authx.tests.conftest import TEST_USER_LOGIN_HASH
 from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 from mp.jwt.models import RefreshToken
-from mp.jwt.services import verify_jwt
+from mp.jwt.services import ACCESS_TOKEN_DURATION, verify_jwt
 
 pytestmark = pytest.mark.django_db
 
 
-def test_auth_view(client: Client, user: User):
+def test_login_view(client: Client, user: User):
     url = reverse("auth-login")
     response = client.post(
         path=url,
@@ -26,10 +26,11 @@ def test_auth_view(client: Client, user: User):
     )
     assert response.status_code == HTTPStatus.ACCEPTED
 
-    assert response.json()["message"] == "Successfully logged-in."
-    access_token = response.cookies.get("x-mp-access-token").value
+    data = response.json()["data"]
+    assert data["expires_in"] == ACCESS_TOKEN_DURATION
+    assert data["token_type"] == "Bearer"
 
-    is_valid, payload = verify_jwt(access_token)
+    is_valid, payload = verify_jwt(data["access_token"])
     assert is_valid
     assert payload["sub"] == str(user.uuid)
 
@@ -54,7 +55,7 @@ def test_auth_view(client: Client, user: User):
 
 
 @override_settings(RATELIMIT_ENABLE=False)
-def test_auth_view_invalid_content_type(client: Client, user: User):
+def test_login_view_invalid_content_type(client: Client, user: User):
     url = reverse("auth-login")
     response = client.post(
         path=url,
@@ -67,7 +68,7 @@ def test_auth_view_invalid_content_type(client: Client, user: User):
 
 
 @override_settings(RATELIMIT_ENABLE=False)
-def test_auth_view_user_already_authenticated(client: Client, user: User):
+def test_login_view_user_already_authenticated(client: Client, user: User):
     url = reverse("auth-login")
 
     client_post = partial(
@@ -90,7 +91,7 @@ def test_auth_view_user_already_authenticated(client: Client, user: User):
 
 
 @override_settings(RATELIMIT_ENABLE=False)
-def test_auth_view_invalid_input(client: Client, user: User):
+def test_login_view_invalid_input(client: Client, user: User):
     url = reverse("auth-login")
     response = client.post(
         path=url,
@@ -110,7 +111,7 @@ def test_auth_view_invalid_input(client: Client, user: User):
 
 
 @override_settings(RATELIMIT_ENABLE=False)
-def test_auth_view_invalid_login_hash(client: Client, user: User):
+def test_login_view_invalid_login_hash(client: Client, user: User):
     url = reverse("auth-login")
     response = client.post(
         path=url,
@@ -126,7 +127,7 @@ def test_auth_view_invalid_login_hash(client: Client, user: User):
 
 
 @override_settings(RATELIMIT_ENABLE=False)
-def test_auth_view_invalid_email(client: Client):
+def test_login_view_invalid_email(client: Client):
     url = reverse("auth-login")
     response = client.post(
         path=url,
@@ -154,7 +155,7 @@ def test_auth_view_invalid_email(client: Client):
         ]
     ],
 )
-def test_auth_view_failed_attempt_same_password(client: Client, wrong_emails):
+def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     # Clear cache to avoid undesired ratelimiting result.
     cache.clear()
     MAX_LOGIN_PER_MIN = 5
@@ -193,7 +194,7 @@ def test_auth_view_failed_attempt_same_password(client: Client, wrong_emails):
         ]
     ],
 )
-def test_auth_view_failed_attempt_same_email(
+def test_login_view_failed_attempt_same_email(
     client: Client, user: User, wrong_login_hash
 ):
     # Clear cache to avoid undesired ratelimiting result.
