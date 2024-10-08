@@ -87,11 +87,11 @@ def account_view(request: HttpRequest, *args, **kwargs):
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
-def auth_view(request: HttpRequest, *args, **kwargs):
+def login_view(request: HttpRequest, *args, **kwargs):
     if settings.RATELIMIT_ENABLE:
-        same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=auth_view)
+        same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=login_view)
         same_client_ip_usage = get_usage(
-            request, key=rl_client_ip, rate="5/m", fn=auth_view
+            request, key=rl_client_ip, rate="5/m", fn=login_view
         )
 
         if same_email_usage["should_limit"]:

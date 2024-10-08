@@ -20,14 +20,14 @@ from django.urls import path
 from django.views.decorators.csrf import csrf_exempt
 
 from api.graphql.views import mp_graphql_view
-from mp.authx.views import account_view, auth_view, logout_view
+from mp.authx.views import account_view, login_view, logout_view
 from mp.jwt.views import refresh_token_view
 
 urlpatterns = [
     path("accounts", view=account_view, name="account"),
     path("admin/", admin.site.urls),
-    path("auth", view=auth_view, name="auth-login"),
     path("graphql", csrf_exempt(mp_graphql_view), name="graphql"),
+    path("login", view=login_view, name="auth-login"),
     path("logout", view=logout_view, name="auth-logout"),
     path("refresh-token", view=refresh_token_view, name="auth-refresh-token"),
 ]
