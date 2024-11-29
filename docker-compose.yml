@@ -30,7 +30,7 @@ services:
       - ./config/envs/.django.env
     volumes:
       - .:/code:z
-      # used for test.
+      # used for test only.
       - mellonpass-cache-data:/var/tmp/django_cache
     ports:
       - "8000:8000"

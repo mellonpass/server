@@ -200,5 +200,4 @@ def logout_view(request: HttpRequest):
         status=HTTPStatus.ACCEPTED,
     )
     response.delete_cookie("x-mp-refresh-token")
-    response.delete_cookie("x-mp-access-token")
     return response

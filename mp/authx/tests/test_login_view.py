@@ -2,7 +2,6 @@ from functools import partial
 from http import HTTPStatus
 
 import pytest
-from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.test import override_settings
 from django.test.client import Client

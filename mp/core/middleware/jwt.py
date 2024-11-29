@@ -1,18 +1,18 @@
-import json
 from http import HTTPStatus
-from typing import List
 
 from django.conf import settings
 from django.http import HttpRequest, JsonResponse
 from django.utils.module_loading import import_string
-from strawberry.django.views import GraphQLView
 
 from mp.core.utils.http import REQUEST_FORBIDDEN, UNAUTHORIZED_REQUEST
 from mp.jwt.services import verify_jwt
 
 
-# TODO: add a unit test.
 class JWTAuthTokenMiddleware:
+    """A middleware to check for an authenticated user and a JWT Bearer
+    token on the request header on certain views defined on
+    JWT_AUTH_PROTECTD_VIEWS.
+    """
 
     def __init__(self, get_response):
         self.get_response = get_response
