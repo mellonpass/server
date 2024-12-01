@@ -6,10 +6,13 @@ from django.contrib.auth.models import (
     PermissionsMixin,
 )
 from django.db.models import (
+    PROTECT,
     BooleanField,
     CharField,
     DateTimeField,
     EmailField,
+    Model,
+    OneToOneField,
     TextField,
     UUIDField,
 )
@@ -54,11 +57,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=50, null=False, blank=True, default="", help_text="Password hint."
     )
 
-    protected_symmetric_key = TextField(
-        null=False,
-        blank=True,
-        default="",
-    )
+    protected_symmetric_key = TextField(null=False, blank=True, default="")
 
     is_active = BooleanField(default=True)
     is_staff = BooleanField(default=False)
@@ -73,3 +72,14 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+
+class UserECC(Model):
+    key = TextField(null=False, blank=False, help_text="Encrypted ECC private key.")
+    pub = TextField(null=False, blank=False, help_text="Raw ECC public key.")
+    created = DateTimeField(auto_now_add=True)
+    updated = DateTimeField(auto_now=True)
+
+    user = OneToOneField(
+        User, related_name="ecc", null=False, blank=False, on_delete=PROTECT
+    )

@@ -37,6 +37,10 @@ def rl_email(group, request: HttpRequest):
 @require_POST
 @csrf_exempt
 def account_view(request: HttpRequest, *args, **kwargs):
+    """A single purpose account view to create user accounts
+    and user related ECC keys.
+    """
+
     if request.content_type != "application/json":
         return JsonResponse(
             {"error": "Invalid request content-type.", "code": INVALID_REQUEST},

@@ -10,7 +10,6 @@ from django.urls import reverse
 
 from mp.authx.models import User
 from mp.authx.tests.factories import UserFactory
-from mp.authx.views import account_view
 from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 
 pytestmark = pytest.mark.django_db
@@ -28,6 +27,8 @@ def test_account_create(client: Client, settings):
             "login_hash": "myhash",
             "protected_symmetric_key": "mykey",
             "hint": "myhint",
+            "ecc_key": "dummy-encrypted-key",
+            "ecc_pub": "dummy-public-key",
         },
     )
     assert response.status_code == HTTPStatus.CREATED
@@ -74,6 +75,30 @@ def test_account_create_invalid_input(client: Client):
     assert error["login_hash"][0] == "Missing data for required field."
     assert error["protected_symmetric_key"][0] == "Missing data for required field."
     assert error["hint"][0] == "Missing data for required field."
+    assert error["ecc_key"][0] == "Missing data for required field."
+    assert error["ecc_pub"][0] == "Missing data for required field."
+
+
+def test_account_create_invalid_ecc_input(client: Client, settings):
+    url = reverse("account")
+    response = client.post(
+        url,
+        content_type="application/json",
+        data={
+            "email": "test@example.com",
+            "name": "john doe",
+            "login_hash": "myhash",
+            "protected_symmetric_key": "mykey",
+            "hint": "myhint",
+            "ecc_key": "",
+            "ecc_pub": "",
+        },
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    error = response.json()["validation_error"]
+    assert response.json()["code"] == INVALID_INPUT
+    assert error["ecc_key"][0] == "Invalid input."
+    assert error["ecc_pub"][0] == "Invalid input."
 
 
 def test_account_create_existing_email(client: Client):
@@ -89,6 +114,8 @@ def test_account_create_existing_email(client: Client):
             "login_hash": "myhash",
             "protected_symmetric_key": "mykey",
             "hint": "myhint",
+            "ecc_key": "dummy-encrypted-key",
+            "ecc_pub": "dummy-public-key",
         },
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
@@ -106,6 +133,8 @@ def test_account_create_ratelimit_exceeded(client: Client):
         "login_hash": "myhash",
         "protected_symmetric_key": "mykey",
         "hint": "myhint",
+        "ecc_key": "dummy-encrypted-key",
+        "ecc_pub": "dummy-public-key",
     }
     list_of_input_attack = [
         {"email": f"johndoe{i}@example.com", **base_input_data} for i in range(4)
