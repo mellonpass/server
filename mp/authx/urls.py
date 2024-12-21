@@ -15,16 +15,13 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 
-from django.contrib import admin
-from django.urls import include, path
-from django.views.decorators.csrf import csrf_exempt
+from django.urls import path
 
-from api.graphql.views import mp_graphql_view
-from mp.jwt.views import refresh_token_view
+from mp.authx.views import account_create_view, login_view, logout_view
 
+app_name = "accounts"
 urlpatterns = [
-    path("accounts", include("mp.authx.urls")),
-    path("admin/", admin.site.urls),
-    path("graphql", csrf_exempt(mp_graphql_view), name="graphql"),
-    path("refresh-token", view=refresh_token_view, name="auth-refresh-token"),
+    path("create", view=account_create_view, name="create"),
+    path("login", view=login_view, name="login"),
+    path("logout", view=logout_view, name="logout"),
 ]

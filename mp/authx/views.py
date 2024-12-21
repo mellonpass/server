@@ -36,7 +36,7 @@ def rl_email(group, request: HttpRequest):
 @ratelimit(key=rl_client_ip, rate="3/m", block=False)
 @require_POST
 @csrf_exempt
-def account_view(request: HttpRequest, *args, **kwargs):
+def account_create_view(request: HttpRequest, *args, **kwargs):
     """A single purpose account view to create user accounts
     and user related ECC keys.
     """
@@ -57,7 +57,7 @@ def account_view(request: HttpRequest, *args, **kwargs):
         # This will become `True` if user the same IP created more than 5 accounts
         # per minute. Also does not commit account creation.
         same_client_ip_usage = get_usage(
-            request, key=rl_client_ip, rate="3/m", fn=account_view
+            request, key=rl_client_ip, rate="3/m", fn=account_create_view
         )
 
         if settings.RATELIMIT_ENABLE and same_client_ip_usage["should_limit"]:
