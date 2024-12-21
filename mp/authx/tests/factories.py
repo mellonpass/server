@@ -10,4 +10,3 @@ class UserFactory(DjangoModelFactory):
 
     email = Faker("email")
     name = Faker("name")
-    protected_symmetric_key = Faker("password")

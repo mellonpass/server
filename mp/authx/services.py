@@ -33,3 +33,7 @@ def login_user(
 
 def logout_user(request: HttpRequest):
     logout(request)
+
+
+def check_existing_email(email: str) -> bool:
+    return User.objects.filter(email=email).exists()

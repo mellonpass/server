@@ -12,8 +12,13 @@ from django_ratelimit.decorators import ratelimit
 from marshmallow import ValidationError
 
 from mp.authx.serializers import AccountCreateSerializer, AuthenticationSerializer
-from mp.authx.services import create_account, login_user, logout_user
-from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
+from mp.authx.services import (
+    check_existing_email,
+    create_account,
+    login_user,
+    logout_user,
+)
+from mp.core.utils.http import ResponseErrorCode
 from mp.core.utils.ip import rl_client_ip
 from mp.jwt.services import (
     ACCESS_TOKEN_DURATION,
@@ -35,6 +40,7 @@ def rl_email(group, request: HttpRequest):
 @transaction.atomic()
 @ratelimit(key=rl_client_ip, rate="3/m", block=False)
 @require_POST
+@csrf_exempt
 def account_create_view(request: HttpRequest, *args, **kwargs):
     """A single purpose account view to create user accounts
     and user related ECC keys.
@@ -42,7 +48,10 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
 
     if request.content_type != "application/json":
         return JsonResponse(
-            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
+            {
+                "error": "Invalid request content-type.",
+                "code": ResponseErrorCode.INVALID_REQUEST,
+            },
             status=HTTPStatus.BAD_REQUEST,
         )
 
@@ -62,21 +71,27 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         if settings.RATELIMIT_ENABLE and same_client_ip_usage["should_limit"]:
             transaction.savepoint_rollback(sid)
             return JsonResponse(
-                {"error": "Blocked, try again later.", "code": RATELIMIT_EXCEEDED},
+                {
+                    "error": "Blocked, try again later.",
+                    "code": ResponseErrorCode.RATELIMIT_EXCEEDED,
+                },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
 
         return JsonResponse({"data": serializer.dump(user)}, status=HTTPStatus.CREATED)
     except ValidationError as error:
         return JsonResponse(
-            {"validation_error": error.messages, "code": INVALID_INPUT},
+            {
+                "validation_error": error.messages,
+                "code": ResponseErrorCode.INVALID_INPUT,
+            },
             status=HTTPStatus.BAD_REQUEST,
         )
     except IntegrityError as error:
         return JsonResponse(
             {
-                "error": f"Email {account_data['email']} already exists.",
-                "code": INVALID_INPUT,
+                "error": f"Email {account_data['email']} already taken.",
+                "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -85,6 +100,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
 @ratelimit(key=rl_email, rate="5/m", block=False)
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
+@csrf_exempt
 def login_view(request: HttpRequest, *args, **kwargs):
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=login_view)
@@ -96,20 +112,26 @@ def login_view(request: HttpRequest, *args, **kwargs):
             return JsonResponse(
                 {
                     "error": f"Too many login atttempts using the same email.",
-                    "code": RATELIMIT_EXCEEDED,
+                    "code": ResponseErrorCode.RATELIMIT_EXCEEDED,
                 },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
 
         if same_client_ip_usage["should_limit"]:
             return JsonResponse(
-                {"error": "Blocked, try again later.", "code": RATELIMIT_EXCEEDED},
+                {
+                    "error": "Blocked, try again later.",
+                    "code": ResponseErrorCode.RATELIMIT_EXCEEDED,
+                },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
 
     if request.content_type != "application/json":
         return JsonResponse(
-            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
+            {
+                "error": "Invalid request content-type.",
+                "code": ResponseErrorCode.INVALID_REQUEST,
+            },
             status=HTTPStatus.BAD_REQUEST,
         )
 
@@ -117,7 +139,7 @@ def login_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": f"User {request.user.email} is already authenticated. Logout current user first!",
-                "code": INVALID_INPUT,
+                "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -127,7 +149,10 @@ def login_view(request: HttpRequest, *args, **kwargs):
         auth_data = serializer.load(json.loads(request.body))
     except ValidationError as error:
         return JsonResponse(
-            {"validation_error": error.messages, "code": INVALID_INPUT},
+            {
+                "validation_error": error.messages,
+                "code": ResponseErrorCode.INVALID_INPUT,
+            },
             status=HTTPStatus.BAD_REQUEST,
         )
 
@@ -163,7 +188,7 @@ def login_view(request: HttpRequest, *args, **kwargs):
             "Invalid credentials provided. "
             "Please check your email and master password."
         ),
-        "code": INVALID_INPUT,
+        "code": ResponseErrorCode.INVALID_INPUT,
     }
 
     if settings.RATELIMIT_ENABLE:
@@ -179,16 +204,23 @@ def login_view(request: HttpRequest, *args, **kwargs):
 
 
 @require_POST
+@csrf_exempt
 def logout_view(request: HttpRequest):
     if request.content_type != "application/json":
         return JsonResponse(
-            {"error": "Invalid request content-type.", "code": INVALID_REQUEST},
+            {
+                "error": "Invalid request content-type.",
+                "code": ResponseErrorCode.INVALID_REQUEST,
+            },
             status=HTTPStatus.BAD_REQUEST,
         )
 
     if not request.user.is_authenticated:
         return JsonResponse(
-            {"error": "No authenticated user.", "code": INVALID_REQUEST},
+            {
+                "error": "No authenticated user.",
+                "code": ResponseErrorCode.INVALID_REQUEST,
+            },
             status=HTTPStatus.NOT_ACCEPTABLE,
         )
 
@@ -202,3 +234,16 @@ def logout_view(request: HttpRequest):
     )
     response.delete_cookie("x-mp-refresh-token")
     return response
+
+
+@require_POST
+@csrf_exempt
+def check_email_view(request: HttpRequest):
+    email_is_taken = check_existing_email(**json.loads(request.body))
+
+    return JsonResponse(
+        {
+            "data": {"is_valid": not email_is_taken},
+        },
+        status=HTTPStatus.OK,
+    )

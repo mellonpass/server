@@ -78,7 +78,7 @@ def test_account_create_existing_email(client: Client):
         },
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == f"Email {existing_user.email} already exists."
+    assert response.json()["error"] == f"Email {existing_user.email} already taken."
     assert response.json()["code"] == INVALID_INPUT
 
 

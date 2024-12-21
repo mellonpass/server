@@ -17,10 +17,16 @@ Including another URLconf
 
 from django.urls import path
 
-from mp.authx.views import account_create_view, login_view, logout_view
+from mp.authx.views import (
+    account_create_view,
+    check_email_view,
+    login_view,
+    logout_view,
+)
 
 app_name = "accounts"
 urlpatterns = [
+    path("check-email", view=check_email_view, name="check-email"),
     path("create", view=account_create_view, name="create"),
     path("login", view=login_view, name="login"),
     path("logout", view=logout_view, name="logout"),
