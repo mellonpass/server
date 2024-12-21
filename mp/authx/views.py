@@ -35,7 +35,6 @@ def rl_email(group, request: HttpRequest):
 @transaction.atomic()
 @ratelimit(key=rl_client_ip, rate="3/m", block=False)
 @require_POST
-@csrf_exempt
 def account_create_view(request: HttpRequest, *args, **kwargs):
     """A single purpose account view to create user accounts
     and user related ECC keys.
@@ -86,7 +85,6 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
 @ratelimit(key=rl_email, rate="5/m", block=False)
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
-@csrf_exempt
 def login_view(request: HttpRequest, *args, **kwargs):
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=login_view)
@@ -181,7 +179,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
 
 
 @require_POST
-@csrf_exempt
 def logout_view(request: HttpRequest):
     if request.content_type != "application/json":
         return JsonResponse(
