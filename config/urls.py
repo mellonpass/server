@@ -23,7 +23,7 @@ from api.graphql.views import mp_graphql_view
 from mp.jwt.views import refresh_token_view
 
 urlpatterns = [
-    path("accounts", include("mp.authx.urls")),
+    path("accounts/", include("mp.authx.urls")),
     path("admin/", admin.site.urls),
     path("graphql", csrf_exempt(mp_graphql_view), name="graphql"),
     path("refresh-token", view=refresh_token_view, name="auth-refresh-token"),

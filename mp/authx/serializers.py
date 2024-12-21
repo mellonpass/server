@@ -1,9 +1,7 @@
-from django.conf import settings
 from marshmallow import Schema, fields, validate
 
 
 class AccountCreateSerializer(Schema):
-    uuid = fields.UUID(dump_only=True)
     email = fields.Email(required=True)
     name = fields.Str(required=True, validate=validate.Length(min=8))
 
