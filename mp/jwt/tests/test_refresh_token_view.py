@@ -30,7 +30,7 @@ def user():
 def user_login_reponse(mocker, client: Client, user: User):
     mocker.patch("mp.jwt.services.REFRESH_TOKEN_NBF_DURATION", 0)
 
-    login_url = reverse("auth-login")
+    login_url = reverse("accounts:login")
     return client.post(
         path=login_url,
         content_type="application/json",
@@ -80,7 +80,7 @@ def test_refresh_token(client: Client, user: User, user_login_reponse):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_refresh_token_with_nbf_active(client: Client, user: User):
-    login_url = reverse("auth-login")
+    login_url = reverse("accounts:login")
     login_reponse = client.post(
         path=login_url,
         content_type="application/json",

@@ -17,7 +17,7 @@ pytestmark = pytest.mark.django_db
 
 
 def test_login_view(client: Client, user: User):
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     response = client.post(
         path=url,
         content_type="application/json",
@@ -51,7 +51,7 @@ def test_login_view(client: Client, user: User):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_invalid_content_type(client: Client, user: User):
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     response = client.post(
         path=url,
         content_type="application/xml",
@@ -64,7 +64,7 @@ def test_login_view_invalid_content_type(client: Client, user: User):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_user_already_authenticated(client: Client, user: User):
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
 
     client_post = partial(
         client.post,
@@ -87,7 +87,7 @@ def test_login_view_user_already_authenticated(client: Client, user: User):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_invalid_input(client: Client, user: User):
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     response = client.post(
         path=url,
         content_type="application/json",
@@ -107,7 +107,7 @@ def test_login_view_invalid_input(client: Client, user: User):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_invalid_login_hash(client: Client, user: User):
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     response = client.post(
         path=url,
         content_type="application/json",
@@ -123,7 +123,7 @@ def test_login_view_invalid_login_hash(client: Client, user: User):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_invalid_email(client: Client):
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     response = client.post(
         path=url,
         content_type="application/json",
@@ -155,7 +155,7 @@ def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     cache.clear()
     MAX_LOGIN_PER_MIN = 5
 
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     client_post = partial(client.post, path=url, content_type="application/json")
 
     # spend all remaining attempt.
@@ -196,7 +196,7 @@ def test_login_view_failed_attempt_same_email(
     cache.clear()
     MAX_LOGIN_PER_MIN = 5
 
-    url = reverse("auth-login")
+    url = reverse("accounts:login")
     client_post = partial(client.post, path=url, content_type="application/json")
 
     # spend all remaining attempt.
