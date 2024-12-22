@@ -45,7 +45,7 @@ def refresh_token_view(request: HttpRequest):
         token_data = serialzier.load(json.loads(request.body))
     except ValidationError as error:
         return JsonResponse(
-            {"validation_error": error.messages, "code": INVALID_INPUT},
+            {"error": error.messages, "code": INVALID_INPUT},
             status=HTTPStatus.BAD_REQUEST,
         )
 

@@ -100,9 +100,9 @@ def test_login_view_invalid_input(client: Client, user: User):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["code"] == INVALID_INPUT
 
-    validation_error = response.json()["validation_error"]
-    assert validation_error["login_hash"][0] == "Missing data for required field."
-    assert validation_error["password"][0] == "Unknown field."
+    error = response.json()["error"]
+    assert error["login_hash"][0] == "Missing data for required field."
+    assert error["password"][0] == "Unknown field."
 
 
 @override_settings(RATELIMIT_ENABLE=False)

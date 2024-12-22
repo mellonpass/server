@@ -127,9 +127,9 @@ def test_refresh_token_with_invalid_input_field(client: Client, user_login_repon
         },
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    validation_error = response.json()["validation_error"]
-    assert validation_error["token"][0] == "Missing data for required field."
-    assert validation_error["xtoken"][0] == "Unknown field."
+    error = response.json()["error"]
+    assert error["token"][0] == "Missing data for required field."
+    assert error["xtoken"][0] == "Unknown field."
     assert response.json()["code"] == INVALID_INPUT
 
 

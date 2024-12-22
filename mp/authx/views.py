@@ -82,7 +82,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
     except ValidationError as error:
         return JsonResponse(
             {
-                "validation_error": error.messages,
+                "error": error.messages,
                 "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
@@ -150,7 +150,7 @@ def login_view(request: HttpRequest, *args, **kwargs):
     except ValidationError as error:
         return JsonResponse(
             {
-                "validation_error": error.messages,
+                "error": error.messages,
                 "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,

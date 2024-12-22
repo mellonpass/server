@@ -59,7 +59,7 @@ def test_account_create_invalid_input(client: Client):
         },
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    error = response.json()["validation_error"]
+    error = response.json()["error"]
     assert response.json()["code"] == INVALID_INPUT
     assert error["email"][0] == "Not a valid email address."
     assert error["name"][0] == "Missing data for required field."
