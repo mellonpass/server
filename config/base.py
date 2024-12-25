@@ -207,3 +207,8 @@ JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
 SESSION_COOKIE_DOMAIN = env("DJANGO_SESSION_COOKIE_DOMAIN", default=None)
 SESSION_COOKIE_SECURE = False
+
+# Emailing
+# https://docs.djangoproject.com/en/4.2/topics/email/
+NO_REPLY_EMAIL = "no-reply@mellonpass.com"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

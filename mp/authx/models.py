@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from cryptography.hazmat.primitives import hashes
 from django.contrib.auth.models import (
     AbstractBaseUser,
     BaseUserManager,
@@ -11,11 +12,13 @@ from django.db.models import (
     CharField,
     DateTimeField,
     EmailField,
+    ForeignKey,
     Model,
     OneToOneField,
     TextField,
     UUIDField,
 )
+from django.utils import timezone
 
 
 class CustomUserManager(BaseUserManager):
@@ -62,6 +65,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = BooleanField(default=True)
     is_staff = BooleanField(default=False)
 
+    verified = BooleanField(default=False)
+
     date_joined = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)
 
@@ -83,3 +88,33 @@ class UserECC(Model):
     user = OneToOneField(
         User, related_name="ecc", null=False, blank=False, on_delete=PROTECT
     )
+
+
+class EmailVerificationToken(Model):
+    token_id = CharField(max_length=100, null=False, blank=False, unique=True)
+    expiry = DateTimeField(null=False, blank=False)
+    active = BooleanField(null=False, blank=False, default=False)
+
+    created = DateTimeField(auto_now_add=True)
+    updated = DateTimeField(auto_now=True)
+
+    user = ForeignKey(
+        User,
+        related_name="verification_tokens",
+        null=False,
+        blank=False,
+        on_delete=PROTECT,
+    )
+
+    def __str__(self):
+        return self.token_id
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expiry < timezone.now()
+
+    @staticmethod
+    def generate_token_id() -> str:
+        digest = hashes.Hash(hashes.SHA256())
+        digest.update(str(uuid4()).encode("utf-8"))
+        return digest.finalize().hex().upper()

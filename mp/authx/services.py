@@ -1,12 +1,12 @@
 import logging
 from typing import Optional, Tuple
 
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpRequest
 
-from mp.authx.models import User
-
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 
 def create_account(

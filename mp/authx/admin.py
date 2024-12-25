@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.sessions.models import Session
 
-from mp.authx.models import User
+from mp.authx.models import EmailVerificationToken, User
 
 
 class UserAdmin(BaseUserAdmin):
@@ -77,5 +77,10 @@ class SessionAdmin(admin.ModelAdmin):
         return False
 
 
+class EmailVerificationTokenAdmin(admin.ModelAdmin):
+    pass
+
+
 admin.site.register(User, UserAdmin)
 admin.site.register(Session, SessionAdmin)
+admin.site.register(EmailVerificationToken, EmailVerificationTokenAdmin)

@@ -6,7 +6,7 @@ from django.db import transaction
 from django.db.utils import IntegrityError
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
 from marshmallow import ValidationError
@@ -18,6 +18,7 @@ from mp.authx.services import (
     login_user,
     logout_user,
 )
+from mp.authx.tasks import send_account_verification_link_task
 from mp.core.utils.http import ResponseErrorCode
 from mp.core.utils.ip import rl_client_ip
 from mp.jwt.services import (
@@ -77,6 +78,12 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
                 },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
+
+        transaction.on_commit(
+            lambda: send_account_verification_link_task.delay(
+                app_origin=request.META["HTTP_ORIGIN"], email=user.email
+            )
+        )
 
         return JsonResponse({"data": serializer.dump(user)}, status=HTTPStatus.CREATED)
     except ValidationError as error:
