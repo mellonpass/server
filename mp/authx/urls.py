@@ -22,6 +22,7 @@ from mp.authx.views import (
     check_email_view,
     login_view,
     logout_view,
+    verify_view,
 )
 
 app_name = "accounts"
@@ -30,4 +31,5 @@ urlpatterns = [
     path("create", view=account_create_view, name="create"),
     path("login", view=login_view, name="login"),
     path("logout", view=logout_view, name="logout"),
+    path("verify", view=verify_view, name="verify"),
 ]

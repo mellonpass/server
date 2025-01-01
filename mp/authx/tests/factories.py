@@ -1,7 +1,14 @@
-from factory import Faker
-from factory.django import DjangoModelFactory
+from datetime import timedelta
 
-from mp.authx.models import User
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from factory import Faker, SubFactory
+from factory.django import DjangoModelFactory
+from factory.fuzzy import FuzzyAttribute
+
+from mp.authx.models import EmailVerificationToken
+
+User = get_user_model()
 
 
 class UserFactory(DjangoModelFactory):
@@ -10,3 +17,12 @@ class UserFactory(DjangoModelFactory):
 
     email = Faker("email")
     name = Faker("name")
+
+
+class EmailVerificationTokenFactory(DjangoModelFactory):
+    class Meta:
+        model = EmailVerificationToken
+
+    token_id = FuzzyAttribute(EmailVerificationToken.generate_token_id)
+    active = True
+    user = SubFactory(UserFactory)

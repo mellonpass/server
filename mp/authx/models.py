@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from cryptography.hazmat.primitives import hashes
@@ -78,6 +79,10 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.email
 
+    def verify_account(self):
+        self.verified = True
+        self.save(update_fields=["verified"])
+
 
 class UserECC(Model):
     key = TextField(null=False, blank=False, help_text="Encrypted ECC private key.")
@@ -92,7 +97,9 @@ class UserECC(Model):
 
 class EmailVerificationToken(Model):
     token_id = CharField(max_length=100, null=False, blank=False, unique=True)
-    expiry = DateTimeField(null=False, blank=False)
+    expiry = DateTimeField(
+        null=False, blank=False, default=(timezone.now() + timedelta(days=1))
+    )
     active = BooleanField(null=False, blank=False, default=False)
 
     created = DateTimeField(auto_now_add=True)
@@ -109,12 +116,16 @@ class EmailVerificationToken(Model):
     def __str__(self):
         return self.token_id
 
-    @property
-    def is_expired(self) -> bool:
-        return self.expiry < timezone.now()
-
     @staticmethod
     def generate_token_id() -> str:
         digest = hashes.Hash(hashes.SHA256())
         digest.update(str(uuid4()).encode("utf-8"))
         return digest.finalize().hex().upper()
+
+    @property
+    def is_expired(self) -> bool:
+        return self.expiry < timezone.now()
+
+    def invalidate(self):
+        self.active = False
+        self.save(update_fields=["active"])

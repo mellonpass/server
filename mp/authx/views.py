@@ -4,13 +4,15 @@ from http import HTTPStatus
 from django.conf import settings
 from django.db import transaction
 from django.db.utils import IntegrityError
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, JsonResponse
+from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
 from marshmallow import ValidationError
 
+from mp.authx.models import EmailVerificationToken
 from mp.authx.serializers import AccountCreateSerializer, AuthenticationSerializer
 from mp.authx.services import (
     check_existing_email,
@@ -254,3 +256,37 @@ def check_email_view(request: HttpRequest):
         },
         status=HTTPStatus.OK,
     )
+
+
+@require_POST
+@csrf_exempt
+def verify_view(request: HttpRequest):
+    data = json.loads(request.body)
+
+    if data.get("token_id", None) is None:
+        return JsonResponse(
+            {
+                "error": "Misformatted request: Token not found.",
+            },
+            status=HTTPStatus.FORBIDDEN,
+        )
+
+    try:
+        token = get_object_or_404(EmailVerificationToken, token_id=data["token_id"])
+
+        if token.is_expired:
+            return JsonResponse({"error": "Token expired."}, status=HTTPStatus.BAD_REQUEST)
+
+        if not token.active:
+            return JsonResponse({"error": "Invalid token."}, status=HTTPStatus.BAD_REQUEST)
+
+        if token.user.verified:
+            return JsonResponse({"error": "Account already verified."}, status=HTTPStatus.BAD_REQUEST)
+
+        token.user.verify_account()
+        token.invalidate()
+
+    except Http404:
+        return JsonResponse({"error": "Unknown token."}, status=HTTPStatus.FORBIDDEN)
+
+    return JsonResponse({}, status=HTTPStatus.OK)
