@@ -281,17 +281,17 @@ def verify_view(request: HttpRequest):
                 status=HTTPStatus.UNPROCESSABLE_ENTITY,
             )
 
-        if not token.active or token.user.verified:
+        if not token.active or token.user.is_active:
             return JsonResponse(
                 {
-                    "error": "Account already verified.",
-                    "code": "ACCOUNT_ALREADY_VERIFIED",
+                    "error": "Inactive token.",
+                    "code": "INACTIVE_TOKEN",
                 },
                 status=HTTPStatus.UNPROCESSABLE_ENTITY,
             )
 
-        token.user.verify_account()
         token.invalidate()
+        token.user.verify_account()
 
     except Http404:
         return JsonResponse(

@@ -13,10 +13,7 @@ def create_account(
     email: str,
     name: str,
 ) -> User:
-    user = User.objects.create_user(
-        email=email,
-        name=name,
-    )
+    user = User.objects.create_user(email=email, name=name, is_active=False)
     return user
 
 

@@ -96,11 +96,11 @@ class UserECC(Model):
 
 
 class EmailVerificationToken(Model):
+    DEFAULT_EXPIRY_DURATION = (timezone.now() + timedelta(days=1))
+
     token_id = CharField(max_length=100, null=False, blank=False, unique=True)
-    expiry = DateTimeField(
-        null=False, blank=False, default=(timezone.now() + timedelta(days=1))
-    )
-    active = BooleanField(null=False, blank=False, default=False)
+    expiry = DateTimeField(null=False, blank=False)
+    active = BooleanField(null=False, blank=False, default=True)
 
     created = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)

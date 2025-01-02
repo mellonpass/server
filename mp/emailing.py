@@ -16,7 +16,11 @@ def send_account_verification_link(app_origin: str, email: str):
 
     token_id = EmailVerificationToken.generate_token_id()
 
-    EmailVerificationToken.objects.create(token_id=token_id, user=user)
+    EmailVerificationToken.objects.create(
+        token_id=token_id,
+        user=user,
+        expiry=EmailVerificationToken.DEFAULT_EXPIRY_DURATION,
+    )
 
     context = {"setup_link": f"{app_origin}/account-setup?token_id={token_id}"}
 
