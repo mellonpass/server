@@ -36,11 +36,14 @@ def test_missing_token_id(client: Client):
             "token_iid": "sometoken",
         },
     )
-    assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json()["error"] == "Misformatted request: Token not found."
+
+    data = response.json()
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert data["error"] == "Misformatted request: Token not found."
+    assert data["code"] == "TOKEN_NOT_FOUND"
 
 
-def test_unknown_token(client: Client):
+def test_invalid_token(client: Client):
     url = reverse("accounts:verify")
     response = client.post(
         url,
@@ -49,8 +52,11 @@ def test_unknown_token(client: Client):
             "token_id": "unknowntoken",
         },
     )
+
+    data = response.json()
     assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json()["error"] == "Unknown token."
+    assert data["error"] == "Invalid token."
+    assert data["code"] == "INVALID_TOKEN"
 
 
 def test_expired_token(client: Client):
@@ -69,8 +75,10 @@ def test_expired_token(client: Client):
             },
         )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == "Token expired."
+    data = response.json()
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert data["error"] == "Token expired."
+    assert data["code"] == "TOKEN_EXPIRED"
 
 
 def test_inactive_token(client: Client):
@@ -86,8 +94,10 @@ def test_inactive_token(client: Client):
         },
     )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == "Invalid token."
+    data = response.json()
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert data["error"] == "Account already verified."
+    assert data["code"] == "ACCOUNT_ALREADY_VERIFIED"
 
 
 def test_account_already_verified(client: Client):
@@ -103,5 +113,7 @@ def test_account_already_verified(client: Client):
         },
     )
 
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == "Account already verified."
+    data = response.json()
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert data["error"] == "Account already verified."
+    assert data["code"] == "ACCOUNT_ALREADY_VERIFIED"

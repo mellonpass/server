@@ -267,26 +267,36 @@ def verify_view(request: HttpRequest):
         return JsonResponse(
             {
                 "error": "Misformatted request: Token not found.",
+                "code": "TOKEN_NOT_FOUND",
             },
-            status=HTTPStatus.FORBIDDEN,
+            status=HTTPStatus.BAD_REQUEST,
         )
 
     try:
         token = get_object_or_404(EmailVerificationToken, token_id=data["token_id"])
 
         if token.is_expired:
-            return JsonResponse({"error": "Token expired."}, status=HTTPStatus.BAD_REQUEST)
+            return JsonResponse(
+                {"error": "Token expired.", "code": "TOKEN_EXPIRED"},
+                status=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
 
-        if not token.active:
-            return JsonResponse({"error": "Invalid token."}, status=HTTPStatus.BAD_REQUEST)
-
-        if token.user.verified:
-            return JsonResponse({"error": "Account already verified."}, status=HTTPStatus.BAD_REQUEST)
+        if not token.active or token.user.verified:
+            return JsonResponse(
+                {
+                    "error": "Account already verified.",
+                    "code": "ACCOUNT_ALREADY_VERIFIED",
+                },
+                status=HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
 
         token.user.verify_account()
         token.invalidate()
 
     except Http404:
-        return JsonResponse({"error": "Unknown token."}, status=HTTPStatus.FORBIDDEN)
+        return JsonResponse(
+            {"error": "Invalid token.", "code": "INVALID_TOKEN"},
+            status=HTTPStatus.FORBIDDEN,
+        )
 
     return JsonResponse({}, status=HTTPStatus.OK)
