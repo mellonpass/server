@@ -24,5 +24,6 @@ class EmailVerificationTokenFactory(DjangoModelFactory):
         model = EmailVerificationToken
 
     token_id = FuzzyAttribute(EmailVerificationToken.generate_token_id)
+    expiry = EmailVerificationToken.DEFAULT_EXPIRY_DURATION
     active = True
     user = SubFactory(UserFactory)

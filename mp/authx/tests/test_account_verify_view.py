@@ -13,7 +13,7 @@ pytestmark = pytest.mark.django_db
 
 
 def test_verify_email(client: Client):
-    token = EmailVerificationTokenFactory()
+    token = EmailVerificationTokenFactory(user=UserFactory(is_active=False))
 
     url = reverse("accounts:verify")
     response = client.post(
@@ -60,7 +60,7 @@ def test_invalid_token(client: Client):
 
 
 def test_expired_token(client: Client):
-    token = EmailVerificationTokenFactory()
+    token = EmailVerificationTokenFactory(user=UserFactory(is_active=False))
 
     url = reverse("accounts:verify")
 
@@ -96,8 +96,8 @@ def test_inactive_token(client: Client):
 
     data = response.json()
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert data["error"] == "Account already verified."
-    assert data["code"] == "ACCOUNT_ALREADY_VERIFIED"
+    assert data["error"] == "Inactive token."
+    assert data["code"] == "INACTIVE_TOKEN"
 
 
 def test_account_already_verified(client: Client):
@@ -115,5 +115,5 @@ def test_account_already_verified(client: Client):
 
     data = response.json()
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert data["error"] == "Account already verified."
-    assert data["code"] == "ACCOUNT_ALREADY_VERIFIED"
+    assert data["error"] == "Inactive token."
+    assert data["code"] == "INACTIVE_TOKEN"
