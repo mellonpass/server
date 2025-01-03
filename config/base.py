@@ -155,6 +155,9 @@ PASSWORD_HASHERS = [
 JWT_PRIVATE_KEY_PATH = env("JWT_PRIVATE_KEY_PATH")
 JWT_PUBLIC_KEY_PATH = env("JWT_PUBLIC_KEY_PATH")
 
+EMAIL_VERIFICATION_KEY_PATH = env("EMAIL_VERIFICATION_KEY_PATH")
+EMAIL_VERIFICATION_PUB_PATH = env("EMAIL_VERIFICATION_PUB_PATH")
+
 # CELERY
 # ------------------------------------------------------------------------
 # timezone for celery tasks
