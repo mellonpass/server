@@ -8,8 +8,9 @@ from django.urls import reverse
 from mp.authx.models import User
 from mp.authx.tests.factories import UserFactory
 from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, REQUEST_FORBIDDEN
+from mp.crypto import verify_jwt
 from mp.jwt.models import RefreshToken
-from mp.jwt.services import ACCESS_TOKEN_DURATION, verify_jwt
+from mp.jwt.services import ACCESS_TOKEN_DURATION
 
 pytestmark = pytest.mark.django_db
 

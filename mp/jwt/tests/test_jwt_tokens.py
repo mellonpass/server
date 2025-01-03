@@ -4,15 +4,13 @@ from uuid import uuid4
 
 import jwt
 import pytest
+from django.conf import settings
 from django.utils import timezone
 from freezegun import freeze_time
 
 from mp.authx.tests.factories import UserFactory
-from mp.jwt.services import (
-    _load_private_key,
-    generate_access_token_from_user,
-    verify_jwt,
-)
+from mp.crypto import load_ecdsa_p256_key, verify_jwt
+from mp.jwt.services import generate_access_token_from_user
 
 pytestmark = pytest.mark.django_db
 
@@ -51,7 +49,11 @@ def test_token_signature_invalid():
 
 
 def test_token_claims():
-    token = jwt.encode({"id": str(uuid4())}, _load_private_key(), algorithm="ES256")
+    token = jwt.encode(
+        {"id": str(uuid4())},
+        load_ecdsa_p256_key(settings.JWT_PRIVATE_KEY_PATH),
+        algorithm="ES256",
+    )
     is_valid, message = verify_jwt(token)
     assert is_valid is False
     assert message == "Token is missing required claim."

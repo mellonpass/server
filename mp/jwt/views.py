@@ -5,8 +5,6 @@ from typing import Union
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django_ratelimit.core import get_usage
-from django_ratelimit.decorators import ratelimit
 from marshmallow import ValidationError
 
 from mp.authx.serializers import RefreshTokenSerializer
