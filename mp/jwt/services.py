@@ -29,7 +29,7 @@ def generate_access_token_from_user(user: User) -> str:
     issued_at = timezone.now()
     access_token_payload = {
         "sub": str(user.uuid),
-        "iat": issued_at.timestamp(),
+        "iat": int(issued_at.timestamp()),
         "exp": int((issued_at + timedelta(seconds=ACCESS_TOKEN_DURATION)).timestamp()),
         "jti": str(uuid4()),
     }

@@ -9,13 +9,24 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def verify_jwt(token: str) -> Tuple[bool, Union[str, Dict]]:
+def es256_jwt(payload: Dict) -> str:
+    return jwt.encode(
+        payload,
+        load_ecdsa_p256_key(settings.JWT_PRIVATE_KEY_PATH),
+        algorithm="ES256",
+    )
+
+
+def verify_jwt(token: str, verify=True) -> Tuple[bool, Union[str, Dict]]:
     try:
         payload = jwt.decode(
             token,
             load_ecdsa_p256_pub(settings.JWT_PUBLIC_KEY_PATH),
             algorithms=["ES256"],
-            options={"require": ["exp", "iat", "sub", "jti"]},
+            options={
+                "require": ["exp", "iat", "sub", "jti"],
+                "verify_signature": verify,
+            },
         )
         return True, payload
     except jwt.InvalidSignatureError as err:

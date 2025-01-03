@@ -1,14 +1,13 @@
 import logging
-from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from django.utils import timezone
 from django.utils.html import strip_tags
 
 from mp.authx.models import EmailVerificationToken
+from mp.crypto import verify_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +23,16 @@ def send_account_verification_link(app_origin: str, email: str):
         )
         return
 
-    token_id = EmailVerificationToken.generate_token_id()
+    jwt_token = EmailVerificationToken.generate_token_id()
+    _, payload = verify_jwt(jwt_token, verify=False)
 
     EmailVerificationToken.objects.create(
-        token_id=token_id,
+        token_id=payload["sub"],
         user=user,
         expiry=EmailVerificationToken.DEFAULT_EXPIRY_DURATION,
     )
 
-    context = {"setup_link": f"{app_origin}/account-setup?token_id={token_id}"}
+    context = {"setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"}
 
     html_content = render_to_string("emails/verification_email.html", context)
     # Remove html tags.

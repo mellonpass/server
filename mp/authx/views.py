@@ -1,4 +1,5 @@
 import json
+import logging
 from http import HTTPStatus
 
 from django.conf import settings
@@ -10,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
+from jwt import InvalidTokenError
 from marshmallow import ValidationError
 
 from mp.authx.models import EmailVerificationToken
@@ -23,6 +25,7 @@ from mp.authx.services import (
 from mp.authx.tasks import send_account_verification_link_task
 from mp.core.utils.http import ResponseErrorCode
 from mp.core.utils.ip import rl_client_ip
+from mp.crypto import verify_jwt
 from mp.jwt.services import (
     ACCESS_TOKEN_DURATION,
     generate_access_token_from_user,
@@ -30,6 +33,8 @@ from mp.jwt.services import (
     revoke_refresh_tokens,
     store_client_information_from_request,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # Used for ratelimiting.
@@ -273,33 +278,44 @@ def verify_view(request: HttpRequest):
         )
 
     try:
-        token = get_object_or_404(EmailVerificationToken, token_id=data["token_id"])
+        is_valid, res = verify_jwt(data["token_id"])
 
-        if token.is_expired:
-            return JsonResponse(
-                {"error": "Token expired.", "code": "TOKEN_EXPIRED"},
-                status=HTTPStatus.UNPROCESSABLE_ENTITY,
-            )
+        if not is_valid:
+            raise InvalidTokenError(res)
 
-        if not token.active or token.user.is_active:
-            return JsonResponse(
-                {
-                    "error": "Inactive token.",
-                    "code": "INACTIVE_TOKEN",
-                },
-                status=HTTPStatus.UNPROCESSABLE_ENTITY,
-            )
+        token = get_object_or_404(EmailVerificationToken, token_id=res["sub"])
+    except (Http404, InvalidTokenError) as err:
+        logger.error(err, exc_info=1)
 
-        token.invalidate()
-
-        # Proof that the link was accessed via the user's valid email.
-        # But it doesn't mean the user completed account setup.
-        token.user.verify_account()
-
-    except Http404:
         return JsonResponse(
             {"error": "Invalid token.", "code": "INVALID_TOKEN"},
             status=HTTPStatus.FORBIDDEN,
         )
 
+    if token.is_expired:
+        return JsonResponse(
+            {"error": "Token expired.", "code": "TOKEN_EXPIRED"},
+            status=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    if not token.active or token.user.is_active:
+        return JsonResponse(
+            {
+                "error": "Inactive token.",
+                "code": "INACTIVE_TOKEN",
+            },
+            status=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    token.invalidate()
+
+    # Proof that the link was accessed via the user's valid email.
+    # But it doesn't mean the user completed account setup.
+    token.user.verify_account()
+
     return JsonResponse({}, status=HTTPStatus.OK)
+
+
+@require_POST
+@csrf_exempt
+def account_setup_view(request: HttpRequest): ...

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from uuid import uuid4
 
 from cryptography.hazmat.primitives import hashes
@@ -20,6 +20,8 @@ from django.db.models import (
     UUIDField,
 )
 from django.utils import timezone
+
+from mp.crypto import es256_jwt
 
 
 class CustomUserManager(BaseUserManager):
@@ -116,11 +118,19 @@ class EmailVerificationToken(Model):
     def __str__(self):
         return self.token_id
 
-    @staticmethod
-    def generate_token_id() -> str:
+    @classmethod
+    def generate_token_id(cls) -> str:
         digest = hashes.Hash(hashes.SHA256())
         digest.update(str(uuid4()).encode("utf-8"))
-        return digest.finalize().hex().upper()
+
+        return es256_jwt(
+            payload={
+                "sub": digest.finalize().hex().upper(),
+                "iat": int(timezone.now().timestamp()),
+                "exp": int(cls.DEFAULT_EXPIRY_DURATION.timestamp()),
+                "jti": str(uuid4()),
+            }
+        )
 
     @property
     def is_expired(self) -> bool:

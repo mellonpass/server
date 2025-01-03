@@ -7,20 +7,28 @@ from django.urls import reverse
 from django.utils import timezone
 from freezegun import freeze_time
 
+from mp.authx.models import EmailVerificationToken
 from mp.authx.tests.factories import EmailVerificationTokenFactory, UserFactory
+from mp.crypto import verify_jwt
 
 pytestmark = pytest.mark.django_db
 
 
 def test_verify_email(client: Client):
-    token = EmailVerificationTokenFactory(user=UserFactory(is_active=False))
+
+    token = EmailVerificationToken.generate_token_id()
+    _, jwt = verify_jwt(token, verify=False)
+
+    EmailVerificationTokenFactory(
+        token_id=jwt["sub"], user=UserFactory(is_active=False)
+    )
 
     url = reverse("accounts:verify")
     response = client.post(
         url,
         content_type="application/json",
         data={
-            "token_id": token.token_id,
+            "token_id": token,
         },
     )
     assert response.status_code == HTTPStatus.OK
@@ -60,7 +68,13 @@ def test_invalid_token(client: Client):
 
 
 def test_expired_token(client: Client):
-    token = EmailVerificationTokenFactory(user=UserFactory(is_active=False))
+
+    token = EmailVerificationToken.generate_token_id()
+    _, jwt = verify_jwt(token, verify=False)
+
+    EmailVerificationTokenFactory(
+        token_id=jwt["sub"], user=UserFactory(is_active=False)
+    )
 
     url = reverse("accounts:verify")
 
@@ -71,18 +85,21 @@ def test_expired_token(client: Client):
             url,
             content_type="application/json",
             data={
-                "token_id": token.token_id,
+                "token_id": token,
             },
         )
 
     data = response.json()
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert data["error"] == "Token expired."
-    assert data["code"] == "TOKEN_EXPIRED"
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert data["error"] == "Invalid token."
+    assert data["code"] == "INVALID_TOKEN"
 
 
 def test_inactive_token(client: Client):
-    token = EmailVerificationTokenFactory(active=False)
+    token = EmailVerificationToken.generate_token_id()
+    _, jwt = verify_jwt(token, verify=False)
+
+    EmailVerificationTokenFactory(token_id=jwt["sub"], active=False)
 
     url = reverse("accounts:verify")
 
@@ -90,7 +107,7 @@ def test_inactive_token(client: Client):
         url,
         content_type="application/json",
         data={
-            "token_id": token.token_id,
+            "token_id": token,
         },
     )
 
@@ -101,7 +118,10 @@ def test_inactive_token(client: Client):
 
 
 def test_account_already_verified(client: Client):
-    token = EmailVerificationTokenFactory(user=UserFactory(verified=True))
+    token = EmailVerificationToken.generate_token_id()
+    _, jwt = verify_jwt(token, verify=False)
+
+    EmailVerificationTokenFactory(token_id=jwt["sub"], user=UserFactory(verified=True))
 
     url = reverse("accounts:verify")
 
@@ -109,7 +129,7 @@ def test_account_already_verified(client: Client):
         url,
         content_type="application/json",
         data={
-            "token_id": token.token_id,
+            "token_id": token,
         },
     )
 

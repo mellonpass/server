@@ -7,6 +7,7 @@ from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyAttribute
 
 from mp.authx.models import EmailVerificationToken
+from mp.crypto import verify_jwt
 
 User = get_user_model()
 
@@ -23,7 +24,6 @@ class EmailVerificationTokenFactory(DjangoModelFactory):
     class Meta:
         model = EmailVerificationToken
 
-    token_id = FuzzyAttribute(EmailVerificationToken.generate_token_id)
     expiry = EmailVerificationToken.DEFAULT_EXPIRY_DURATION
     active = True
     user = SubFactory(UserFactory)
