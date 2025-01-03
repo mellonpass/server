@@ -291,6 +291,9 @@ def verify_view(request: HttpRequest):
             )
 
         token.invalidate()
+
+        # Proof that the link was accessed via the user's valid email.
+        # But it doesn't mean the user completed account setup.
         token.user.verify_account()
 
     except Http404:
