@@ -5,7 +5,7 @@ from django.http import HttpRequest, JsonResponse
 from django.utils.module_loading import import_string
 
 from mp.core.utils.http import REQUEST_FORBIDDEN, UNAUTHORIZED_REQUEST
-from mp.jwt.services import verify_jwt
+from mp.crypto import verify_jwt
 
 
 class JWTAuthTokenMiddleware:
