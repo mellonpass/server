@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.conf import settings
@@ -9,10 +10,19 @@ from django.utils.html import strip_tags
 
 from mp.authx.models import EmailVerificationToken
 
+logger = logging.getLogger(__name__)
+
 
 def send_account_verification_link(app_origin: str, email: str):
     User = get_user_model()
     user = User.objects.get(email=email)
+
+    if user.is_active:
+        logger.warning(
+            "Something trying to resend verification link to active user's email %s",
+            user.email,
+        )
+        return
 
     token_id = EmailVerificationToken.generate_token_id()
 
