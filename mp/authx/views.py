@@ -313,7 +313,9 @@ def verify_view(request: HttpRequest):
     # But it doesn't mean the user completed account setup.
     token.user.verify_account()
 
-    return JsonResponse({}, status=HTTPStatus.OK)
+    return JsonResponse(
+        {"data": {"verified_email": token.user.email}}, status=HTTPStatus.OK
+    )
 
 
 @require_POST
