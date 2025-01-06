@@ -19,7 +19,7 @@ def test_verify_email(client: Client):
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 
-    EmailVerificationTokenFactory(
+    token_object = EmailVerificationTokenFactory(
         token_id=jwt["sub"], user=UserFactory(is_active=False)
     )
 
@@ -32,6 +32,7 @@ def test_verify_email(client: Client):
         },
     )
     assert response.status_code == HTTPStatus.OK
+    assert response.json()["data"]["verified_email"] == token_object.user.email
 
 
 def test_missing_token_id(client: Client):
