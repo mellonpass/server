@@ -1,4 +1,3 @@
-import json
 from functools import partial
 from http import HTTPStatus
 
@@ -16,21 +15,78 @@ pytestmark = pytest.mark.django_db
 rf = RequestFactory()
 
 
-def test_account_create(client: Client, settings):
-    url = reverse("accounts:create")
-    response = client.post(
-        url,
-        content_type="application/json",
-        data={
-            "email": "test@example.com",
-            "name": "john doe",
-        },
+def test_account_create(mocker, client: Client, django_capture_on_commit_callbacks):
+    mock_send_account_verification_link_task = mocker.patch(
+        "mp.authx.views.send_account_verification_link_task"
     )
-    assert response.status_code == HTTPStatus.CREATED
 
+    url = reverse("accounts:create")
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(
+            url,
+            content_type="application/json",
+            data={
+                "email": "test@example.com",
+                "name": "john doe",
+            },
+        )
+
+        # re-register will only re-send new verification link and not update
+        # anything.
+        response_2 = client.post(
+            url,
+            content_type="application/json",
+            data={
+                "email": "test@example.com",
+                "name": "john 1 doe",  # using different name.
+            },
+        )
+
+    assert response.status_code == HTTPStatus.CREATED
     data = response.json()["data"]
     assert data["email"] == "test@example.com"
     assert data["name"] == "john doe"
+
+    # re-register data test.
+    assert response_2.status_code == HTTPStatus.OK
+    data = response_2.json()["data"]
+    assert data["email"] == "test@example.com"
+    assert data["name"] == "john doe"  # should not be updated.
+
+    mock_send_account_verification_link_task.delay.assert_called_with(
+        app_origin="testserver", email="test@example.com"
+    )
+    assert mock_send_account_verification_link_task.delay.call_count == 2
+
+
+def test_account_create_active_user(
+    mocker, client: Client, django_capture_on_commit_callbacks
+):
+    user = UserFactory(is_active=True)
+
+    mock_send_account_verification_link_task = mocker.patch(
+        "mp.authx.views.send_account_verification_link_task"
+    )
+
+    url = reverse("accounts:create")
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(
+            url,
+            content_type="application/json",
+            data={
+                "email": user.email,
+                "name": user.name,
+            },
+        )
+
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()["data"]
+    assert data["email"] == user.email
+    assert data["name"] == user.name
+
+    assert not mock_send_account_verification_link_task.delay.called
 
 
 def test_account_create_invalid_content_type(client: Client):
@@ -63,23 +119,6 @@ def test_account_create_invalid_input(client: Client):
     assert response.json()["code"] == INVALID_INPUT
     assert error["email"][0] == "Not a valid email address."
     assert error["name"][0] == "Missing data for required field."
-
-
-def test_account_create_existing_email(client: Client):
-    existing_user = UserFactory(email="test@example.com")
-
-    url = reverse("accounts:create")
-    response = client.post(
-        url,
-        content_type="application/json",
-        data={
-            "email": existing_user.email,
-            "name": "john doe",
-        },
-    )
-    assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == f"Email {existing_user.email} already taken."
-    assert response.json()["code"] == INVALID_INPUT
 
 
 @override_settings(RATELIMIT_ENABLE=True)
