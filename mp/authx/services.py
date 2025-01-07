@@ -12,9 +12,10 @@ User = get_user_model()
 def create_account(
     email: str,
     name: str,
-) -> User:
-    user = User.objects.create_user(email=email, name=name, is_active=False)
-    return user
+) -> Tuple[User, bool]:
+    return User.objects.get_or_create(
+        email=email, defaults={"name": name, "is_active": False}
+    )
 
 
 def login_user(

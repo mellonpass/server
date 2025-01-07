@@ -66,10 +66,6 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
     try:
         sid = transaction.savepoint()
 
-        serializer = AccountCreateSerializer()
-        account_data = serializer.load(json.loads(request.body))
-        user = create_account(**account_data)
-
         # This will become `True` if user the same IP created more than 5 accounts
         # per minute. Also does not commit account creation.
         same_client_ip_usage = get_usage(
@@ -86,25 +82,31 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
 
-        transaction.on_commit(
-            lambda: send_account_verification_link_task.delay(
-                app_origin=request.META["HTTP_ORIGIN"], email=user.email
-            )
-        )
+        serializer = AccountCreateSerializer()
+        account_data = serializer.load(json.loads(request.body))
+        user, created = create_account(**account_data)
 
-        return JsonResponse({"data": serializer.dump(user)}, status=HTTPStatus.CREATED)
+        if not user.is_active:
+
+            # HTTP_ORIGIN does not exists on pytest.
+            http_origin = request.META.get("HTTP_ORIGIN", None)
+            if http_origin is None and settings.APP_ENVIRONMENT == "test":
+                http_origin = "testserver"
+
+            transaction.on_commit(
+                lambda: send_account_verification_link_task.delay(
+                    app_origin=http_origin, email=user.email
+                )
+            )
+
+        return JsonResponse(
+            {"data": serializer.dump(user)},
+            status=HTTPStatus.CREATED if created else HTTPStatus.OK,
+        )
     except ValidationError as error:
         return JsonResponse(
             {
                 "error": error.messages,
-                "code": ResponseErrorCode.INVALID_INPUT,
-            },
-            status=HTTPStatus.BAD_REQUEST,
-        )
-    except IntegrityError as error:
-        return JsonResponse(
-            {
-                "error": f"Email {account_data['email']} already taken.",
                 "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
