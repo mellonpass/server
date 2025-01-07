@@ -25,6 +25,8 @@ APPS_DIR = BASE_DIR / "mp"
 # Load local django environment variables.
 env.read_env(str(BASE_DIR / "config/envs/.django.env"))
 
+APP_ENVIRONMENT = env("APP_ENVIRONMENT")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
