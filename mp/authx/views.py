@@ -309,7 +309,8 @@ def verify_view(request: HttpRequest):
             status=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
 
-    token.invalidate()
+    # Invalidate all tokens.
+    token.user.verification_tokens.all().update(active=False)
 
     # Proof that the link was accessed via the user's valid email.
     # But it doesn't mean the user completed account setup.

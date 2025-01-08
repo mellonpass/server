@@ -34,6 +34,9 @@ def test_verify_email(client: Client):
     assert response.status_code == HTTPStatus.OK
     assert response.json()["data"]["verified_email"] == token_object.user.email
 
+    # All user tokens should be invalidated.
+    assert not token_object.user.verification_tokens.filter(active=True).exists()
+
 
 def test_missing_token_id(client: Client):
     url = reverse("accounts:verify")
