@@ -16,7 +16,7 @@ def test_create_account():
 
     # re-create
     existing_user, created = create_account(
-        name="john 1 doe", # attempt to use a different name.
+        name="john 1 doe",  # attempt to use a different name.
         email="johndoe@example.com",
     )
     assert not created

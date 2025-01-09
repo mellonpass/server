@@ -4,7 +4,6 @@ from http import HTTPStatus
 
 from django.conf import settings
 from django.db import transaction
-from django.db.utils import IntegrityError
 from django.http import Http404, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -15,14 +14,20 @@ from jwt import InvalidTokenError
 from marshmallow import ValidationError
 
 from mp.authx.models import EmailVerificationToken
-from mp.authx.serializers import AccountCreateSerializer, AuthenticationSerializer
+from mp.authx.serializers import (
+    AccountCreateSerializer,
+    AccountSetupSerializer,
+    AuthenticationSerializer,
+)
 from mp.authx.services import (
     check_existing_email,
     create_account,
     login_user,
     logout_user,
+    setup_account,
 )
 from mp.authx.tasks import send_account_verification_link_task
+from mp.core.exceptions import ServiceValidationError
 from mp.core.utils.http import ResponseErrorCode
 from mp.core.utils.ip import rl_client_ip
 from mp.crypto import verify_jwt
@@ -323,4 +328,23 @@ def verify_view(request: HttpRequest):
 
 @require_POST
 @csrf_exempt
-def account_setup_view(request: HttpRequest): ...
+def setup_view(request: HttpRequest):
+    try:
+        serializer = AccountSetupSerializer()
+        data = serializer.load(json.loads(request.body))
+        user = setup_account(**data)
+        return JsonResponse({"data": {"user_email": user.email}}, status=HTTPStatus.OK)
+    except ValidationError as error:
+        return JsonResponse(
+            {
+                "error": error.messages,
+            },
+            status=HTTPStatus.BAD_REQUEST,
+        )
+    except ServiceValidationError as error:
+        return JsonResponse(
+            {
+                "error": str(error),
+            },
+            status=HTTPStatus.BAD_REQUEST,
+        )
