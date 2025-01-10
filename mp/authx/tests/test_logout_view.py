@@ -15,6 +15,9 @@ pytestmark = pytest.mark.django_db
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_logout_view(client: Client, user: User):
+    user.is_active = True
+    user.save()
+
     login_url = reverse("accounts:login")
     login_response = client.post(
         path=login_url,

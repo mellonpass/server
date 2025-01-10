@@ -65,7 +65,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     protected_symmetric_key = TextField(null=False, blank=True, default="")
 
-    is_active = BooleanField(default=True)
+    is_active = BooleanField(default=False)
     is_staff = BooleanField(default=False)
 
     verified = BooleanField(default=False)

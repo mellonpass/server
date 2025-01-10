@@ -122,10 +122,11 @@ def test_inactive_token(client: Client):
 
 
 def test_account_already_verified(client: Client):
+    """Test email is verified but user is not done with account setup."""
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 
-    EmailVerificationTokenFactory(token_id=jwt["sub"], user=UserFactory(verified=True))
+    token_obj = EmailVerificationTokenFactory(token_id=jwt["sub"], user=UserFactory(verified=True))
 
     url = reverse("accounts:verify")
 
@@ -138,6 +139,5 @@ def test_account_already_verified(client: Client):
     )
 
     data = response.json()
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert data["error"] == "Inactive token."
-    assert data["code"] == "INACTIVE_TOKEN"
+    assert response.status_code == HTTPStatus.OK
+    assert data["data"]["verified_email"] == token_obj.user.email
