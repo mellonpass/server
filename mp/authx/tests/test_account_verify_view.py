@@ -126,7 +126,9 @@ def test_account_already_verified(client: Client):
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 
-    token_obj = EmailVerificationTokenFactory(token_id=jwt["sub"], user=UserFactory(verified=True))
+    token_obj = EmailVerificationTokenFactory(
+        token_id=jwt["sub"], user=UserFactory(verified=True)
+    )
 
     url = reverse("accounts:verify")
 
