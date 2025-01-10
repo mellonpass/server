@@ -217,3 +217,9 @@ SESSION_COOKIE_SECURE = False
 # https://docs.djangoproject.com/en/4.2/topics/email/
 NO_REPLY_EMAIL = "no-reply@mellonpass.com"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+
+# App data
+TEST_USER_EMAIL=env("TEST_USER_EMAIL", default="")
+TEST_USER_LOGIN_HASH=env("TEST_USER_LOGIN_HASH", default="")
+TEST_USER_PROTECTED_SYMMETRIC_KEY=env("TEST_USER_PROTECTED_SYMMETRIC_KEY", default="")
