@@ -58,6 +58,32 @@ def test_setup_view_unverified(client: Client):
     assert response.json()["error"] == f"User's email {user.email} is not verified."
 
 
+def test_setup_view_active_user(client: Client):
+    """Test in case someone is trying to re-setup the active
+    user's account to change it's credentials.
+    """
+
+    user = UserFactory(verified=True, is_active=True)
+
+    login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
+    psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
+
+    url = reverse("accounts:setup")
+    response = client.post(
+        url,
+        content_type="application/json",
+        data={
+            "email": user.email,
+            "login_hash": login_hash,
+            "protected_symmetric_key": psk,
+            "hint": "my-hint",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["error"] == f"Unable to setup up user account."
+
+
 def test_setup_view_hint_max_length_error(client: Client):
     user = UserFactory(verified=True)
 

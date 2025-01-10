@@ -50,6 +50,9 @@ def setup_account(
     if not user.verified:
         raise ServiceValidationError(f"User's email {email} is not verified.")
 
+    if user.is_active:
+        raise ServiceValidationError(f"Unable to setup up user account.")
+
     user.set_password(login_hash)
     user.protected_symmetric_key = protected_symmetric_key
     user.hint = hint
