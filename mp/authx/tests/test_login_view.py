@@ -63,7 +63,6 @@ def test_login_view_invalid_content_type(client: Client, user: User):
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid request content-type."
-    assert response.json()["code"] == INVALID_REQUEST
 
 
 @override_settings(RATELIMIT_ENABLE=False)
@@ -89,7 +88,6 @@ def test_login_view_user_already_authenticated(client: Client, user: User):
         response_2.json()["error"]
         == f"User {user.email} is already authenticated. Logout current user first!"
     )
-    assert response_2.json()["code"] == INVALID_INPUT
 
 
 @override_settings(RATELIMIT_ENABLE=False)
@@ -105,7 +103,6 @@ def test_login_view_invalid_input(client: Client, user: User):
         },
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["code"] == INVALID_INPUT
 
     error = response.json()["error"]
     assert error["login_hash"][0] == "Missing data for required field."
@@ -125,7 +122,6 @@ def test_login_view_invalid_login_hash(client: Client, user: User):
         response.json()["error"]
         == "Invalid credentials provided. Please check your email and master password."
     )
-    assert response.json()["code"] == INVALID_INPUT
 
 
 @override_settings(RATELIMIT_ENABLE=False)
@@ -141,7 +137,6 @@ def test_login_view_invalid_email(client: Client):
         response.json()["error"]
         == "Invalid credentials provided. Please check your email and master password."
     )
-    assert response.json()["code"] == INVALID_INPUT
 
 
 @override_settings(RATELIMIT_ENABLE=True)
@@ -180,7 +175,6 @@ def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     )
 
     assert response.json()["error"] == "Blocked, try again later."
-    assert response.json()["code"] == RATELIMIT_EXCEEDED
 
 
 @override_settings(RATELIMIT_ENABLE=True)
@@ -219,4 +213,3 @@ def test_login_view_failed_attempt_same_email(
     )
 
     assert response.json()["error"] == "Too many login atttempts using the same email."
-    assert response.json()["code"] == RATELIMIT_EXCEEDED

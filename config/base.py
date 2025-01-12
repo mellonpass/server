@@ -15,6 +15,7 @@ from pathlib import Path
 import dj_database_url
 import environ
 from celery.schedules import crontab
+from corsheaders.defaults import default_headers
 
 env = environ.Env()
 
@@ -199,19 +200,32 @@ CACHES = {
 
 # Ratelimit
 # https://django-ratelimit.readthedocs.io/en/stable/settings.html
-RATELIMIT_ENABLE = True
+RATELIMIT_ENABLE = False
 
 # Django CORS header
 # https://github.com/adamchainz/django-cors-headers?tab=readme-ov-file#configuration
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = ["GET", "POST"]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    *default_headers,
+    "credentials",  # Add 'credentials' to allowed headers
+]
+
 
 # JWTAuthToken
 JWT_AUTH_ENABLE = True
 JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
-SESSION_COOKIE_DOMAIN = env("DJANGO_SESSION_COOKIE_DOMAIN", default=None)
+SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default=None)
+SESSION_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_SECURE = False
+
+CSRF_COOKIE_DOMAIN = env("APP_DOMAIN", default=None)
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=["*"])
+CSRF_COOKIE_SAMESITE = "Strict"
+CSRF_COOKIE_SECURE = False
+
 
 # Emailing
 # https://docs.djangoproject.com/en/4.2/topics/email/
@@ -220,6 +234,6 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # App data
-TEST_USER_EMAIL=env("TEST_USER_EMAIL", default="")
-TEST_USER_LOGIN_HASH=env("TEST_USER_LOGIN_HASH", default="")
-TEST_USER_PROTECTED_SYMMETRIC_KEY=env("TEST_USER_PROTECTED_SYMMETRIC_KEY", default="")
+TEST_USER_EMAIL = env("TEST_USER_EMAIL", default="")
+TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default="")
+TEST_USER_PROTECTED_SYMMETRIC_KEY = env("TEST_USER_PROTECTED_SYMMETRIC_KEY", default="")

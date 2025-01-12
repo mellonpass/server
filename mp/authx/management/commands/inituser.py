@@ -18,10 +18,11 @@ class Command(BaseCommand):
         user, _ = User.objects.get_or_create(
             email=settings.TEST_USER_EMAIL,
             defaults={
-                "password": settings.TEST_USER_LOGIN_HASH,
                 "protected_symmetric_key": settings.TEST_USER_PROTECTED_SYMMETRIC_KEY,
                 "is_active": True,
                 "verified": True,
             },
         )
+        user.set_password(settings.TEST_USER_LOGIN_HASH)
+        user.save(update_fields=["password"])
         self.stdout.write(self.style.SUCCESS("Test user %s is set." % user.email))

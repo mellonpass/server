@@ -7,7 +7,7 @@ from django.db import transaction
 from django.http import Http404, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
 from jwt import InvalidTokenError
@@ -133,7 +133,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
             return JsonResponse(
                 {
                     "error": f"Too many login atttempts using the same email.",
-                    "code": ResponseErrorCode.RATELIMIT_EXCEEDED,
                 },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
@@ -142,7 +141,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
             return JsonResponse(
                 {
                     "error": "Blocked, try again later.",
-                    "code": ResponseErrorCode.RATELIMIT_EXCEEDED,
                 },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
@@ -151,7 +149,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": "Invalid request content-type.",
-                "code": ResponseErrorCode.INVALID_REQUEST,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -160,7 +157,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": f"User {request.user.email} is already authenticated. Logout current user first!",
-                "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -172,7 +168,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": error.messages,
-                "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -201,7 +196,13 @@ def login_view(request: HttpRequest, *args, **kwargs):
             },
             status=HTTPStatus.ACCEPTED,
         )
-        success_response.set_cookie("x-mp-refresh-token", refresh_token)
+        success_response.set_cookie(
+            "x-mp-refresh-tokenj",
+            refresh_token.refresh_token_id,
+            expires=refresh_token.exp,
+            samesite="Strict",
+            httponly=True,
+        )
         return success_response
 
     error_data = {
@@ -209,7 +210,6 @@ def login_view(request: HttpRequest, *args, **kwargs):
             "Invalid credentials provided. "
             "Please check your email and master password."
         ),
-        "code": ResponseErrorCode.INVALID_INPUT,
     }
 
     if settings.RATELIMIT_ENABLE:
@@ -348,3 +348,16 @@ def setup_view(request: HttpRequest):
             },
             status=HTTPStatus.BAD_REQUEST,
         )
+
+
+@require_GET
+@csrf_exempt
+def whoami_view(request: HttpRequest):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "You are not authorized."}, status=HTTPStatus.UNAUTHORIZED
+        )
+
+    return JsonResponse(
+        {"data": {"email": request.user.email, "auth": True}}, status=HTTPStatus.OK
+    )
