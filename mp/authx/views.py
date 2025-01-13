@@ -353,11 +353,12 @@ def setup_view(request: HttpRequest):
 @require_GET
 @csrf_exempt
 def whoami_view(request: HttpRequest):
-    if not request.user.is_authenticated:
-        return JsonResponse(
-            {"error": "You are not authorized."}, status=HTTPStatus.UNAUTHORIZED
-        )
-
     return JsonResponse(
-        {"data": {"email": request.user.email, "auth": True}}, status=HTTPStatus.OK
+        {
+            "data": {
+                "identity": str(request.user),
+                "auth": request.user.is_authenticated,
+            }
+        },
+        status=HTTPStatus.OK,
     )
