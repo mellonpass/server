@@ -189,9 +189,12 @@ def login_view(request: HttpRequest, *args, **kwargs):
         success_response = JsonResponse(
             {
                 "data": {
-                    "access_token": access_token,
-                    "expires_in": ACCESS_TOKEN_DURATION,
-                    "token_type": "Bearer",
+                    "token": {
+                        "access_token": access_token,
+                        "expires_in": ACCESS_TOKEN_DURATION,
+                        "token_type": "Bearer",
+                    },
+                    "psk": user.protected_symmetric_key,
                 }
             },
             status=HTTPStatus.ACCEPTED,
