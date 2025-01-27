@@ -29,10 +29,11 @@ def test_login_view(client: Client, user: User):
     assert response.status_code == HTTPStatus.ACCEPTED
 
     data = response.json()["data"]
-    assert data["expires_in"] == ACCESS_TOKEN_DURATION
-    assert data["token_type"] == "Bearer"
+    assert data["token"]["expires_in"] == ACCESS_TOKEN_DURATION
+    assert data["token"]["token_type"] == "Bearer"
+    assert data["psk"]
 
-    is_valid, payload = verify_jwt(data["access_token"])
+    is_valid, payload = verify_jwt(data["token"]["access_token"])
     assert is_valid
     assert payload["sub"] == str(user.uuid)
 

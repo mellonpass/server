@@ -200,7 +200,7 @@ def login_view(request: HttpRequest, *args, **kwargs):
             status=HTTPStatus.ACCEPTED,
         )
         success_response.set_cookie(
-            "x-mp-refresh-tokenj",
+            "x-mp-refresh-token",
             refresh_token.refresh_token_id,
             expires=refresh_token.exp,
             samesite="Strict",
