@@ -1,6 +1,7 @@
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, Union
 from uuid import UUID
 
+from django.db import transaction
 from django.db.models import QuerySet
 
 from mp.authx.models import User
@@ -8,6 +9,7 @@ from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote, Ciph
 from mp.core.exceptions import ServiceValidationError
 
 
+@transaction.atomic
 def create_cipher(owner: User, type: str, name: str, key: str, data: Dict) -> Cipher:
     cipher_data = _build_cipher_data(cipher_type=CipherType(type), data=data)
     return Cipher.objects.create(

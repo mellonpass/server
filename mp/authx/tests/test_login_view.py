@@ -9,7 +9,6 @@ from django.urls import reverse
 
 from mp.authx.models import User
 from mp.authx.tests.conftest import TEST_USER_LOGIN_HASH
-from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 from mp.crypto import verify_jwt
 from mp.jwt.models import RefreshToken
 from mp.jwt.services import ACCESS_TOKEN_DURATION
