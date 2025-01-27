@@ -365,3 +365,45 @@ def whoami_view(request: HttpRequest):
         },
         status=HTTPStatus.OK,
     )
+
+
+@require_POST
+@csrf_exempt
+def unlock_view(request: HttpRequest):
+
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {
+                "error": "Unknown user.",
+            },
+            status=HTTPStatus.UNAUTHORIZED,
+        )
+
+    data = json.loads(request.body)
+
+    login_hash = data.get("login_hash", None)
+
+    if login_hash is None:
+        return JsonResponse(
+            {
+                "error": "Login hash is required.",
+            },
+            status=HTTPStatus.BAD_REQUEST,
+        )
+
+    if request.user.check_password(data["login_hash"]):
+        return JsonResponse(
+            {
+                "data": {
+                    "psk": request.user.protected_symmetric_key,
+                }
+            },
+            status=HTTPStatus.OK,
+        )
+
+    return JsonResponse(
+        {
+            "error": "Invalid master password.",
+        },
+        status=HTTPStatus.UNPROCESSABLE_ENTITY,
+    )

@@ -17,9 +17,6 @@ pytestmark = pytest.mark.django_db
 
 
 def test_login_view(client: Client, user: User):
-    user.is_active = True
-    user.save()
-
     url = reverse("accounts:login")
     response = client.post(
         path=url,
@@ -67,9 +64,6 @@ def test_login_view_invalid_content_type(client: Client, user: User):
 
 @override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_user_already_authenticated(client: Client, user: User):
-    user.is_active = True
-    user.save()
-
     url = reverse("accounts:login")
 
     client_post = partial(

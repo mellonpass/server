@@ -23,6 +23,7 @@ from mp.authx.views import (
     login_view,
     logout_view,
     setup_view,
+    unlock_view,
     verify_view,
     whoami_view,
 )
@@ -36,4 +37,5 @@ urlpatterns = [
     path("setup", view=setup_view, name="setup"),
     path("verify", view=verify_view, name="verify"),
     path("whoami", view=whoami_view, name="whoami"),
+    path("unlock", view=unlock_view, name="unlock"),
 ]
