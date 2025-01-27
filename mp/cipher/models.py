@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union, overload
+from typing import Dict, Optional
 from uuid import uuid4
 
 from django.conf import settings
@@ -7,6 +7,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import (
     CASCADE,
     RESTRICT,
+    BooleanField,
     CharField,
     DateTimeField,
     ForeignKey,
@@ -34,6 +35,7 @@ class Cipher(Model):
         choices=CipherType.choices,
     )
     name = TextField(null=False, blank=False, help_text="Encrypted cipher data name.")
+    is_favorite = BooleanField(null=False, blank=False, default=False)
 
     key = CharField(max_length=180, null=False, blank=False)
 
