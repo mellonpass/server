@@ -1,5 +1,3 @@
-version: '3'
-
 networks:
   mellonpass-network:
     driver: bridge
