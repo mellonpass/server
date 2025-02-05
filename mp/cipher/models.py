@@ -37,7 +37,7 @@ class Cipher(Model):
     name = TextField(null=False, blank=False, help_text="Encrypted cipher data name.")
     is_favorite = BooleanField(null=False, blank=False, default=False)
 
-    key = CharField(max_length=180, null=False, blank=False)
+    key = TextField(null=False, blank=False)
 
     data_id = PositiveIntegerField()
     data: "CipherData" = GenericForeignKey("content_type", "data_id")
@@ -51,7 +51,7 @@ class Cipher(Model):
     updated = DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
-        return f"{self.name}:{self.type}"
+        return f"{self.__class__.__name__}:{self.type} - {self.id}"
 
     class Meta:
         indexes = [

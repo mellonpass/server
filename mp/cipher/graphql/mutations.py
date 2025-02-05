@@ -39,6 +39,7 @@ class CipherMutation:
                 type=cipher.type,
                 name=cipher.name,
                 key=cipher.key,
+                is_favorite=cipher.is_favorite,
                 data=cipher.data.to_json(),
                 created=cipher.created,
             )

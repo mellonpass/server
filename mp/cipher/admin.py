@@ -5,7 +5,7 @@ from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote
 
 class CipherAdmin(admin.ModelAdmin):
 
-    list_display = ("uuid", "type", "name", "owner", "created")
+    list_display = ("__str__", "type", "owner", "created")
     readonly_fields = ("uuid",)
 
 
