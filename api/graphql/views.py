@@ -15,7 +15,7 @@ class MPGrahpQLView(GraphQLView):
         data: GraphQLHTTPResponse = {"data": result.data}
 
         if result.errors:
-            data["errors"] = [err.original_error.formatted for err in result.errors]
+            data["errors"] = [err.original_error for err in result.errors]
             # No need to return data on errors.
             del data["data"]
 
