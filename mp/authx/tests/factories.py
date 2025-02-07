@@ -17,11 +17,20 @@ class UserFactory(DjangoModelFactory):
 
     email = Faker("email")
     name = Faker("name")
+    is_active = True
 
     # Random base64 token generator for fake psk.
     @factory.lazy_attribute
     def protected_symmetric_key(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.post_generation
+    def password(obj, create, extracted, **kwargs):
+        if not create:
+            return
+
+        obj.set_password(extracted or "test")
+        obj.save()
 
 
 class EmailVerificationTokenFactory(DjangoModelFactory):
