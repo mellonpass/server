@@ -75,8 +75,7 @@ class CipherConnection(relay.ListConnection[Cipher]):
 
 
 @strawberry.type
-class CipherCreateSuccess:
-    cipher: Cipher
+class CipherCreateSuccess(Cipher): ...
 
 
 @strawberry.type
