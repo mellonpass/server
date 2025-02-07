@@ -51,6 +51,7 @@ def setup_account(
         raise ServiceValidationError(f"User's email {email} is not verified.")
 
     if user.is_active:
+        # You can't setup activated account and overrite credentials.
         raise ServiceValidationError(f"Unable to setup up user account.")
 
     user.set_password(login_hash)

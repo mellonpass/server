@@ -84,7 +84,7 @@ class CipherModelMixin(Model):
         return data
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.uuid}"
+        return f"{self.__class__.__name__}:{self.id}"
 
     class Meta:
         abstract = True
