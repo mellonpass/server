@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 django = "4.2"
-strawberry-graphql = "^0.237.3"
+strawberry-graphql = "^0.258.0"
 django-environ = "^0.11.2"
 django-extensions = "^3.2.3"
 dj-database-url = "^2.2.0"

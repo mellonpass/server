@@ -1,10 +1,10 @@
 ARG PYTHON_VERSION=3.11.10-slim-bullseye
-ARG POETRY_VERSION=1.8.4
+ARG POETRY_VERSION=1.8.5
 ARG POETRY_INSTALL_OPTS="--no-root"
 
 # PYTHON BASE
 # ---------------------------------------------------------------------------
-FROM python:${PYTHON_VERSION} as python-base
+FROM python:${PYTHON_VERSION} AS python-base
 
 ARG POETRY_VERSION
 ARG POETRY_INSTALL_OPTS
@@ -42,7 +42,7 @@ ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
 # DEPENDENCY BUILD STAGE
 # ---------------------------------------------------------------------------
-FROM python-base as build-stage
+FROM python-base AS build-stage
 
 WORKDIR ${PYSETUP_PATH}
 
@@ -67,7 +67,7 @@ RUN poetry install ${POETRY_INSTALL_OPTS}
 
 # FINAL BUILD STAGE
 # ---------------------------------------------------------------------------
-FROM python-base as final-build
+FROM python-base AS final-build
 
 # Set the working directory inside the container
 WORKDIR ${APP_DIR}
@@ -97,7 +97,7 @@ COPY . .
 
 # FINAL LOCAL BUILD STAGE
 # ---------------------------------------------------------------------------
-FROM final-build as local
+FROM final-build AS local
 
 # Copy django server script.
 COPY deploy/dev/start_web /start_web
@@ -113,7 +113,7 @@ RUN chmod +x /start_beat
 
 # FINAL PRODUCTION BUILD STAGE
 # ---------------------------------------------------------------------------
-FROM final-build as production
+FROM final-build AS production
 
 # Copy django server script.
 COPY deploy/prod/start_web /start_web
