@@ -48,3 +48,39 @@ def test_create_cipher():
         assert cipher["type"] == cipher_data["type"]
         assert cipher["key"] == cipher_data["key"]
         assert cipher["data"] == cipher_data["data"]
+
+
+def test_create_cipher(mocker):
+    query = """
+        mutation CreateCipher($input: CreateCipherInput!){
+            cipher {
+                create(input: $input) {
+                    ... on CipherCreateForbidden {
+                        message
+                    }
+                }
+            }
+        }
+    """
+
+    cipher_data = {
+        "type": CipherType.LOGIN,
+        "name": "encname",
+        "key": "somekey",
+        "data": {"username": "encusername", "password": "encpassword"},
+    }
+
+    variables = {"input": cipher_data}
+
+    user = UserFactory()
+    client = TestClient("/graphql")
+
+    mock_create_cipher = mocker.patch("mp.cipher.graphql.mutations.create_cipher")
+    mock_create_cipher.side_effect = Exception("kaboink!")
+
+    with client.login(user):
+        response = client.query(query, variables=variables)
+        assert (
+            "Something went wrong when creating cipher."
+            == response.data["cipher"]["create"]["message"]
+        )
