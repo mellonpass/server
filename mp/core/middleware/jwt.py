@@ -8,6 +8,7 @@ from mp.core.utils.http import REQUEST_FORBIDDEN, UNAUTHORIZED_REQUEST
 from mp.crypto import verify_jwt
 
 
+# TODO: Add test (normal).
 class JWTAuthTokenMiddleware:
     """A middleware to check for an authenticated user and a JWT Bearer
     token on the request header on certain views defined on

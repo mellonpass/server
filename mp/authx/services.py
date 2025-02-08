@@ -4,18 +4,19 @@ from typing import Optional, Tuple
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpRequest
 
+from mp.authx.models import User
 from mp.core.exceptions import ServiceValidationError
 
 logger = logging.getLogger(__name__)
 
-User = get_user_model()
+UserModel = get_user_model()
 
 
 def create_account(
     email: str,
     name: str,
 ) -> Tuple[User, bool]:
-    return User.objects.get_or_create(
+    return UserModel.objects.get_or_create(
         email=email, defaults={"name": name, "is_active": False}
     )
 
@@ -36,7 +37,7 @@ def logout_user(request: HttpRequest):
 
 
 def check_existing_email(email: str) -> bool:
-    return User.objects.filter(email=email).exists()
+    return UserModel.objects.filter(email=email).exists()
 
 
 def setup_account(
@@ -45,10 +46,10 @@ def setup_account(
     protected_symmetric_key: str,
     hint: Optional[str] = None,
 ) -> User:
-    user = User.objects.get(email=email)
+    user = UserModel.objects.get(email=email)
 
     if not user.verified:
-        raise ServiceValidationError(f"User's email {email} is not verified.")
+        raise ServiceValidationError(f"UserModel's email {email} is not verified.")
 
     if user.is_active:
         # You can't setup activated account and overrite credentials.
