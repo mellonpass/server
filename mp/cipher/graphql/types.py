@@ -79,12 +79,12 @@ class CipherCreateSuccess(Cipher): ...
 
 
 @strawberry.type
-class CipherCreateForbidden:
+class CipherCreateFailed:
     message: str
 
 
 CipherCreatePayload = Annotated[
-    Union[CipherCreateSuccess, CipherCreateForbidden],
+    Union[CipherCreateSuccess, CipherCreateFailed],
     strawberry.union("CipherCreatePayload"),
 ]
 

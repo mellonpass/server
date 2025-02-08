@@ -37,7 +37,10 @@ class JWTAuthTokenMiddleware:
         # only allow authenticated user and request with authorization header.
         if not request.user.is_authenticated or auth_header in ["", None]:
             return JsonResponse(
-                {"error": "You're not logged in.", "code": UNAUTHORIZED_REQUEST},
+                {
+                    "error": "You are not authorized to access this resource.",
+                    "code": UNAUTHORIZED_REQUEST,
+                },
                 status=HTTPStatus.UNAUTHORIZED,
             )
 

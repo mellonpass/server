@@ -49,7 +49,7 @@ def setup_account(
     user = UserModel.objects.get(email=email)
 
     if not user.verified:
-        raise ServiceValidationError(f"UserModel's email {email} is not verified.")
+        raise ServiceValidationError(f"User's email {email} is not verified.")
 
     if user.is_active:
         # You can't setup activated account and overrite credentials.

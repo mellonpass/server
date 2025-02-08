@@ -5,7 +5,7 @@ import strawberry
 from strawberry import relay
 
 from mp.cipher.graphql.types import (
-    CipherCreateForbidden,
+    CipherCreateFailed,
     CipherCreatePayload,
     CipherCreateSuccess,
     CipherDeletePayload,
@@ -48,8 +48,8 @@ class CipherMutation:
         except Exception as error:
             # log error with stacktrace do not reveal on API.
             logger.exception(error)
-            return CipherCreateForbidden(
-                message="Something went wrong when creating cipher."
+            return CipherCreateFailed(
+                message="Something went wrong when creating a vault item."
             )
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])

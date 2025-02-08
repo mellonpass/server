@@ -55,7 +55,7 @@ def test_create_cipher(mocker):
         mutation CreateCipher($input: CreateCipherInput!){
             cipher {
                 create(input: $input) {
-                    ... on CipherCreateForbidden {
+                    ... on CipherCreateFailed {
                         message
                     }
                 }
@@ -81,6 +81,6 @@ def test_create_cipher(mocker):
     with client.login(user):
         response = client.query(query, variables=variables)
         assert (
-            "Something went wrong when creating cipher."
+            "Something went wrong when creating a vault item."
             == response.data["cipher"]["create"]["message"]
         )
