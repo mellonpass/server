@@ -80,6 +80,12 @@ def refresh_token_view(request: HttpRequest):
         },
         status=HTTPStatus.ACCEPTED,
     )
-    success_response.set_cookie("x-mp-refresh-token", refresh_token.refresh_token_id)
+    success_response.set_cookie(
+        "x-mp-refresh-token",
+        refresh_token.refresh_token_id,
+        expires=refresh_token.exp,
+        samesite="Strict",
+        httponly=True,
+    )
 
     return success_response

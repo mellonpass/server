@@ -26,28 +26,7 @@ def test_login_view(client: Client, user: User):
     assert response.status_code == HTTPStatus.ACCEPTED
 
     data = response.json()["data"]
-    assert data["token"]["expires_in"] == ACCESS_TOKEN_DURATION
-    assert data["token"]["token_type"] == "Bearer"
     assert data["psk"]
-
-    is_valid, payload = verify_jwt(data["token"]["access_token"])
-    assert is_valid
-    assert payload["sub"] == str(user.uuid)
-
-    rtoken = RefreshToken.objects.get(
-        refresh_token_id=response.cookies.get("x-mp-refresh-token").value
-    )
-
-    # There should be only 1 active refresh token per session.
-    assert (
-        RefreshToken.objects.filter(
-            session_key=rtoken.session_key, revoked=False
-        ).count()
-        == 1
-    )
-
-    assert rtoken.client_information == "Other Other - Other"
-    assert rtoken.client_ip == "127.0.0.1"
 
 
 @override_settings(RATELIMIT_ENABLE=False)

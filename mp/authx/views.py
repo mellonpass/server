@@ -31,13 +31,6 @@ from mp.core.exceptions import ServiceValidationError
 from mp.core.utils.http import ResponseErrorCode
 from mp.core.utils.ip import rl_client_ip
 from mp.crypto import verify_jwt
-from mp.jwt.services import (
-    ACCESS_TOKEN_DURATION,
-    generate_access_token_from_user,
-    generate_refresh_token_from_user_and_session,
-    revoke_refresh_tokens,
-    store_client_information_from_request,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -175,36 +168,13 @@ def login_view(request: HttpRequest, *args, **kwargs):
     user, is_success = login_user(**auth_data, request=request)
 
     if is_success:
-        if request.session.session_key:
-            # revoked all refresh tokens of the session_key.
-            revoke_refresh_tokens(request.session.session_key)
-
-        access_token = generate_access_token_from_user(user)
-        refresh_token = generate_refresh_token_from_user_and_session(
-            user=user, session_key=request.session.session_key
-        )
-
-        store_client_information_from_request(request)
-
         success_response = JsonResponse(
             {
                 "data": {
-                    "token": {
-                        "access_token": access_token,
-                        "expires_in": ACCESS_TOKEN_DURATION,
-                        "token_type": "Bearer",
-                    },
                     "psk": user.protected_symmetric_key,
                 }
             },
             status=HTTPStatus.ACCEPTED,
-        )
-        success_response.set_cookie(
-            "x-mp-refresh-token",
-            refresh_token.refresh_token_id,
-            expires=refresh_token.exp,
-            samesite="Strict",
-            httponly=True,
         )
         return success_response
 
@@ -249,14 +219,12 @@ def logout_view(request: HttpRequest):
         )
 
     user_email = request.user.email
-    revoke_refresh_tokens(request.session.session_key)
     logout_user(request)
 
     response = JsonResponse(
         {"message": f"User {user_email} has successfully logged out."},
         status=HTTPStatus.ACCEPTED,
     )
-    response.delete_cookie("x-mp-refresh-token")
     return response
 
 

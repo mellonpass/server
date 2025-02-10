@@ -214,7 +214,7 @@ CORS_ALLOW_HEADERS = [
 
 
 # JWTAuthToken
-JWT_AUTH_ENABLE = True
+JWT_AUTH_ENABLE = False  # Disable this feature for now.
 JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
 SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default=None)
