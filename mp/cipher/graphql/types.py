@@ -8,14 +8,11 @@ from strawberry import relay
 from strawberry.scalars import JSON
 
 from mp.cipher.models import Cipher as CipherModel
-from mp.cipher.services import get_ciphers_by_owner_and_uuids
-
-
-@strawberry.enum
-class CipherTypeEnum(Enum):
-    LOGIN = "LOGIN"
-    SECURE_NOTE = "SECURE_NOTE"
-
+from mp.cipher.services import (
+    CipherCategory,
+    CipherTypeEnum,
+    get_ciphers_by_owner_and_uuids,
+)
 
 # Types
 
@@ -103,3 +100,9 @@ class CreateCipherInput:
     name: str
     key: str
     data: JSON
+
+
+
+@strawberry.input(one_of=True)
+class FilterCipher:
+    category: CipherCategory | None = strawberry.UNSET

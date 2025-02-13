@@ -4,7 +4,7 @@ from typing import Any, Iterable, Optional
 import strawberry
 from strawberry import relay
 
-from mp.cipher.graphql.types import Cipher, CipherConnection
+from mp.cipher.graphql.types import Cipher, CipherConnection, FilterCipher
 from mp.cipher.models import Cipher as CipherModel
 from mp.cipher.services import get_all_ciphers_by_owner, get_cipher_by_owner_and_uuid
 from mp.core.graphql.permissions import IsAuthenticated
@@ -36,5 +36,12 @@ class CipherQuery:
             )
 
     @relay.connection(CipherConnection, permission_classes=[IsAuthenticated])
-    def ciphers(self, info: strawberry.Info) -> Iterable[Cipher]:
+    def ciphers(
+        self, info: strawberry.Info, filter: Optional[FilterCipher] = None
+    ) -> Iterable[Cipher]:
+        # TODO: add test (normal)
+        if filter:
+            return get_all_ciphers_by_owner(
+                owner=info.context.request.user, category=filter.category
+            )
         return get_all_ciphers_by_owner(owner=info.context.request.user)
