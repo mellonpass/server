@@ -36,8 +36,9 @@ Make sure you have the following installed on your machine:
 
 - Server should be running on `http://localhost:8000`
 - Django admin is accessible via `http://localhost:8000/admin`. 
-
-See `.django.env` file for a test admin user and test user credentials.
+    - See `.django.env` file for a test admin user and test user credentials.
+- RabbitMQ admin is accessible via `http://localhost:15672/admin`. 
+    - Username and password is: `rabbit`.
 
 # Development
 
