@@ -1,6 +1,6 @@
 # API Server 
 
-MellonPass backend server (GraphQL, docker, and database setup)
+MellonPass backend server (GraphQL, docker, and database)
 
 # Getting started
 
