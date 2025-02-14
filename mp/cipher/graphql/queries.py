@@ -25,6 +25,7 @@ class CipherQuery:
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
                 name=cipher.name,
+                is_favorite=cipher.is_favorite,
                 key=cipher.key,
                 data=cipher.data.to_json(),
                 created=cipher.created,
