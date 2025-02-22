@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, TypedDict, Union
 from uuid import UUID
 
 from django.db import transaction
@@ -10,6 +10,18 @@ from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote, Ciph
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
+
+
+class CipherLogin(TypedDict):
+    username: str
+    password: str
+
+
+class CipherSecureNote(TypedDict):
+    note: str
+
+
+CipherData = Union[CipherLogin, CipherSecureNote]
 
 
 class CipherCategory(Enum):
@@ -44,6 +56,29 @@ def _build_cipher_data(
             raise ServiceValidationError(f"Invalid CipherType {cipher_type}.")
     cipher_data.save()
     return cipher_data
+
+
+@transaction.atomic
+def update_cipher(
+    owner: User, uuid: UUID, key: str, name: str, data: CipherData
+) -> Cipher:
+    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+    cipher.key = key
+    cipher.name = name
+    cipher.save()
+
+    if cipher.type == CipherType.LOGIN:
+        login_data: CipherDataLogin = cipher.data
+        login_data.username = data["username"]
+        login_data.password = data["password"]
+        login_data.save()
+
+    if cipher.type == CipherType.SECURE_NOTE:
+        secure_note_data: CipherDataSecureNote = cipher.data
+        secure_note_data.note = data["note"]
+        secure_note_data.save()
+
+    return cipher
 
 
 def delete_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> List[UUID]:
