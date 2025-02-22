@@ -1,8 +1,11 @@
-import pytest
+from uuid import uuid4
 
-from api.graphql.schema import schema
+import pytest
+from strawberry import relay
+
 from mp.authx.tests.factories import UserFactory
 from mp.cipher.models import CipherType
+from mp.cipher.tests.factories import CipherDataSecureNoteFactory, CipherFactory
 from mp.core.strawberry.test import TestClient
 
 pytestmark = pytest.mark.django_db
@@ -16,11 +19,10 @@ def test_create_cipher():
                     ... on CipherCreateSuccess {
                         id
                         ownerId
-                        name
-                        type
                         key
+                        type
+                        name
                         data
-                        created
                     }
                 }
             }
@@ -84,3 +86,127 @@ def test_create_cipher(mocker):
             "Something went wrong when creating a vault item."
             == response.data["cipher"]["create"]["message"]
         )
+
+
+def test_update_login_cipher():
+    user = UserFactory()
+    cipher = CipherFactory(owner=user, type=CipherType.LOGIN)
+
+    query = """
+        mutation UpdateCipher($input: UpdateCipherInput!){
+            cipher {
+                update(input: $input) {
+                    ... on CipherUpdateSuccess {
+                        id
+                        ownerId
+                        key
+                        type
+                        name
+                        data
+                    }
+                }
+            }
+        }
+    """
+
+    cipher_data = {
+        "id": relay.to_base64("Cipher", str(cipher.uuid)),
+        "name": "encname",
+        "key": "somekey",
+        "data": {"username": "encusername", "password": "encpassword"},
+    }
+
+    variables = {"input": cipher_data}
+
+    client = TestClient("/graphql")
+
+    with client.login(user):
+        response = client.query(query, variables=variables)
+        data = response.data["cipher"]["update"]
+        assert (
+            relay.GlobalID.from_id(data["id"]).node_id
+            == relay.GlobalID.from_id(cipher_data["id"]).node_id
+        )
+        assert data["ownerId"] == str(user.uuid)
+        assert data["key"] == cipher_data["key"]
+        assert data["name"] == cipher_data["name"]
+        assert data["data"]["username"] == cipher_data["data"]["username"]
+        assert data["data"]["password"] == cipher_data["data"]["password"]
+
+
+def test_update_secure_note_cipher():
+    user = UserFactory()
+    cipher = CipherFactory(
+        owner=user, type=CipherType.SECURE_NOTE, data=CipherDataSecureNoteFactory()
+    )
+
+    query = """
+        mutation UpdateCipher($input: UpdateCipherInput!){
+            cipher {
+                update(input: $input) {
+                    ... on CipherUpdateSuccess {
+                        id
+                        ownerId
+                        key
+                        type
+                        name
+                        data
+                    }
+                }
+            }
+        }
+    """
+
+    cipher_data = {
+        "id": relay.to_base64("Cipher", str(cipher.uuid)),
+        "name": "encname",
+        "key": "somekey",
+        "data": {"note": "encnote"},
+    }
+
+    variables = {"input": cipher_data}
+
+    client = TestClient("/graphql")
+
+    with client.login(user):
+        response = client.query(query, variables=variables)
+        data = response.data["cipher"]["update"]
+        assert (
+            relay.GlobalID.from_id(data["id"]).node_id
+            == relay.GlobalID.from_id(cipher_data["id"]).node_id
+        )
+        assert data["ownerId"] == str(user.uuid)
+        assert data["key"] == cipher_data["key"]
+        assert data["name"] == cipher_data["name"]
+        assert data["data"]["note"] == cipher_data["data"]["note"]
+
+
+def test_update_non_existing_cipher():
+    user = UserFactory()
+
+    query = """
+        mutation UpdateCipher($input: UpdateCipherInput!){
+            cipher {
+                update(input: $input) {
+                    ... on CipherUpdateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+
+    cipher_data = {
+        "id": relay.to_base64("Cipher", str(uuid4())),
+        "name": "encname",
+        "key": "somekey",
+        "data": {"note": "encnote"},
+    }
+
+    variables = {"input": cipher_data}
+
+    client = TestClient("/graphql")
+
+    with client.login(user):
+        response = client.query(query, variables=variables)
+        assert "Resource not found" in response.data["cipher"]["update"]["message"]
