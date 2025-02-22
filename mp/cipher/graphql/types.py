@@ -1,6 +1,5 @@
 from datetime import datetime
-from enum import Enum
-from typing import Annotated, Iterable, List, Union
+from typing import Annotated, List, Union
 
 import strawberry
 import strawberry.annotation
@@ -8,11 +7,7 @@ from strawberry import relay
 from strawberry.scalars import JSON
 
 from mp.cipher.models import Cipher as CipherModel
-from mp.cipher.services import (
-    CipherCategory,
-    CipherTypeEnum,
-    get_ciphers_by_owner_and_uuids,
-)
+from mp.cipher.services import CipherCategory, CipherTypeEnum
 
 # Types
 
@@ -27,30 +22,7 @@ class Cipher(relay.Node):
     key: str
     data: JSON
     created: datetime
-
-    @classmethod
-    def resolve_nodes(
-        cls,
-        *,
-        info: strawberry.Info,
-        node_ids: Iterable[str],
-    ):
-        qs = get_ciphers_by_owner_and_uuids(
-            owner=info.context.request.user, uuids=node_ids
-        )
-        return [
-            Cipher(
-                uuid=cipher.uuid,
-                owner_id=cipher.owner.uuid,
-                type=cipher.type,
-                name=cipher.name,
-                is_favorite=cipher.is_favorite,
-                key=cipher.key,
-                data=cipher.data.to_json(),
-                created=cipher.created,
-            )
-            for cipher in qs
-        ]
+    updated: datetime
 
 
 @strawberry.type
@@ -68,16 +40,38 @@ class CipherConnection(relay.ListConnection[Cipher]):
             key=node.key,
             data=node.data.to_json(),
             created=node.created,
+            updated=node.updated,
         )
 
 
 @strawberry.type
-class CipherCreateSuccess(Cipher): ...
+class CipherMutateSuccess(Cipher): ...
 
 
 @strawberry.type
-class CipherCreateFailed:
+class CipherMutateFailed:
     message: str
+
+
+@strawberry.type
+class CipherCreateSuccess(CipherMutateSuccess): ...
+
+
+@strawberry.type
+class CipherCreateFailed(CipherMutateFailed): ...
+
+
+@strawberry.type
+class CipherDeletePayload:
+    deleted_ids: List[strawberry.ID]
+
+
+@strawberry.type
+class CipherUpdateSuccess(CipherMutateSuccess): ...
+
+
+@strawberry.type
+class CipherUpdateFailed(CipherMutateFailed): ...
 
 
 CipherCreatePayload = Annotated[
@@ -85,10 +79,10 @@ CipherCreatePayload = Annotated[
     strawberry.union("CipherCreatePayload"),
 ]
 
-
-@strawberry.type
-class CipherDeletePayload:
-    deleted_ids: List[strawberry.ID]
+CipherUpdatePayload = Annotated[
+    Union[CipherUpdateSuccess, CipherUpdateFailed],
+    strawberry.union("CipherUpdatePayload"),
+]
 
 
 # Inputs
@@ -97,10 +91,17 @@ class CipherDeletePayload:
 @strawberry.input
 class CreateCipherInput:
     type: CipherTypeEnum
-    name: str
     key: str
+    name: str
     data: JSON
 
+
+@strawberry.input
+class UpdateCipherInput:
+    id: relay.GlobalID
+    key: str
+    name: str
+    data: JSON
 
 
 @strawberry.input(one_of=True)

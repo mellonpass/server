@@ -9,9 +9,18 @@ from mp.cipher.graphql.types import (
     CipherCreatePayload,
     CipherCreateSuccess,
     CipherDeletePayload,
+    CipherUpdateFailed,
+    CipherUpdatePayload,
+    CipherUpdateSuccess,
     CreateCipherInput,
+    UpdateCipherInput,
 )
-from mp.cipher.services import create_cipher, delete_ciphers_by_owner_and_uuids
+from mp.cipher.models import Cipher
+from mp.cipher.services import (
+    create_cipher,
+    delete_ciphers_by_owner_and_uuids,
+    update_cipher,
+)
 from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -23,11 +32,9 @@ class CipherMutation:
     def create(
         self, info: strawberry.Info, input: CreateCipherInput
     ) -> CipherCreatePayload:
-        user = info.context.request.user
-
         try:
             cipher = create_cipher(
-                owner=user,
+                owner=info.context.request.user,
                 type=input.type.value,
                 name=input.name,
                 key=input.key,
@@ -43,6 +50,7 @@ class CipherMutation:
                 is_favorite=cipher.is_favorite,
                 data=cipher.data.to_json(),
                 created=cipher.created,
+                updated=cipher.updated,
             )
 
         except Exception as error:
@@ -50,6 +58,38 @@ class CipherMutation:
             logger.exception(error)
             return CipherCreateFailed(
                 message="Something went wrong when creating a vault item."
+            )
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    def update(
+        self, info: strawberry.Info, input: UpdateCipherInput
+    ) -> CipherUpdatePayload:
+        try:
+            cipher = update_cipher(
+                owner=info.context.request.user,
+                uuid=input.id.node_id,
+                key=input.key,
+                name=input.name,
+                data=input.data,
+            )
+            return CipherUpdateSuccess(
+                uuid=cipher.uuid,
+                owner_id=cipher.owner.uuid,
+                type=cipher.type,
+                name=cipher.name,
+                key=cipher.key,
+                is_favorite=cipher.is_favorite,
+                data=cipher.data.to_json(),
+                created=cipher.created,
+                updated=cipher.updated,
+            )
+        except Cipher.DoesNotExist as error:
+            logger.exception(error)
+            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+        except Exception as error:
+            logger.exception(error)
+            return CipherUpdateFailed(
+                message="Something went wrong when updating a vault item."
             )
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])

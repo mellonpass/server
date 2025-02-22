@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class CipherQuery:
     @strawberry.field(permission_classes=[IsAuthenticated])
     def cipher(self, info: strawberry.Info, id: relay.GlobalID) -> Optional[Cipher]:
+
         try:
             cipher = get_cipher_by_owner_and_uuid(
                 owner=info.context.request.user, uuid=id.node_id
@@ -29,6 +30,7 @@ class CipherQuery:
                 key=cipher.key,
                 data=cipher.data.to_json(),
                 created=cipher.created,
+                updated=cipher.updated,
             )
 
         except CipherModel.DoesNotExist as error:
