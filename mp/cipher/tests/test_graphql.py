@@ -16,7 +16,7 @@ def test_create_cipher():
         mutation CreateCipher($input: CreateCipherInput!){
             cipher {
                 create(input: $input) {
-                    ... on CipherCreateSuccess {
+                    ... on Cipher {
                         id
                         ownerId
                         key
@@ -96,7 +96,7 @@ def test_update_login_cipher():
         mutation UpdateCipher($input: UpdateCipherInput!){
             cipher {
                 update(input: $input) {
-                    ... on CipherUpdateSuccess {
+                    ... on Cipher {
                         id
                         ownerId
                         key
@@ -144,7 +144,7 @@ def test_update_secure_note_cipher():
         mutation UpdateCipher($input: UpdateCipherInput!){
             cipher {
                 update(input: $input) {
-                    ... on CipherUpdateSuccess {
+                    ... on Cipher {
                         id
                         ownerId
                         key

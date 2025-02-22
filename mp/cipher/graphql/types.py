@@ -45,16 +45,8 @@ class CipherConnection(relay.ListConnection[Cipher]):
 
 
 @strawberry.type
-class CipherMutateSuccess(Cipher): ...
-
-
-@strawberry.type
 class CipherMutateFailed:
     message: str
-
-
-@strawberry.type
-class CipherCreateSuccess(CipherMutateSuccess): ...
 
 
 @strawberry.type
@@ -67,20 +59,16 @@ class CipherDeletePayload:
 
 
 @strawberry.type
-class CipherUpdateSuccess(CipherMutateSuccess): ...
-
-
-@strawberry.type
 class CipherUpdateFailed(CipherMutateFailed): ...
 
 
 CipherCreatePayload = Annotated[
-    Union[CipherCreateSuccess, CipherCreateFailed],
+    Union[Cipher, CipherCreateFailed],
     strawberry.union("CipherCreatePayload"),
 ]
 
 CipherUpdatePayload = Annotated[
-    Union[CipherUpdateSuccess, CipherUpdateFailed],
+    Union[Cipher, CipherUpdateFailed],
     strawberry.union("CipherUpdatePayload"),
 ]
 

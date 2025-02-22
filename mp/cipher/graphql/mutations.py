@@ -5,17 +5,16 @@ import strawberry
 from strawberry import relay
 
 from mp.cipher.graphql.types import (
+    Cipher,
     CipherCreateFailed,
     CipherCreatePayload,
-    CipherCreateSuccess,
     CipherDeletePayload,
     CipherUpdateFailed,
     CipherUpdatePayload,
-    CipherUpdateSuccess,
     CreateCipherInput,
     UpdateCipherInput,
 )
-from mp.cipher.models import Cipher
+from mp.cipher.models import Cipher as CipherModel
 from mp.cipher.services import (
     create_cipher,
     delete_ciphers_by_owner_and_uuids,
@@ -41,7 +40,7 @@ class CipherMutation:
                 data=input.data,
             )
 
-            return CipherCreateSuccess(
+            return Cipher(
                 uuid=cipher.uuid,
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
@@ -72,7 +71,7 @@ class CipherMutation:
                 name=input.name,
                 data=input.data,
             )
-            return CipherUpdateSuccess(
+            return Cipher(
                 uuid=cipher.uuid,
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
@@ -83,7 +82,7 @@ class CipherMutation:
                 created=cipher.created,
                 updated=cipher.updated,
             )
-        except Cipher.DoesNotExist as error:
+        except CipherModel.DoesNotExist as error:
             logger.exception(error)
             return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
         except Exception as error:
