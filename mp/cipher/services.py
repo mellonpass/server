@@ -46,6 +46,14 @@ def _build_cipher_data(
     return cipher_data
 
 
+def delete_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> List[UUID]:
+    qs = Cipher.objects.filter(owner=owner, uuid__in=uuids)
+    to_delete_uuids = list(qs.values_list("uuid", flat=True))
+    qs.delete()
+
+    return to_delete_uuids
+
+
 def get_cipher_by_owner_and_uuid(owner: User, uuid: UUID) -> Cipher:
     return Cipher.objects.get(owner=owner, uuid=uuid)
 
@@ -70,11 +78,3 @@ def get_all_ciphers_by_owner(
             return qs
         case _:
             return qs.none()
-
-
-def delete_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> List[UUID]:
-    qs = Cipher.objects.filter(owner=owner, uuid__in=uuids)
-    to_delete_uuids = list(qs.values_list("uuid", flat=True))
-    qs.delete()
-
-    return to_delete_uuids
