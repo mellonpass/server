@@ -1,5 +1,6 @@
 import base64
 import os
+from datetime import timedelta
 from uuid import uuid4
 
 import factory
@@ -9,7 +10,13 @@ from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyChoice
 
 from mp.authx.tests.factories import UserFactory
-from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote, CipherType
+from mp.cipher.models import (
+    Cipher,
+    CipherDataLogin,
+    CipherDataSecureNote,
+    CipherStatus,
+    CipherType,
+)
 
 
 class CipherDataLoginFactory(DjangoModelFactory):
@@ -42,7 +49,9 @@ class CipherFactory(DjangoModelFactory):
     type = FuzzyChoice(CipherType)
     name = Faker("name")
     is_favorite = Faker("pybool")
+    status = FuzzyChoice(CipherStatus)
 
+    delete_on = timezone.now() + timedelta(days=30)
     created = timezone.now()
     updated = timezone.now()
 

@@ -26,6 +26,12 @@ class CipherType(TextChoices):
     SECURE_NOTE = "SECURE_NOTE", _("Secure note")
 
 
+class CipherStatus(TextChoices):
+    ACTIVE = "ACTIVE", _("Active")
+    ARCHIVED = "ARCHIVED", _("Archived")
+    DELETED = "DELETED", _("Deleted")
+
+
 class Cipher(Model):
     uuid = UUIDField(unique=True, null=False, blank=False, default=uuid4)
     type = CharField(
@@ -34,19 +40,31 @@ class Cipher(Model):
         blank=False,
         choices=CipherType.choices,
     )
+    key = TextField(null=False, blank=False)
     name = TextField(null=False, blank=False, help_text="Encrypted cipher data name.")
     is_favorite = BooleanField(null=False, blank=False, default=False)
-
-    key = TextField(null=False, blank=False)
 
     data_id = PositiveIntegerField()
     data: "CipherData" = GenericForeignKey("content_type", "data_id")
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
 
+    status = CharField(
+        max_length=15,
+        null=False,
+        blank=False,
+        choices=CipherStatus.choices,
+        default=CipherStatus.ACTIVE,
+    )
+
     owner = ForeignKey(
         settings.AUTH_USER_MODEL, null=False, blank=False, on_delete=RESTRICT
     )
 
+    delete_on = DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Schedule timestamp to be deleted. If cipher status is DELETED.",
+    )
     created = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)
 

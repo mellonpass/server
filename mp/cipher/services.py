@@ -1,15 +1,24 @@
+from datetime import timedelta
 from enum import Enum
 from typing import Dict, List, Optional, TypedDict, Union
 from uuid import UUID
 
 from django.db import transaction
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from mp.authx.models import User
-from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote, CipherType
+from mp.cipher.models import (
+    Cipher,
+    CipherDataLogin,
+    CipherDataSecureNote,
+    CipherStatus,
+    CipherType,
+)
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
+CipherStatusEnum = CipherStatus
 
 
 class CipherLogin(TypedDict):
@@ -60,11 +69,17 @@ def _build_cipher_data(
 
 @transaction.atomic
 def update_cipher(
-    owner: User, uuid: UUID, key: str, name: str, data: CipherData
+    owner: User,
+    uuid: UUID,
+    key: str,
+    is_favorite: bool,
+    name: str,
+    data: CipherData,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.key = key
     cipher.name = name
+    cipher.is_favorite = is_favorite
     cipher.save()
 
     if cipher.type == CipherType.LOGIN:
@@ -77,6 +92,37 @@ def update_cipher(
         secure_note_data: CipherDataSecureNote = cipher.data
         secure_note_data.note = data["note"]
         secure_note_data.save()
+
+    return cipher
+
+
+@transaction.atomic
+def update_cipher_status(owner: User, uuid: UUID, status: CipherStatus) -> Cipher:
+    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+
+    if cipher.status == CipherStatus.DELETED and status == CipherStatus.ARCHIVED:
+        raise ServiceValidationError(
+            "Invalid action. You can't archive to be deleted cipher. Set it to open first."
+        )
+
+    if cipher.status == CipherStatus.ACTIVE and status == CipherStatus.ARCHIVED:
+        cipher.status = CipherStatus.ARCHIVED
+
+    if (
+        cipher.status in (CipherStatus.ARCHIVED, CipherStatus.DELETED)
+        and status == CipherStatus.ACTIVE
+    ):
+        cipher.delete_on = None
+        cipher.status = status
+
+    if (
+        cipher.status in (CipherStatus.ACTIVE, CipherStatus.ARCHIVED)
+        and status == CipherStatus.DELETED
+    ):
+        cipher.delete_on = timezone.now() + timedelta(days=30)
+        cipher.status = status
+
+    cipher.save(update_fields=["status", "delete_on"])
 
     return cipher
 
