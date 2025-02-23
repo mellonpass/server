@@ -18,8 +18,9 @@ class Cipher(relay.Node):
     owner_id: strawberry.ID
     type: CipherTypeEnum
     name: str
-    is_favorite: bool
     key: str
+    is_favorite: bool
+    status: CipherStatusEnum
     data: JSON
     created: datetime
     updated: datetime
@@ -36,8 +37,9 @@ class CipherConnection(relay.ListConnection[Cipher]):
             owner_id=node.owner.uuid,
             type=node.type,
             name=node.name,
-            is_favorite=node.is_favorite,
             key=node.key,
+            is_favorite=node.is_favorite,
+            status=node.status,
             data=node.data.to_json(),
             created=node.created,
             updated=node.updated,

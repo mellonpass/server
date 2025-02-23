@@ -49,9 +49,9 @@ class CipherFactory(DjangoModelFactory):
     type = FuzzyChoice(CipherType)
     name = Faker("name")
     is_favorite = Faker("pybool")
-    status = FuzzyChoice(CipherStatus)
+    status = CipherStatus.ACTIVE
 
-    delete_on = timezone.now() + timedelta(days=30)
+    delete_on = None
     created = timezone.now()
     updated = timezone.now()
 
