@@ -1,6 +1,5 @@
 import base64
 import os
-from datetime import timedelta
 from uuid import uuid4
 
 import factory
@@ -45,7 +44,6 @@ class CipherFactory(DjangoModelFactory):
     class Meta:
         model = Cipher
 
-    uuid = uuid4()
     type = FuzzyChoice(CipherType)
     name = Faker("name")
     is_favorite = Faker("pybool")
@@ -61,3 +59,7 @@ class CipherFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def key(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def uuid(self):
+        return uuid4()

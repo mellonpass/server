@@ -1,6 +1,5 @@
 from celery import shared_task
 from django.contrib.sessions.models import Session
-from django.db.models import Q
 from django.utils import timezone
 
 from mp.jwt.models import RefreshToken

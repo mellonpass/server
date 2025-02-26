@@ -84,7 +84,7 @@ class CreateCipherInput:
     key: str
     name: str
     data: JSON
-    isFavorite: bool
+    isFavorite: bool = False
 
 
 @strawberry.input
