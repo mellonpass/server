@@ -8,6 +8,7 @@ from mp.cipher.graphql.types import Cipher, CipherConnection, FilterCipher
 from mp.cipher.models import Cipher as CipherModel
 from mp.cipher.services import get_all_ciphers_by_owner, get_cipher_by_owner_and_uuid
 from mp.core.graphql.permissions import IsAuthenticated
+from mp.crypto import decrypt_db_data
 
 logger = logging.getLogger(__name__)
 
@@ -25,9 +26,9 @@ class CipherQuery:
                 uuid=cipher.uuid,
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
-                name=cipher.name,
+                name=decrypt_db_data(cipher.name),
                 is_favorite=cipher.is_favorite,
-                key=cipher.key,
+                key=decrypt_db_data(cipher.key),
                 data=cipher.data.to_json(),
                 created=cipher.created,
                 updated=cipher.updated,

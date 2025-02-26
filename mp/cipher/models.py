@@ -20,6 +20,8 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy as _
 
+from mp.crypto import decrypt_db_data
+
 
 class CipherType(TextChoices):
     LOGIN = "LOGIN", _("Login")
@@ -98,7 +100,7 @@ class CipherModelMixin(Model):
         for f in self._meta.concrete_fields:
             if f.name in skip_fields:
                 continue
-            data[f.name] = f.value_from_object(self)
+            data[f.name] = decrypt_db_data(f.value_from_object(self))
         return data
 
     def __str__(self) -> str:

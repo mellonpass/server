@@ -1,9 +1,13 @@
+import base64
 import logging
+import os
 from typing import Dict, Tuple, Union
 
 import jwt
+from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
@@ -74,3 +78,36 @@ def load_ecdsa_p256_pub(path: str) -> ec.EllipticCurvePublicKey:
         return serialization.load_pem_public_key(
             serialized_public_key.encode("utf-8"),
         )
+
+
+def generate_argon_key(password: str | None = None, iterations: int = 100) -> str:
+
+    if password:
+        password = password.encode("utf-8")
+    else:
+        password = os.urandom(32)
+
+    salt = os.urandom(16)
+
+    kdf = Argon2id(
+        salt=salt,
+        length=32,
+        iterations=iterations,
+        lanes=4,
+        memory_cost=64 * 1024,
+        ad=None,
+        secret=None,
+    )
+    return base64.urlsafe_b64encode(kdf.derive(password)).decode("utf-8")
+
+
+def encrypt_db_data(data: str) -> Fernet:
+    f = Fernet(settings.DATA_SYMMETRIC_KEY)
+    encrypted_data = f.encrypt(data.encode("utf-8"))
+    return base64.urlsafe_b64encode(encrypted_data).decode("utf-8")
+
+
+def decrypt_db_data(data: str) -> str:
+    f = Fernet(settings.DATA_SYMMETRIC_KEY)
+    decoded_data = base64.urlsafe_b64decode(data.encode("utf-8"))
+    return f.decrypt(decoded_data).decode("utf-8")

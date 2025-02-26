@@ -200,9 +200,11 @@ CACHES = {
 
 # Ratelimit
 # https://django-ratelimit.readthedocs.io/en/stable/settings.html
+# ------------------------------------------------------------
 RATELIMIT_ENABLE = False
 
 # Django CORS header
+# ------------------------------------------------------------
 # https://github.com/adamchainz/django-cors-headers?tab=readme-ov-file#configuration
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = ["GET", "POST"]
@@ -214,6 +216,7 @@ CORS_ALLOW_HEADERS = [
 
 
 # JWTAuthToken
+# ------------------------------------------------------------
 JWT_AUTH_ENABLE = False  # Disable this feature for now.
 JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
@@ -228,12 +231,18 @@ CSRF_COOKIE_SECURE = False
 
 
 # Emailing
+# ------------------------------------------------------------
 # https://docs.djangoproject.com/en/4.2/topics/email/
 NO_REPLY_EMAIL = "no-reply@mellonpass.com"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 
 # App data
+# ------------------------------------------------------------
 TEST_USER_EMAIL = env("TEST_USER_EMAIL", default="")
 TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default="")
 TEST_USER_PROTECTED_SYMMETRIC_KEY = env("TEST_USER_PROTECTED_SYMMETRIC_KEY", default="")
+
+# DB Encryption
+# ------------------------------------------------------------
+DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY")
