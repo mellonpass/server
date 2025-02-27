@@ -16,7 +16,6 @@ from mp.cipher.models import (
     CipherType,
 )
 from mp.core.exceptions import ServiceValidationError
-from mp.crypto import encrypt_db_data
 
 CipherTypeEnum = CipherType
 CipherStatusEnum = CipherStatus
@@ -49,8 +48,8 @@ def create_cipher(owner: User, type: str, name: str, key: str, data: Dict) -> Ci
     return Cipher.objects.create(
         owner=owner,
         type=type,
-        name=encrypt_db_data(name),
-        key=encrypt_db_data(key),
+        name=name,
+        key=key,
         data=cipher_data,
     )
 
@@ -62,11 +61,11 @@ def _build_cipher_data(
     match cipher_type:
         case CipherTypeEnum.LOGIN:
             cipher_data = CipherDataLogin(
-                username=encrypt_db_data(data["username"]),
-                password=encrypt_db_data(data["password"]),
+                username=data["username"],
+                password=data["password"],
             )
         case CipherTypeEnum.SECURE_NOTE:
-            cipher_data = CipherDataSecureNote(note=encrypt_db_data(data["note"]))
+            cipher_data = CipherDataSecureNote(note=data["note"])
         case _:
             raise ServiceValidationError(f"Invalid CipherType {cipher_type}.")
     cipher_data.save()
@@ -83,20 +82,20 @@ def update_cipher(
     data: CipherData,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
-    cipher.key = encrypt_db_data(key)
-    cipher.name = encrypt_db_data(name)
+    cipher.key = key
+    cipher.name = name
     cipher.is_favorite = is_favorite
     cipher.save()
 
     if cipher.type == CipherType.LOGIN:
         login_data: CipherDataLogin = cipher.data
-        login_data.username = encrypt_db_data(data["username"])
-        login_data.password = encrypt_db_data(data["password"])
+        login_data.username = data["username"]
+        login_data.password = data["password"]
         login_data.save()
 
     if cipher.type == CipherType.SECURE_NOTE:
         secure_note_data: CipherDataSecureNote = cipher.data
-        secure_note_data.note = encrypt_db_data(data["note"])
+        secure_note_data.note = data["note"]
         secure_note_data.save()
 
     return cipher

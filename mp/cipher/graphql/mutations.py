@@ -25,7 +25,6 @@ from mp.cipher.services import (
 )
 from mp.core.exceptions import ServiceValidationError
 from mp.core.graphql.permissions import IsAuthenticated
-from mp.crypto import decrypt_db_data
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +48,8 @@ class CipherMutation:
                 uuid=cipher.uuid,
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
-                name=decrypt_db_data(cipher.name),
-                key=decrypt_db_data(cipher.key),
+                name=cipher.name,
+                key=cipher.key,
                 is_favorite=cipher.is_favorite,
                 status=cipher.status,
                 data=cipher.data.to_json(),
@@ -82,8 +81,8 @@ class CipherMutation:
                 uuid=cipher.uuid,
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
-                name=decrypt_db_data(cipher.name),
-                key=decrypt_db_data(cipher.key),
+                name=cipher.name,
+                key=cipher.key,
                 is_favorite=cipher.is_favorite,
                 status=cipher.status,
                 data=cipher.data.to_json(),
@@ -113,8 +112,8 @@ class CipherMutation:
                 uuid=cipher.uuid,
                 owner_id=cipher.owner.uuid,
                 type=cipher.type,
-                name=decrypt_db_data(cipher.name),
-                key=decrypt_db_data(cipher.key),
+                name=cipher.name,
+                key=cipher.key,
                 is_favorite=cipher.is_favorite,
                 status=cipher.status,
                 data=cipher.data.to_json(),
