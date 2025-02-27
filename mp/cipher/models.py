@@ -19,7 +19,7 @@ from django.db.models import (
 )
 from django.utils.translation import gettext_lazy as _
 
-from mp.core.model.fields import EncryptedField
+from mp.core.model.fields import EncryptedTextField
 
 
 class CipherType(TextChoices):
@@ -41,8 +41,8 @@ class Cipher(Model):
         blank=False,
         choices=CipherType.choices,
     )
-    key = EncryptedField(null=False, blank=False)
-    name = EncryptedField(null=False, blank=False)
+    key = EncryptedTextField(null=False, blank=False)
+    name = EncryptedTextField(null=False, blank=False)
     is_favorite = BooleanField(null=False, blank=False, default=False)
 
     data_id = PositiveIntegerField()
@@ -113,9 +113,9 @@ CipherData = CipherModelMixin
 
 
 class CipherDataLogin(CipherModelMixin):
-    username = EncryptedField(null=False, blank=False)
-    password = EncryptedField(null=False, blank=False)
+    username = EncryptedTextField(null=False, blank=False)
+    password = EncryptedTextField(null=False, blank=False)
 
 
 class CipherDataSecureNote(CipherModelMixin):
-    note = EncryptedField(null=False, blank=False)
+    note = EncryptedTextField(null=False, blank=False)

@@ -17,7 +17,7 @@ def _decrypt_db_data(data: str) -> str:
     return f.decrypt(decoded_data).decode("utf-8")
 
 
-class EncryptedField(TextField):
+class EncryptedTextField(TextField):
     description = "Encrypts field value on the database."
 
     def get_db_prep_save(self, value, connection):
@@ -33,3 +33,6 @@ class EncryptedField(TextField):
             return value
         # Decrypt the value when retrieving
         return _decrypt_db_data(value)
+
+    def get_internal_type(self):
+        return "TextField"
