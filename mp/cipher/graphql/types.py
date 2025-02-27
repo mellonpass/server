@@ -8,7 +8,6 @@ from strawberry.scalars import JSON
 
 from mp.cipher.models import Cipher as CipherModel
 from mp.cipher.services import CipherCategory, CipherStatusEnum, CipherTypeEnum
-from mp.crypto import decrypt_db_data
 
 # Types
 
@@ -37,8 +36,8 @@ class CipherConnection(relay.ListConnection[Cipher]):
             uuid=node.uuid,
             owner_id=node.owner.uuid,
             type=node.type,
-            name=decrypt_db_data(node.name),
-            key=decrypt_db_data(node.key),
+            name=node.name,
+            key=node.key,
             is_favorite=node.is_favorite,
             status=node.status,
             data=node.data.to_json(),

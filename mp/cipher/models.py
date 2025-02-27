@@ -15,10 +15,11 @@ from django.db.models import (
     Model,
     PositiveIntegerField,
     TextChoices,
-    TextField,
     UUIDField,
 )
 from django.utils.translation import gettext_lazy as _
+
+from mp.core.model.fields import EncryptedField
 
 
 class CipherType(TextChoices):
@@ -40,8 +41,8 @@ class Cipher(Model):
         blank=False,
         choices=CipherType.choices,
     )
-    key = TextField(null=False, blank=False)
-    name = TextField(null=False, blank=False, help_text="Encrypted cipher data name.")
+    key = EncryptedField(null=False, blank=False)
+    name = EncryptedField(null=False, blank=False)
     is_favorite = BooleanField(null=False, blank=False, default=False)
 
     data_id = PositiveIntegerField()
@@ -112,9 +113,9 @@ CipherData = CipherModelMixin
 
 
 class CipherDataLogin(CipherModelMixin):
-    username = TextField(null=False, blank=False, help_text="Encrypted username.")
-    password = TextField(null=False, blank=False, help_text="Encrypted password.")
+    username = EncryptedField(null=False, blank=False)
+    password = EncryptedField(null=False, blank=False)
 
 
 class CipherDataSecureNote(CipherModelMixin):
-    note = TextField(null=False, blank=False, help_text="Encrypted secure note.")
+    note = EncryptedField(null=False, blank=False)
