@@ -20,7 +20,9 @@ from django.db.models import (
     UUIDField,
 )
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
+from mp.core.model.fields import EncryptedField
 from mp.crypto import es256_jwt
 
 
@@ -64,7 +66,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=50, null=False, blank=True, default="", help_text="Password hint."
     )
 
-    protected_symmetric_key = TextField(null=False, blank=True, default="")
+    protected_symmetric_key = EncryptedField(null=False, blank=True, default="")
+    password = EncryptedField(_("password"), max_length=128)
 
     is_active = BooleanField(default=False)
     is_staff = BooleanField(default=False)
