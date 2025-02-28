@@ -17,7 +17,6 @@ from mp.cipher.models import (
     CipherStatus,
     CipherType,
 )
-from mp.crypto import encrypt_db_data
 
 
 class CipherDataLoginFactory(DjangoModelFactory):
@@ -26,11 +25,11 @@ class CipherDataLoginFactory(DjangoModelFactory):
 
     @factory.lazy_attribute
     def username(self):
-        return encrypt_db_data(base64.b64encode(os.urandom(32)).decode("utf-8"))
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
 
     @factory.lazy_attribute
     def password(self):
-        return encrypt_db_data(base64.b64encode(os.urandom(32)).decode("utf-8"))
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
 
 
 class CipherDataSecureNoteFactory(DjangoModelFactory):
@@ -64,8 +63,8 @@ class CipherFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def name(self):
         fake = _Faker()
-        return encrypt_db_data(fake.name())
+        return base64.b64encode(fake.name().encode("utf-8")).decode("utf-8")
 
     @factory.lazy_attribute
     def key(self):
-        return encrypt_db_data(base64.b64encode(os.urandom(32)).decode("utf-8"))
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
