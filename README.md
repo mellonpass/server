@@ -106,3 +106,5 @@ To contribute, follow these steps:
 # License
 
 This project is licensed under the GPL v3 License. See the [LICENSE](/LICENSE) file for details.
+
+sample text
