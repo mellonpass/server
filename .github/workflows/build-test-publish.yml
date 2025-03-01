@@ -53,7 +53,6 @@ jobs:
           POSTGRES_DB: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
         options: >-
           --health-cmd pg_isready
@@ -66,7 +65,7 @@ jobs:
         env:
           APP_DOMAIN: localhost
           APP_ENVIRONMENT: test
-          DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
           DJANGO_SETTINGS_MODULE: config.test
           DJANGO_SECRET_KEY: django-insecure-test-secret
           DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost
@@ -84,20 +83,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           options: |
-                - e APP_DOMAIN
-                - e APP_ENVIRONMENT
-                - e DATABASE_URL
-                - e DJANGO_SETTINGS_MODULE
-                - e DJANGO_SECRET_KEY
-                - e DJANGO_CSRF_TRUSTED_ORIGINS
-                - e DJANGO_ALLOWED_HOSTS
-                - e RABBITMQ_BROKER_URL
-                - e REDIS_URL
-                - e JWT_PRIVATE_KEY_PATH
-                - e JWT_PUBLIC_KEY_PATH
-                - e EMAIL_VERIFICATION_KEY_PATH
-                - e EMAIL_VERIFICATION_PUB_PATH
-                - e FERNET_SYMMETRIC_KEY
+            - e APP_DOMAIN
+            - e APP_ENVIRONMENT
+            - e DATABASE_URL
+            - e DJANGO_SETTINGS_MODULE
+            - e DJANGO_SECRET_KEY
+            - e DJANGO_CSRF_TRUSTED_ORIGINS
+            - e DJANGO_ALLOWED_HOSTS
+            - e RABBITMQ_BROKER_URL
+            - e REDIS_URL
+            - e JWT_PRIVATE_KEY_PATH
+            - e JWT_PUBLIC_KEY_PATH
+            - e EMAIL_VERIFICATION_KEY_PATH
+            - e EMAIL_VERIFICATION_PUB_PATH
+            - e FERNET_SYMMETRIC_KEY
           run: |
             poetry run pytest .
       - name: Delete test image from ghcr.io
