@@ -38,7 +38,7 @@ jobs:
           build-args: |
             - POETRY_INSTALL_OPTS="--no-root"
             - POETRY_VERSION="1.8.5"
-          target: development
+          target: production
           tags: ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
           labels: ${{ steps.metadata.outputs.labels }}
 
