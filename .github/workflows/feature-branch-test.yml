@@ -1,0 +1,53 @@
+name: Feature branch test
+
+on:
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up python environment
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+      - name: Install dependencies
+        run: |
+          python -m pip install pipx
+          python -m pipx ensurepath
+          python -m pipx install poetry==1.8.5
+          poetry install --no-root
+      - name: Run tests
+        env:
+          APP_DOMAIN: localhost
+          APP_ENVIRONMENT: test
+          DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+          DJANGO_SETTINGS_MODULE: config.test
+          DJANGO_SECRET_KEY: django-insecure-test-secret
+          DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost
+          DJANGO_ALLOWED_HOSTS: "*"
+          RABBITMQ_BROKER_URL: amqp://
+          REDIS_URL: redis://
+          JWT_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
+          JWT_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
+          EMAIL_VERIFICATION_KEY_PATH: mp/authx/tests/resources/keys/ecdsa_p256_key.pem
+          EMAIL_VERIFICATION_PUB_PATH: mp/authx/tests/resources/keys/ecdsa_p256_pub.pem
+          FERNET_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
+        run: |
+          poetry run pytest .

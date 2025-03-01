@@ -1,0 +1,138 @@
+# 1. Build the test image using current commit hash as tag.
+# 2. Pull test image, run tests, clean up test image.
+# 3. Build production ready image for staging or production.
+name: Build test and publish
+
+on:
+  push:
+    branches: ["production"]
+
+jobs:
+  build-test-image:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    outputs:
+      image_sha: ${{ steps.build_env.outputs.image_sha }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Preparing environments
+        id: build_env
+        shell: bash
+        run: |
+          echo "image_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Preparing metadata
+        uses: docker/metadata-action@v3
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - name: Logging in to ghrc.io
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and upload test docker image on ghrc.io
+        uses: int128/kaniko-action@v1
+        with:
+          push: true
+          build-args: |
+            - POETRY_INSTALL_OPTS="--no-root"
+            - POETRY_VERSION="1.8.5"
+          target: development
+          tags: ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
+          labels: ${{ steps.metadata.outputs.labels }}
+
+  run-test-image:
+    needs: build-test-image
+    permissions: write-all
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST: postgres
+          POSTGRES_PORT: 5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Run tests
+        uses: addnab/docker-run-action@v3
+        env:
+          APP_DOMAIN: localhost
+          APP_ENVIRONMENT: test
+          DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+          DJANGO_SETTINGS_MODULE: config.test
+          DJANGO_SECRET_KEY: django-insecure-test-secret
+          DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost
+          DJANGO_ALLOWED_HOSTS: "*"
+          RABBITMQ_BROKER_URL: amqp://
+          REDIS_URL: redis://
+          JWT_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
+          JWT_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
+          EMAIL_VERIFICATION_KEY_PATH: mp/authx/tests/resources/keys/ecdsa_p256_key.pem
+          EMAIL_VERIFICATION_PUB_PATH: mp/authx/tests/resources/keys/ecdsa_p256_pub.pem
+          FERNET_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
+        with:
+          registry: ghcr.io
+          image: ghcr.io/${{ github.repository }}:${{ needs.build-test-image.outputs.image_sha }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          options: |
+              APP_DOMAIN
+                - e APP_ENVIRONMENT
+                - e DATABASE_URL
+                - e DJANGO_SETTINGS_MODULE
+                - e DJANGO_SECRET_KEY
+                - e DJANGO_CSRF_TRUSTED_ORIGINS
+                - e DJANGO_ALLOWED_HOSTS
+                - e RABBITMQ_BROKER_URL
+                - e REDIS_URL
+                - e JWT_PRIVATE_KEY_PATH
+                - e JWT_PUBLIC_KEY_PATH
+                - e EMAIL_VERIFICATION_KEY_PATH
+                - e EMAIL_VERIFICATION_PUB_PATH
+                - e FERNET_SYMMETRIC_KEY
+          run: |
+            poetry run pytest .
+      - name: Delete test image from ghcr.io
+        uses: chipkent/action-cleanup-package@v1.0.1
+        with:
+          package-name: ${{ github.event.repository.name }}
+          tag: ${{ needs.build-test-image.outputs.image_sha }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    needs: run-test-image
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Preparing metadata
+        uses: docker/metadata-action@v3
+        id: metadata
+        with:
+          images: ghcr.io/${{ github.repository }}
+      - name: Logging in to ghrc.io
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and upload docker image on ghrc.io
+        uses: int128/kaniko-action@v1
+        with:
+          push: true
+          build-args: |
+            - POETRY_INSTALL_OPTS="--no-root --without dev"
+            - POETRY_VERSION="1.8.5"
+          target: production
+          tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache: true
+          cache-repository: ghcr.io/${{ github.repository }}/cache
