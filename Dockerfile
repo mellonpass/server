@@ -118,3 +118,11 @@ FROM final-build AS production
 # Copy django server script.
 COPY deploy/prod/start_web /start_web
 RUN chmod +x /start_web
+
+# Copy Celery worker script
+COPY deploy/prod/start_worker /start_worker
+RUN chmod +x /start_worker
+
+# Copy Celery beat script
+COPY deploy/prod/start_beat /start_beat
+RUN chmod +x /start_beat

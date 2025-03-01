@@ -1,0 +1,21 @@
+#!/bin/sh
+
+set -e
+
+echo "* * * Starting database migration.. * * *"
+
+poetry run python manage.py migrate
+
+echo "* * * Database migration done. * * *"
+
+echo "* * * Collecting static files.. * * *"
+
+poetry run python manage.py collectstatic --noinput
+
+echo "* * * Static collection done. * * *"
+
+echo "* * * Starting Gunicorn.. * * *"
+
+exec poetry run gunicorn --timeout 300 --workers 3 --bind 0.0.0.0:8000 config.wsgi:application
+
+echo "* * * service is up. * * *"

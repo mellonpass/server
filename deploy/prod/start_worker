@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -o errexit
+
+exec poetry run celery -A config.celery_app worker -l INFO
