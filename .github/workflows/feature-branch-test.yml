@@ -9,13 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15.4-alpine
+        image: postgres:15-alpine
         env:
-          POSTGRES_DB: mellonpass_db
+          POSTGRES_DB: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
+        ports:
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -37,7 +39,7 @@ jobs:
         env:
           APP_DOMAIN: localhost
           APP_ENVIRONMENT: test
-          DATABASE_URL: postgres://postgres:postgres@postgres:5432/mellonpass_db
+          DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
           DJANGO_SETTINGS_MODULE: config.test
           DJANGO_SECRET_KEY: django-insecure-test-secret
           DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost
