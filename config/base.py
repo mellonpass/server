@@ -28,7 +28,7 @@ if env.bool("USE_DEV_DOT_ENV", default=False):
     # Load development env variables.
     env.read_env(str(BASE_DIR / ".env"))
 
-APP_ENVIRONMENT = env("APP_ENVIRONMENT")
+APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="production")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -37,9 +37,9 @@ APP_ENVIRONMENT = env("APP_ENVIRONMENT")
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env("DJANGO_DEBUG")
+DEBUG = env("DJANGO_DEBUG", default=False)
 
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*"])
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*.mellonpass.com"])
 
 
 # Application definition
@@ -220,33 +220,38 @@ CORS_ALLOW_HEADERS = [
 JWT_AUTH_ENABLE = False  # Disable this feature for now.
 JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
-SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default=None)
+SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default="mellonpass.com")
 SESSION_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_SECURE = False
 
-CSRF_COOKIE_DOMAIN = env("APP_DOMAIN", default=None)
-CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=["*"])
+CSRF_COOKIE_DOMAIN = env("APP_DOMAIN", default="mellonpass.com")
+CSRF_TRUSTED_ORIGINS = env.list(
+    "DJANGO_CSRF_TRUSTED_ORIGINS",
+    default=["http://mellonpass.com", "https://mellonpass.com"],
+)
 CSRF_COOKIE_SAMESITE = "Strict"
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = True
-CSRF_HEADER_NAME = "CSRF_COOKIE"
+CSRF_HEADER_NAME = env("DJANGO_CSRF_COOKIE", default="CSRF_COOKIE")
 
 
 # Emailing
 # ------------------------------------------------------------
 # https://docs.djangoproject.com/en/4.2/topics/email/
-NO_REPLY_EMAIL = "no-reply@mellonpass.com"
+NO_REPLY_EMAIL = env("DJANGO_NO_REPLY_EMAIL", default="no-reply@mellonpass")
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = env("DJANGO_DEFAULT_FROM_EMAIL")
-SERVER_EMAIL = env("DJANGO_SERVER_EMAIL")
+DEFAULT_FROM_EMAIL = env("DJANGO_DEFAULT_FROM_EMAIL", default="support@mellonpass.com")
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default="support@mellonpass.com")
 
 
 # App data
 # ------------------------------------------------------------
-TEST_USER_EMAIL = env("TEST_USER_EMAIL", default="")
-TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default="")
-TEST_USER_PROTECTED_SYMMETRIC_KEY = env("TEST_USER_PROTECTED_SYMMETRIC_KEY", default="")
+TEST_USER_EMAIL = env("TEST_USER_EMAIL", default=None)
+TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default=None)
+TEST_USER_PROTECTED_SYMMETRIC_KEY = env(
+    "TEST_USER_PROTECTED_SYMMETRIC_KEY", default=None
+)
 
 # DB Encryption
 # ------------------------------------------------------------
-DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY")
+DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY", default=None)
