@@ -14,8 +14,9 @@ jobs:
           POSTGRES_DB: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
+        ports:
+          5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -26,7 +27,7 @@ jobs:
       - name: Set up python environment
         uses: actions/setup-python@v3
         with:
-          python-version: 3.11
+          python-version: 3.11.11
       - name: Install dependencies
         run: |
           python -m pip install pipx
@@ -37,10 +38,10 @@ jobs:
         env:
           APP_DOMAIN: localhost
           APP_ENVIRONMENT: test
-          DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
           DJANGO_SETTINGS_MODULE: config.test
           DJANGO_SECRET_KEY: django-insecure-test-secret
-          DJANGO_CSRF_TRUSTED_ORIGINS=http://localhost
+          DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost
           DJANGO_ALLOWED_HOSTS: "*"
           RABBITMQ_BROKER_URL: amqp://
           REDIS_URL: redis://
@@ -49,5 +50,4 @@ jobs:
           EMAIL_VERIFICATION_KEY_PATH: mp/authx/tests/resources/keys/ecdsa_p256_key.pem
           EMAIL_VERIFICATION_PUB_PATH: mp/authx/tests/resources/keys/ecdsa_p256_pub.pem
           FERNET_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
-        run: |
-          poetry run pytest .
+        run: poetry run pytest .
