@@ -85,20 +85,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           options: |
-            - e APP_DOMAIN
-            - e APP_ENVIRONMENT
-            - e DATABASE_URL
-            - e DJANGO_SETTINGS_MODULE
-            - e DJANGO_SECRET_KEY
-            - e DJANGO_CSRF_TRUSTED_ORIGINS
-            - e DJANGO_ALLOWED_HOSTS
-            - e RABBITMQ_BROKER_URL
-            - e REDIS_URL
-            - e JWT_PRIVATE_KEY_PATH
-            - e JWT_PUBLIC_KEY_PATH
-            - e EMAIL_VERIFICATION_KEY_PATH
-            - e EMAIL_VERIFICATION_PUB_PATH
-            - e FERNET_SYMMETRIC_KEY
+            -e APP_DOMAIN
+            -e APP_ENVIRONMENT
+            -e DATABASE_URL
+            -e DJANGO_SETTINGS_MODULE
+            -e DJANGO_SECRET_KEY
+            -e DJANGO_CSRF_TRUSTED_ORIGINS
+            -e DJANGO_ALLOWED_HOSTS
+            -e RABBITMQ_BROKER_URL
+            -e REDIS_URL
+            -e JWT_PRIVATE_KEY_PATH
+            -e JWT_PUBLIC_KEY_PATH
+            -e EMAIL_VERIFICATION_KEY_PATH
+            -e EMAIL_VERIFICATION_PUB_PATH
+            -e FERNET_SYMMETRIC_KEY
           run: |
             poetry run pytest .
       - name: Delete test image from ghcr.io
