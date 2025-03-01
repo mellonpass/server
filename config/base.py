@@ -23,8 +23,9 @@ env = environ.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent
 APPS_DIR = BASE_DIR / "mp"
 
-# Load local django environment variables.
-env.read_env(str(BASE_DIR / "config/envs/.django.env"))
+if env.bool("USE_DEV_DOT_ENV", default=False):
+    # Load development env variables.
+    env.read_env(str(BASE_DIR / ".env"))
 
 APP_ENVIRONMENT = env("APP_ENVIRONMENT")
 
@@ -237,6 +238,8 @@ CSRF_HEADER_NAME = "CSRF_COOKIE"
 # https://docs.djangoproject.com/en/4.2/topics/email/
 NO_REPLY_EMAIL = "no-reply@mellonpass.com"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = env("DJANGO_DEFAULT_FROM_EMAIL")
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL")
 
 
 # App data
