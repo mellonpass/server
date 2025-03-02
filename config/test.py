@@ -1,5 +1,7 @@
 from config.base import *
 
+APP_ENVIRONMENT = "test"
+
 DEBUG = True
 
 CACHES = {
