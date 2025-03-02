@@ -156,6 +156,7 @@ AUTH_USER_MODEL = "authx.User"
 AUTH_PASSWORD_VALIDATORS = []
 
 PASSWORD_HASHERS = [
+    "mp.authx.hashers.MellonPassArgon2PasswordHasher",
     "mp.authx.hashers.MellonPassPBKDF2PasswordHasher",
 ]
 
