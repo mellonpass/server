@@ -190,6 +190,10 @@ CELERY_BEAT_SCHEDULE = {
         "task": "mp.jwt.tasks.remove_revoked_refresh_tokens",
         "schedule": crontab(minute=0, hour=0),
     },
+    "delete_ciphers_task": {
+        "task": "mp.cipher.tasks.delete_ciphers_task",
+        "schedule": crontab(minute=0, hour=0),
+    },
 }
 
 CACHES = {
@@ -221,14 +225,14 @@ CORS_ALLOW_HEADERS = [
 JWT_AUTH_ENABLE = False  # Disable this feature for now.
 JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
-SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default="mellonpass.com")
+SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default=".mellonpass.com")
 SESSION_COOKIE_SAMESITE = "Strict"
 SESSION_COOKIE_SECURE = False
 
-CSRF_COOKIE_DOMAIN = env("APP_DOMAIN", default="mellonpass.com")
+CSRF_COOKIE_DOMAIN = env("APP_DOMAIN", default=".mellonpass.com")
 CSRF_TRUSTED_ORIGINS = env.list(
     "DJANGO_CSRF_TRUSTED_ORIGINS",
-    default=["http://mellonpass.com", "https://mellonpass.com"],
+    default=["https://*.mellonpass.com"],
 )
 CSRF_COOKIE_SAMESITE = "Strict"
 CSRF_COOKIE_SECURE = False
