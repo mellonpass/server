@@ -148,19 +148,5 @@ def get_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> QuerySet[C
     return Cipher.objects.filter(owner=owner, uuid__in=uuids)
 
 
-# TODO: add test (normal)
-def get_all_ciphers_by_owner(
-    owner: User, category: Optional[CipherCategory] = None
-) -> QuerySet[Cipher]:
-    qs = Cipher.objects.filter(owner=owner)
-    match category:
-        case CipherCategory.FAVORITES:
-            return qs.filter(owner=owner, is_favorite=True)
-        case CipherCategory.LOGINS:
-            return qs.filter(owner=owner, type=CipherType.LOGIN)
-        case CipherCategory.SECURE_NOTES:
-            return qs.filter(owner=owner, type=CipherType.SECURE_NOTE)
-        case CipherCategory.ALL:
-            return qs
-        case _:
-            return qs.none()
+def get_all_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
+    return Cipher.objects.filter(owner=owner)

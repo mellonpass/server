@@ -100,8 +100,3 @@ class UpdateCipherInput:
 class UpdateCipherStatusInput:
     id: relay.GlobalID
     status: CipherStatusEnum
-
-
-@strawberry.input(one_of=True)
-class FilterCipher:
-    category: CipherCategory | None = strawberry.UNSET
