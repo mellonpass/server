@@ -34,8 +34,9 @@ def test_create_cipher():
     cipher_data = {
         "type": CipherType.LOGIN,
         "name": "encname",
-        "isFavorite": False,
         "key": "somekey",
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
         "data": {"username": "encusername", "password": "encpassword"},
     }
 
@@ -54,10 +55,10 @@ def test_create_cipher():
         assert cipher["key"] == cipher_data["key"]
         assert cipher["data"] == cipher_data["data"]
         assert cipher["isFavorite"] == cipher_data["isFavorite"]
-        assert cipher["status"] == "ACTIVE"
+        assert cipher["status"] == cipher_data["status"]
 
 
-def test_create_cipher(mocker):
+def test_create_cipher_failed(mocker):
     query = """
         mutation CreateCipher($input: CreateCipherInput!){
             cipher {
@@ -74,6 +75,8 @@ def test_create_cipher(mocker):
         "type": CipherType.LOGIN,
         "name": "encname",
         "key": "somekey",
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
         "data": {"username": "encusername", "password": "encpassword"},
     }
 
@@ -119,7 +122,8 @@ def test_update_login_cipher():
         "id": relay.to_base64("Cipher", str(cipher.uuid)),
         "name": "encname",
         "key": "somekey",
-        "isFavorite": False,
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
         "data": {"username": "encusername", "password": "encpassword"},
     }
 
@@ -168,7 +172,8 @@ def test_update_secure_note_cipher():
     cipher_data = {
         "id": relay.to_base64("Cipher", str(cipher.uuid)),
         "name": "encname",
-        "isFavorite": False,
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
         "key": "somekey",
         "data": {"note": "encnote"},
     }
@@ -208,8 +213,9 @@ def test_update_non_existing_cipher():
     cipher_data = {
         "id": relay.to_base64("Cipher", str(uuid4())),
         "name": "encname",
-        "isFavorite": False,
         "key": "somekey",
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
         "data": {"note": "encnote"},
     }
 
@@ -220,114 +226,3 @@ def test_update_non_existing_cipher():
     with client.login(user):
         response = client.query(query, variables=variables)
         assert "Resource not found" in response.data["cipher"]["update"]["message"]
-
-
-@pytest.mark.parametrize("status", ["ARCHIVED", "DELETED"])
-def test_update_cipher_status_from_active(status):
-    user = UserFactory()
-    cipher = CipherFactory(owner=user, type=CipherType.LOGIN)
-
-    query = """
-        mutation UpdateCipherStatus($input: UpdateCipherStatusInput!){
-            cipher {
-                updateStatus(input: $input) {
-                    ... on Cipher {
-                        status
-                    }
-                }
-            }
-        }
-    """
-
-    cipher_data = {
-        "id": relay.to_base64("Cipher", str(cipher.uuid)),
-        "status": status,
-    }
-
-    variables = {"input": cipher_data}
-
-    client = TestClient("/graphql")
-
-    with client.login(user):
-        response = client.query(query, variables=variables)
-        data = response.data["cipher"]["updateStatus"]
-        assert data["status"] == status
-
-
-@pytest.mark.parametrize("status", ["ACTIVE", "DELETED"])
-def test_update_cipher_status_from_archive(status):
-    user = UserFactory()
-    cipher = CipherFactory(
-        owner=user, type=CipherType.LOGIN, status=CipherStatus.ARCHIVED
-    )
-
-    query = """
-        mutation UpdateCipherStatus($input: UpdateCipherStatusInput!){
-            cipher {
-                updateStatus(input: $input) {
-                    ... on Cipher {
-                        status
-                    }
-                }
-            }
-        }
-    """
-
-    cipher_data = {
-        "id": relay.to_base64("Cipher", str(cipher.uuid)),
-        "status": status,
-    }
-
-    variables = {"input": cipher_data}
-
-    client = TestClient("/graphql")
-
-    with client.login(user):
-        response = client.query(query, variables=variables)
-        data = response.data["cipher"]["updateStatus"]
-        assert data["status"] == status
-
-
-@pytest.mark.parametrize("status", ["ACTIVE", "ARCHIVED"])
-def test_update_cipher_status_from_deleted(status):
-    user = UserFactory()
-    cipher = CipherFactory(
-        owner=user, type=CipherType.LOGIN, status=CipherStatus.DELETED
-    )
-
-    query = """
-        mutation UpdateCipherStatus($input: UpdateCipherStatusInput!){
-            cipher {
-                updateStatus(input: $input) {
-                    ... on Cipher {
-                        status
-                    }
-                    ... on CipherUpdateFailed {
-                        message
-                    }
-                }
-            }
-        }
-    """
-
-    cipher_data = {
-        "id": relay.to_base64("Cipher", str(cipher.uuid)),
-        "status": status,
-    }
-
-    variables = {"input": cipher_data}
-
-    client = TestClient("/graphql")
-
-    with client.login(user):
-        response = client.query(query, variables=variables)
-        data = response.data["cipher"]["updateStatus"]
-
-        if status == CipherStatus.ACTIVE:
-            assert data["status"] == status
-
-        if status == CipherStatus.ARCHIVED:
-            assert (
-                data["message"]
-                == "Invalid action. You can't archive to be deleted cipher. Set it to open first."
-            )

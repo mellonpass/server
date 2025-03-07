@@ -13,17 +13,13 @@ from mp.cipher.graphql.types import (
     CipherUpdatePayload,
     CreateCipherInput,
     UpdateCipherInput,
-    UpdateCipherStatusInput,
 )
 from mp.cipher.models import Cipher as CipherModel
-from mp.cipher.models import CipherStatus
 from mp.cipher.services import (
     create_cipher,
     delete_ciphers_by_owner_and_uuids,
     update_cipher,
-    update_cipher_status,
 )
-from mp.core.exceptions import ServiceValidationError
 from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -94,37 +90,6 @@ class CipherMutation:
             )
         except CipherModel.DoesNotExist as error:
             return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
-        except Exception as error:
-            logger.exception(error)
-            return CipherUpdateFailed(
-                message="Something went wrong when updating a vault item."
-            )
-
-    @strawberry.mutation(permission_classes=[IsAuthenticated])
-    def update_status(
-        self, info: strawberry.Info, input: UpdateCipherStatusInput
-    ) -> CipherUpdatePayload:
-        try:
-            cipher = update_cipher_status(
-                owner=info.context.request.user,
-                uuid=input.id.node_id,
-                status=CipherStatus(input.status),
-            )
-
-            return Cipher(
-                uuid=cipher.uuid,
-                owner_id=cipher.owner.uuid,
-                type=cipher.type,
-                name=cipher.name,
-                key=cipher.key,
-                is_favorite=cipher.is_favorite,
-                status=cipher.status,
-                data=cipher.data.to_json(),
-                created=cipher.created,
-                updated=cipher.updated,
-            )
-        except ServiceValidationError as error:
-            return CipherUpdateFailed(message=str(error))
         except Exception as error:
             logger.exception(error)
             return CipherUpdateFailed(
