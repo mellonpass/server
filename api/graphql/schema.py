@@ -1,7 +1,7 @@
 import strawberry
 from django.conf import settings
 from graphql.validation import NoSchemaIntrospectionCustomRule
-from strawberry.extensions import AddValidationRules
+from strawberry.extensions import AddValidationRules, QueryDepthLimiter
 from strawberry.tools import merge_types
 
 from mp.cipher.graphql import schema as cipher_schema
@@ -11,7 +11,10 @@ def _get_extensions():
     ext = []
 
     if not settings.DEBUG:
-        ext.append(AddValidationRules([NoSchemaIntrospectionCustomRule]))
+        ext = [
+            AddValidationRules([NoSchemaIntrospectionCustomRule]),
+            QueryDepthLimiter(max_depth=5),
+        ]
 
     return ext
 

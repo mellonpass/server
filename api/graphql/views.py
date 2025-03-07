@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import HttpRequest
 from django.utils.decorators import classonlymethod
 from strawberry.django.views import GraphQLView
@@ -29,4 +30,8 @@ class MPGrahpQLView(GraphQLView):
         return view
 
 
-mp_graphql_view = MPGrahpQLView.as_view(schema=schema, allow_queries_via_get=False)
+mp_graphql_view = MPGrahpQLView.as_view(
+    schema=schema,
+    allow_queries_via_get=False,
+    graphql_ide="graphiql" if settings.DEBUG else None,
+)
