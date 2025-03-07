@@ -41,6 +41,8 @@ class CipherMutation:
                 type=input.type.value,
                 name=input.name,
                 key=input.key,
+                status=input.status,
+                is_favorite=input.isFavorite,
                 data=input.data,
             )
 
@@ -75,6 +77,7 @@ class CipherMutation:
                 is_favorite=input.is_favorite,
                 key=input.key,
                 name=input.name,
+                status=input.status,
                 data=input.data,
             )
             return Cipher(

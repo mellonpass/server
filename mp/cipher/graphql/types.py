@@ -19,8 +19,8 @@ class Cipher(relay.Node):
     type: CipherTypeEnum
     name: str
     key: str
-    is_favorite: bool
-    status: CipherStatusEnum
+    is_favorite: str
+    status: str
     data: JSON
     created: datetime
     updated: datetime
@@ -84,14 +84,16 @@ class CreateCipherInput:
     key: str
     name: str
     data: JSON
-    isFavorite: bool = False
+    isFavorite: str
+    status: str
 
 
 @strawberry.input
 class UpdateCipherInput:
     id: relay.GlobalID
     key: str
-    is_favorite: bool
+    is_favorite: str
+    status: str
     name: str
     data: JSON
 

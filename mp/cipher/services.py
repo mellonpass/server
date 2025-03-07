@@ -43,10 +43,20 @@ class CipherCategory(Enum):
 
 
 @transaction.atomic
-def create_cipher(owner: User, type: str, name: str, key: str, data: Dict) -> Cipher:
+def create_cipher(
+    owner: User,
+    type: str,
+    name: str,
+    key: str,
+    status: str,
+    is_favorite: str,
+    data: Dict,
+) -> Cipher:
     cipher_data = _build_cipher_data(cipher_type=CipherTypeEnum(type), data=data)
     return Cipher.objects.create(
         owner=owner,
+        status=status,
+        is_favorite=is_favorite,
         type=type,
         name=name,
         key=key,
@@ -77,14 +87,16 @@ def update_cipher(
     owner: User,
     uuid: UUID,
     key: str,
-    is_favorite: bool,
+    is_favorite: str,
     name: str,
+    status: str,
     data: CipherData,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.key = key
     cipher.name = name
     cipher.is_favorite = is_favorite
+    cipher.status = status
     cipher.save()
 
     if cipher.type == CipherType.LOGIN:

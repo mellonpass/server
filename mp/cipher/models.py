@@ -43,19 +43,15 @@ class Cipher(Model):
     )
     key = EncryptedTextField(null=False, blank=False)
     name = EncryptedTextField(null=False, blank=False)
-    is_favorite = BooleanField(null=False, blank=False, default=False)
+    is_favorite = EncryptedTextField(null=False, blank=False)
+    status = EncryptedTextField(
+        null=False,
+        blank=False,
+    )
 
     data_id = PositiveIntegerField()
     data: "CipherData" = GenericForeignKey("content_type", "data_id")
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
-
-    status = CharField(
-        max_length=15,
-        null=False,
-        blank=False,
-        choices=CipherStatus.choices,
-        default=CipherStatus.ACTIVE,
-    )
 
     owner = ForeignKey(
         settings.AUTH_USER_MODEL, null=False, blank=False, on_delete=RESTRICT
