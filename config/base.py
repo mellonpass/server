@@ -260,3 +260,6 @@ TEST_USER_PROTECTED_SYMMETRIC_KEY = env(
 # DB Encryption
 # ------------------------------------------------------------
 DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY", default=None)
+
+# CIPHER DELETE DAYS PERIOD
+CIPHER_DELETE_DAYS_PERIOD = env.int("CIPHER_DELETE_DAYS_PERIOD", default=30)

@@ -1,9 +1,12 @@
+from datetime import timedelta
 from enum import Enum
 from typing import Dict, List, TypedDict, Union
 from uuid import UUID
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from mp.authx.models import User
 from mp.cipher.models import (
@@ -108,6 +111,22 @@ def update_cipher(
         secure_note_data.note = data["note"]
         secure_note_data.save()
 
+    return cipher
+
+
+def update_cipher_to_delete_state(owner: User, uuid: UUID) -> Cipher:
+    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+    cipher.delete_on = timezone.now() + timedelta(
+        days=settings.CIPHER_DELETE_DAYS_PERIOD
+    )
+    cipher.save(update_fields=["delete_on"])
+    return cipher
+
+
+def restore_cipher_from_delete_state(owner: User, uuid: UUID) -> Cipher:
+    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+    cipher.delete_on = None
+    cipher.save(update_fields=["delete_on"])
     return cipher
 
 
