@@ -10,13 +10,7 @@ from factory.fuzzy import FuzzyChoice
 from faker import Faker as _Faker
 
 from mp.authx.tests.factories import UserFactory
-from mp.cipher.models import (
-    Cipher,
-    CipherDataLogin,
-    CipherDataSecureNote,
-    CipherStatus,
-    CipherType,
-)
+from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote, CipherType
 
 
 class CipherDataLoginFactory(DjangoModelFactory):
@@ -46,8 +40,6 @@ class CipherFactory(DjangoModelFactory):
         model = Cipher
 
     type = FuzzyChoice(CipherType)
-    is_favorite = Faker("pybool")
-    status = CipherStatus.ACTIVE
 
     delete_on = None
     created = timezone.now()
@@ -67,4 +59,12 @@ class CipherFactory(DjangoModelFactory):
 
     @factory.lazy_attribute
     def key(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def is_favorite(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def status(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")

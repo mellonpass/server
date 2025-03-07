@@ -7,7 +7,7 @@ from strawberry import relay
 from strawberry.scalars import JSON
 
 from mp.cipher.models import Cipher as CipherModel
-from mp.cipher.services import CipherCategory, CipherStatusEnum, CipherTypeEnum
+from mp.cipher.services import CipherTypeEnum
 
 # Types
 
@@ -96,9 +96,3 @@ class UpdateCipherInput:
     status: str
     name: str
     data: JSON
-
-
-@strawberry.input
-class UpdateCipherStatusInput:
-    id: relay.GlobalID
-    status: CipherStatusEnum

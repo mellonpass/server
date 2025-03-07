@@ -1,7 +1,9 @@
 import logging
 from typing import List
+from uuid import UUID
 
 import strawberry
+from django.db import transaction
 from strawberry import relay
 
 from mp.cipher.graphql.types import (
@@ -18,7 +20,9 @@ from mp.cipher.models import Cipher as CipherModel
 from mp.cipher.services import (
     create_cipher,
     delete_ciphers_by_owner_and_uuids,
+    restore_cipher_from_delete_state,
     update_cipher,
+    update_cipher_to_delete_state,
 )
 from mp.core.graphql.permissions import IsAuthenticated
 
@@ -75,6 +79,74 @@ class CipherMutation:
                 name=input.name,
                 status=input.status,
                 data=input.data,
+            )
+            return Cipher(
+                uuid=cipher.uuid,
+                owner_id=cipher.owner.uuid,
+                type=cipher.type,
+                name=cipher.name,
+                key=cipher.key,
+                is_favorite=cipher.is_favorite,
+                status=cipher.status,
+                data=cipher.data.to_json(),
+                created=cipher.created,
+                updated=cipher.updated,
+            )
+        except CipherModel.DoesNotExist as error:
+            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+        except Exception as error:
+            logger.exception(error)
+            return CipherUpdateFailed(
+                message="Something went wrong when updating a vault item."
+            )
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    def update_to_delete(
+        self, info: strawberry.Info, input: UpdateCipherInput
+    ) -> CipherUpdatePayload:
+        try:
+            owner = info.context.request.user
+
+            with transaction.atomic():
+                cipher = update_cipher(
+                    owner=owner,
+                    uuid=input.id.node_id,
+                    is_favorite=input.is_favorite,
+                    key=input.key,
+                    name=input.name,
+                    status=input.status,
+                    data=input.data,
+                )
+                cipher = update_cipher_to_delete_state(owner=owner, uuid=cipher.uuid)
+
+                return Cipher(
+                    uuid=cipher.uuid,
+                    owner_id=cipher.owner.uuid,
+                    type=cipher.type,
+                    name=cipher.name,
+                    key=cipher.key,
+                    is_favorite=cipher.is_favorite,
+                    status=cipher.status,
+                    data=cipher.data.to_json(),
+                    created=cipher.created,
+                    updated=cipher.updated,
+                )
+        except CipherModel.DoesNotExist as error:
+            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+        except Exception as error:
+            logger.exception(error)
+            return CipherUpdateFailed(
+                message="Something went wrong when updating a vault item."
+            )
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    def restore_cipher_from_delete(
+        self, info: strawberry.Info, id: relay.GlobalID
+    ) -> CipherUpdatePayload:
+        try:
+            owner = info.context.request.user
+            cipher = restore_cipher_from_delete_state(
+                owner=owner, uuid=UUID(id.node_id)
             )
             return Cipher(
                 uuid=cipher.uuid,

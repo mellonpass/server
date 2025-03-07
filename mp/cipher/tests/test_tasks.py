@@ -3,7 +3,7 @@ from datetime import timedelta
 import pytest
 from django.utils import timezone
 
-from mp.cipher.models import Cipher, CipherStatus
+from mp.cipher.models import Cipher
 from mp.cipher.tasks import delete_ciphers_task
 from mp.cipher.tests.factories import CipherFactory
 

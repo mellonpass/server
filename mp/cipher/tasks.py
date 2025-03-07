@@ -4,7 +4,7 @@ from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
 
-from mp.cipher.models import Cipher, CipherStatus
+from mp.cipher.models import Cipher
 
 logger = logging.getLogger(__name__)
 

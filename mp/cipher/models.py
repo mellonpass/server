@@ -27,12 +27,6 @@ class CipherType(TextChoices):
     SECURE_NOTE = "SECURE_NOTE", _("Secure note")
 
 
-class CipherStatus(TextChoices):
-    ACTIVE = "ACTIVE", _("Active")
-    ARCHIVED = "ARCHIVED", _("Archived")
-    DELETED = "DELETED", _("Deleted")
-
-
 class Cipher(Model):
     uuid = UUIDField(unique=True, null=False, blank=False, default=uuid4)
     type = CharField(

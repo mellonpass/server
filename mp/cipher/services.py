@@ -9,17 +9,10 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from mp.authx.models import User
-from mp.cipher.models import (
-    Cipher,
-    CipherDataLogin,
-    CipherDataSecureNote,
-    CipherStatus,
-    CipherType,
-)
+from mp.cipher.models import Cipher, CipherDataLogin, CipherDataSecureNote, CipherType
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
-CipherStatusEnum = CipherStatus
 
 
 class CipherLogin(TypedDict):
@@ -32,15 +25,6 @@ class CipherSecureNote(TypedDict):
 
 
 CipherData = Union[CipherLogin, CipherSecureNote]
-
-
-class CipherCategory(Enum):
-    ARCHIVES = "ARCHIVES"
-    ALL = "ALL"
-    FAVORITES = "FAVORITES"
-    LOGINS = "LOGINS"
-    RECENTLY_DELETED = "RECENTLY_DELETED"
-    SECURE_NOTES = "SECURE_NOTES"
 
 
 @transaction.atomic
