@@ -300,9 +300,9 @@ def test_cipher_restore_from_deletion():
     )
 
     query = """
-        mutation RestoreCipherFromDelete($id: GlobalID!){
+        mutation RestoreCipherFromDelete($input: UpdateCipherInput!){
             cipher {
-                restoreCipherFromDelete(id: $id) {
+                restoreCipherFromDelete(input: $input) {
                     ... on Cipher {
                         id
                         ownerId
@@ -318,7 +318,16 @@ def test_cipher_restore_from_deletion():
         }
     """
 
-    variables = {"id": relay.to_base64("Cipher", str(cipher.uuid))}
+    cipher_data = {
+        "id": relay.to_base64("Cipher", str(cipher.uuid)),
+        "name": "encname",
+        "key": "somekey",
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
+        "data": {"note": "encnote"},
+    }
+
+    variables = {"input": cipher_data}
 
     client = TestClient("/graphql")
 
@@ -327,16 +336,14 @@ def test_cipher_restore_from_deletion():
         data = response.data["cipher"]["restoreCipherFromDelete"]
         assert (
             relay.GlobalID.from_id(data["id"]).node_id
-            == relay.GlobalID.from_id(variables["id"]).node_id
+            == relay.GlobalID.from_id(cipher_data["id"]).node_id
         )
         assert data["ownerId"] == str(user.uuid)
-
-        # cipher data shouldn't change.
-        assert data["key"] == cipher.key
-        assert data["name"] == cipher.name
-        assert data["status"] == cipher.status
-        assert data["isFavorite"] == cipher.is_favorite
-        assert data["data"]["note"] == cipher.data.note
+        assert data["key"] == cipher_data["key"]
+        assert data["name"] == cipher_data["name"]
+        assert data["status"] == cipher_data["status"]
+        assert data["isFavorite"] == cipher_data["isFavorite"]
+        assert data["data"]["note"] == cipher_data["data"]["note"]
 
     cipher_to_delete = Cipher.objects.get(uuid=cipher.uuid)
     assert cipher_to_delete.delete_on is None

@@ -141,25 +141,36 @@ class CipherMutation:
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def restore_cipher_from_delete(
-        self, info: strawberry.Info, id: relay.GlobalID
+        self, info: strawberry.Info, input: UpdateCipherInput
     ) -> CipherUpdatePayload:
         try:
             owner = info.context.request.user
-            cipher = restore_cipher_from_delete_state(
-                owner=owner, uuid=UUID(id.node_id)
-            )
-            return Cipher(
-                uuid=cipher.uuid,
-                owner_id=cipher.owner.uuid,
-                type=cipher.type,
-                name=cipher.name,
-                key=cipher.key,
-                is_favorite=cipher.is_favorite,
-                status=cipher.status,
-                data=cipher.data.to_json(),
-                created=cipher.created,
-                updated=cipher.updated,
-            )
+
+            with transaction.atomic():
+
+                cipher = update_cipher(
+                    owner=owner,
+                    uuid=input.id.node_id,
+                    is_favorite=input.is_favorite,
+                    key=input.key,
+                    name=input.name,
+                    status=input.status,
+                    data=input.data,
+                )
+                cipher = restore_cipher_from_delete_state(owner=owner, uuid=cipher.uuid)
+
+                return Cipher(
+                    uuid=cipher.uuid,
+                    owner_id=cipher.owner.uuid,
+                    type=cipher.type,
+                    name=cipher.name,
+                    key=cipher.key,
+                    is_favorite=cipher.is_favorite,
+                    status=cipher.status,
+                    data=cipher.data.to_json(),
+                    created=cipher.created,
+                    updated=cipher.updated,
+                )
         except CipherModel.DoesNotExist as error:
             return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
         except Exception as error:
