@@ -9,13 +9,11 @@ from django.urls import reverse
 
 from mp.authx.models import User
 from mp.authx.tests.conftest import TEST_USER_LOGIN_HASH
-from mp.crypto import verify_jwt
-from mp.jwt.models import RefreshToken
-from mp.jwt.services import ACCESS_TOKEN_DURATION
 
 pytestmark = pytest.mark.django_db
 
 
+@override_settings(RATELIMIT_ENABLE=False)
 def test_login_view(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
