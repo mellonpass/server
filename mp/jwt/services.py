@@ -12,7 +12,7 @@ from ipware import get_client_ip
 from user_agents import parse
 
 from mp.authx.models import User
-from mp.crypto import load_ecdsa_p256_key
+from mp.crypto import load_ES256_key
 from mp.jwt.models import RefreshToken
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def generate_access_token_from_user(user: User) -> str:
     }
     return jwt.encode(
         access_token_payload,
-        load_ecdsa_p256_key(settings.JWT_PRIVATE_KEY_PATH),
+        load_ES256_key(settings.ES256_PRIVATE_KEY_PATH),
         algorithm="ES256",
     )
 

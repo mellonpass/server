@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 def es256_jwt(payload: Dict) -> str:
     return jwt.encode(
         payload,
-        load_ecdsa_p256_key(settings.JWT_PRIVATE_KEY_PATH),
+        load_ES256_key(settings.ES256_PRIVATE_KEY_PATH),
         algorithm="ES256",
     )
 
@@ -21,7 +21,7 @@ def verify_jwt(token: str, verify=True) -> Tuple[bool, Union[str, Dict]]:
     try:
         payload = jwt.decode(
             token,
-            load_ecdsa_p256_pub(settings.JWT_PUBLIC_KEY_PATH),
+            load_ecdsa_ES256_pub(settings.ES256_PUBLIC_KEY_PATH),
             algorithms=["ES256"],
             options={
                 "require": ["exp", "iat", "sub", "jti"],
@@ -60,7 +60,7 @@ def generate_ecdsa_p256_keys():
     print(f"{serialized_private.decode()}\n{serialized_public.decode()}")
 
 
-def load_ecdsa_p256_key(path: str) -> ec.EllipticCurvePrivateKey:
+def load_ES256_key(path: str) -> ec.EllipticCurvePrivateKey:
     with open(path, encoding="utf-8") as f:
         serialized_private_key = f.read()
         return serialization.load_pem_private_key(
@@ -68,7 +68,7 @@ def load_ecdsa_p256_key(path: str) -> ec.EllipticCurvePrivateKey:
         )
 
 
-def load_ecdsa_p256_pub(path: str) -> ec.EllipticCurvePublicKey:
+def load_ecdsa_ES256_pub(path: str) -> ec.EllipticCurvePublicKey:
     with open(path, encoding="utf-8") as f:
         serialized_public_key = f.read()
         return serialization.load_pem_public_key(
