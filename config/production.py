@@ -14,7 +14,7 @@ DEBUG = False
 
 APP_ENVIRONMENT="production"
 
-ALLOWED_HOSTS = [f"*.{DOMAIN}.com"]
+ALLOWED_HOSTS = [f".{DOMAIN}.com"]
 
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGIN_REGEXES = [f"^https://\S+\.{DOMAIN}\.com$"]
