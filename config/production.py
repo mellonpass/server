@@ -12,12 +12,12 @@ from config.base import *
 # ------------------------------------------------------------
 DEBUG = False
 
-APP_ENVIRONMENT="production"
-
 ALLOWED_HOSTS = [f".{DOMAIN}"]
 
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGIN_REGEXES = [f"^https://\S+\.{DOMAIN[:-4]}\.com$"]
+
+_host, *_ext = DOMAIN.split(".")
+CORS_ALLOWED_ORIGIN_REGEXES = [f"^https://\S+\.{_host}\.{_ext.join(".")}$"]
 
 SESSION_COOKIE_DOMAIN = f".{DOMAIN}"
 SESSION_COOKIE_SECURE = True
