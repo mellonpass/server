@@ -235,7 +235,7 @@ CSRF_HEADER_NAME = "CSRF_COOKIE"
 # ------------------------------------------------------------
 # https://docs.djangoproject.com/en/4.2/topics/email/
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
+NO_REPLY_EMAIL = f"no-reply@{DOMAIN}"
 
 # App data
 # ------------------------------------------------------------

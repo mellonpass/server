@@ -43,7 +43,6 @@ ANYMAIL = {
     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
 }
 EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-NO_REPLY_EMAIL = f"no-reply@{DOMAIN}"
 DEFAULT_FROM_EMAIL = f"support@{DOMAIN}"
 SERVER_EMAIL = f"server@{DOMAIN}"
 
