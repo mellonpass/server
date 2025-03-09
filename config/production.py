@@ -12,6 +12,8 @@ from config.base import *
 # ------------------------------------------------------------
 DEBUG = False
 
+APP_ENVIRONMENT="production"
+
 ALLOWED_HOSTS = [f"*.{DOMAIN}.com"]
 
 CORS_ALLOW_ALL_ORIGINS = False
