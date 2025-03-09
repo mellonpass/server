@@ -24,8 +24,27 @@ services:
     restart: always
     stdin_open: true
     tty: true
-    env_file:
-      - ./config/envs/.django.env
+    environment:
+      # Persistent storage.
+      - DATABASE_URL=postgres://postgres:postgres@mellonpass_db:5432/postgres
+      - RABBITMQ_BROKER_URL=amqp://admin:mypass@mellonpass_rabbitmq:5672/
+      - REDIS_URL=redis://redis:redis@mellonpass_redis:6379
+      # Django admin.
+      - DJANGO_SUPERUSER_PASSWORD=admin
+      - DJANGO_SUPERUSER_USERNAME=admin@example.com
+      - DJANGO_SUPERUSER_EMAIL=admin@example.com
+      - DJANGO_SETTINGS_MODULE=config.base
+      - DJANGO_SECRET_KEY="django-insecure-mpr*w$8(jttk%o88)76d@etbd@@8@_$!yty1!3c_b+6-_*17e+"
+      # Test user.
+      - TEST_USER_EMAIL=testuser@example.com
+      # Raw password: v}}\a5X%pEPn7d$n<L@-
+      # This raw password is tightly coupled to the TEST_USER_LOGIN_HASH and TEST_USER_PROTECTED_SYMMETRIC_KEY values.
+      - TEST_USER_LOGIN_HASH=11b0ca97c2a0f88bd4a0907729c38eca7224130ff09b8b42d81f163f4cb44363
+      - TEST_USER_PROTECTED_SYMMETRIC_KEY=YTE4NzYxMGUwY2NjYjJhMmZmMTU4NTM1MDFiMWJkZDk1NWIwM2E1OGFhNzAyMmYwY2Q0ZTc3OTk1OTNiNTA2N2RjMzdiY2E4NmU5MjRjOWZlMjZjZjkwMGY5NzBlZDBlYmFiZjBiMDAzNGJjOThiOTk5MDhhNTIwMTEyM2NiNjZkYTkwNjZiYTJhYzY1NTJjOGRlNjIyNTMwY2I1MTI3MzkwYjgzNzg3YTdiNWQ4YWY2ZTFjYWU4MzdkZDBkZDllZmNkMjczMzdhY2RhMjdiMDZiNWVmYTViYzNlYzcwNWY=
+      # Security.
+      - ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem
+      - ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem
+      - FERNET_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
     volumes:
       - .:/code
       # used for test only.

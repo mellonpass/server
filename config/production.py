@@ -8,11 +8,25 @@ from sentry_sdk.integrations.strawberry import StrawberryIntegration
 
 from config.base import *
 
+# Security
+# ------------------------------------------------------------
 DEBUG = False
+
+ALLOWED_HOSTS = [f"*.{DOMAIN}.com"]
+
 CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGIN_REGEXES = env.list("DJANGO_CORS_ALLOWED_ORIGIN_REGEXES")
+CORS_ALLOWED_ORIGIN_REGEXES = [f"^https://\S+\.{DOMAIN}\.com$"]
+
+SESSION_COOKIE_DOMAIN = f".{DOMAIN}"
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_DOMAIN = f".{DOMAIN}"
+CSRF_TRUSTED_ORIGINS = [f"https://*.{DOMAIN}.com"]
+CSRF_COOKIE_SECURE = True
+
 
 # JWTAuthToken
+# ------------------------------------------------------------
 # Make sure that mp.core.middleware.jwt.JWTAuthTokenMiddleware is
 # added on MIDDLEWARE.
 # NOTE: Temporarily disable, we use session for authorizing the
@@ -22,9 +36,6 @@ JWT_AUTH_ENABLE = False
 
 RATELIMIT_ENABLE = True
 
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
 # Emailing.
 # ------------------------------------------------------------
 ANYMAIL = {
@@ -32,33 +43,39 @@ ANYMAIL = {
     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
 }
 EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
+DEFAULT_FROM_EMAIL = f"support@{DOMAIN}"
+SERVER_EMAIL = f"server@{DOMAIN}"
 
-sentry_logging = LoggingIntegration(
-    level=logging.INFO,
-    event_level=logging.ERROR,
-)
-integrations = [
-    sentry_logging,
-    DjangoIntegration(
-        middleware_spans=False,
-        cache_spans=False,
-        signals_spans=False,
-    ),
-    CeleryIntegration(),
-    StrawberryIntegration()
-]
 
-sentry_sdk.init(
-    dsn=env("SENTRY_DSN"),
-    environment=APP_ENVIRONMENT,
-    # Add data like request headers and IP for users,
-    # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
-    send_default_pii=True,
-    traces_sample_rate=0.1,
-    _experiments={
-        # Set continuous_profiling_auto_start to True
-        # to automatically start the profiler on when
-        # possible.
-        "continuous_profiling_auto_start": True,
-    },
-)
+# Sentry.
+# ------------------------------------------------------------
+if env("SENTRY_DSN", default=None):
+    sentry_logging = LoggingIntegration(
+        level=logging.INFO,
+        event_level=logging.ERROR,
+    )
+    integrations = [
+        sentry_logging,
+        DjangoIntegration(
+            middleware_spans=False,
+            cache_spans=False,
+            signals_spans=False,
+        ),
+        CeleryIntegration(),
+        StrawberryIntegration(),
+    ]
+
+    sentry_sdk.init(
+        dsn=env("SENTRY_DSN"),
+        environment=APP_ENVIRONMENT,
+        # Add data like request headers and IP for users,
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        send_default_pii=True,
+        traces_sample_rate=0.1,
+        _experiments={
+            # Set continuous_profiling_auto_start to True
+            # to automatically start the profiler on when
+            # possible.
+            "continuous_profiling_auto_start": True,
+        },
+    )

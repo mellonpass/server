@@ -66,19 +66,14 @@ jobs:
       - name: Run tests
         uses: addnab/docker-run-action@v3
         env:
-          APP_DOMAIN: localhost
           APP_ENVIRONMENT: test
           DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
           DJANGO_SETTINGS_MODULE: config.test
           DJANGO_SECRET_KEY: django-insecure-test-secret
-          DJANGO_CSRF_TRUSTED_ORIGINS: http://localhost
-          DJANGO_ALLOWED_HOSTS: "*"
           RABBITMQ_BROKER_URL: amqp://
           REDIS_URL: redis://
-          JWT_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
-          JWT_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
-          EMAIL_VERIFICATION_KEY_PATH: mp/authx/tests/resources/keys/ecdsa_p256_key.pem
-          EMAIL_VERIFICATION_PUB_PATH: mp/authx/tests/resources/keys/ecdsa_p256_pub.pem
+          ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
+          ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
           FERNET_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
         with:
           registry: ghcr.io
@@ -86,19 +81,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           options: |
-            -e APP_DOMAIN
             -e APP_ENVIRONMENT
             -e DATABASE_URL
             -e DJANGO_SETTINGS_MODULE
             -e DJANGO_SECRET_KEY
-            -e DJANGO_CSRF_TRUSTED_ORIGINS
-            -e DJANGO_ALLOWED_HOSTS
             -e RABBITMQ_BROKER_URL
             -e REDIS_URL
-            -e JWT_PRIVATE_KEY_PATH
-            -e JWT_PUBLIC_KEY_PATH
-            -e EMAIL_VERIFICATION_KEY_PATH
-            -e EMAIL_VERIFICATION_PUB_PATH
+            -e ES256_PRIVATE_KEY_PATH
+            -e ES256_PUBLIC_KEY_PATH
             -e FERNET_SYMMETRIC_KEY
           run: |
             poetry run pytest .

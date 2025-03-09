@@ -9,7 +9,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from mp.authx.tests.factories import UserFactory
-from mp.crypto import load_ecdsa_p256_key, verify_jwt
+from mp.crypto import load_ES256_key, verify_jwt
 from mp.jwt.services import generate_access_token_from_user
 
 pytestmark = pytest.mark.django_db
@@ -51,7 +51,7 @@ def test_token_signature_invalid():
 def test_token_claims():
     token = jwt.encode(
         {"id": str(uuid4())},
-        load_ecdsa_p256_key(settings.JWT_PRIVATE_KEY_PATH),
+        load_ES256_key(settings.ES256_PRIVATE_KEY_PATH),
         algorithm="ES256",
     )
     is_valid, message = verify_jwt(token)

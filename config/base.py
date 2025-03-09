@@ -24,11 +24,9 @@ env = environ.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent
 APPS_DIR = BASE_DIR / "mp"
 
-if env.bool("USE_DEV_DOT_ENV", default=False):
-    # Load development env variables.
-    env.read_env(str(BASE_DIR / ".env"))
+APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="local")
 
-APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="production")
+DOMAIN = env("DOMAIN", default="localhost")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -36,12 +34,8 @@ APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="production")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env("DJANGO_DEBUG", default=False)
-
-ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["*.mellonpass.com"])
-
-
+DEBUG = env("DJANGO_DEBUG", default=True)
+ALLOWED_HOSTS = ["*"]
 # Application definition
 
 DJANGO_APPS = [
@@ -160,11 +154,8 @@ PASSWORD_HASHERS = [
     "mp.authx.hashers.MellonPassPBKDF2PasswordHasher",
 ]
 
-JWT_PRIVATE_KEY_PATH = env("JWT_PRIVATE_KEY_PATH")
-JWT_PUBLIC_KEY_PATH = env("JWT_PUBLIC_KEY_PATH")
-
-EMAIL_VERIFICATION_KEY_PATH = env("EMAIL_VERIFICATION_KEY_PATH")
-EMAIL_VERIFICATION_PUB_PATH = env("EMAIL_VERIFICATION_PUB_PATH")
+ES256_PRIVATE_KEY_PATH = env("ES256_PRIVATE_KEY_PATH")
+ES256_PUBLIC_KEY_PATH = env("ES256_PUBLIC_KEY_PATH")
 
 # CELERY
 # ------------------------------------------------------------------------
@@ -208,9 +199,15 @@ CACHES = {
 # ------------------------------------------------------------
 RATELIMIT_ENABLE = False
 
+# JWTAuthToken
+# ------------------------------------------------------------
+JWT_AUTH_ENABLE = False  # Disable this feature for now.
+JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
+
 # Django CORS header
 # ------------------------------------------------------------
 # https://github.com/adamchainz/django-cors-headers?tab=readme-ov-file#configuration
+# False in production settings.
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_METHODS = ["GET", "POST"]
 CORS_ALLOW_CREDENTIALS = True
@@ -219,35 +216,26 @@ CORS_ALLOW_HEADERS = [
     "credentials",  # Add 'credentials' to allowed headers
 ]
 
-
-# JWTAuthToken
-# ------------------------------------------------------------
-JWT_AUTH_ENABLE = False  # Disable this feature for now.
-JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
-
-SESSION_COOKIE_DOMAIN = env("APP_DOMAIN", default=".mellonpass.com")
+SESSION_COOKIE_DOMAIN = DOMAIN
 SESSION_COOKIE_SAMESITE = "Strict"
+# True in prod settings.
 SESSION_COOKIE_SECURE = False
 
-CSRF_COOKIE_DOMAIN = env("APP_DOMAIN", default=".mellonpass.com")
-CSRF_TRUSTED_ORIGINS = env.list(
-    "DJANGO_CSRF_TRUSTED_ORIGINS",
-    default=["https://*.mellonpass.com"],
-)
+CSRF_COOKIE_DOMAIN = DOMAIN
+# Using https:// in production settings.
+CSRF_TRUSTED_ORIGINS = [f"http://{DOMAIN}:5173"]
 CSRF_COOKIE_SAMESITE = "Strict"
+# True in prod settings.
 CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = True
-CSRF_HEADER_NAME = env("DJANGO_CSRF_COOKIE", default="CSRF_COOKIE")
+CSRF_HEADER_NAME = "CSRF_COOKIE"
 
 
 # Emailing
 # ------------------------------------------------------------
 # https://docs.djangoproject.com/en/4.2/topics/email/
-NO_REPLY_EMAIL = env("DJANGO_NO_REPLY_EMAIL", default="no-reply@mellonpass")
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-DEFAULT_FROM_EMAIL = env("DJANGO_DEFAULT_FROM_EMAIL", default="support@mellonpass.com")
-SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default="support@mellonpass.com")
-
+NO_REPLY_EMAIL = f"no-reply@{DOMAIN}"
 
 # App data
 # ------------------------------------------------------------
