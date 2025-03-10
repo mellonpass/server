@@ -33,7 +33,6 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin@example.com
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DJANGO_SETTINGS_MODULE=config.base
       - DJANGO_SECRET_KEY="django-insecure-mpr*w$8(jttk%o88)76d@etbd@@8@_$!yty1!3c_b+6-_*17e+"
       # Test user.
       - TEST_USER_EMAIL=testuser@example.com

@@ -36,8 +36,13 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 DEBUG = env("DJANGO_DEBUG", default=True)
 ALLOWED_HOSTS = ["*"]
-# Application definition
 
+if APP_ENVIRONMENT == "production":
+    DJANGO_SETTINGS_MODULE = "config.production"
+else:
+    DJANGO_SETTINGS_MODULE = "config.base"
+
+# Application definition
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
