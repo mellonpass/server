@@ -16,6 +16,7 @@ from pathlib import Path
 import dj_database_url
 import environ
 from corsheaders.defaults import default_headers
+from huey import SqliteHuey
 
 env = environ.Env()
 
@@ -56,6 +57,7 @@ THIRD_PARTY_APPS = [
     "django_celery_results",
     "django_celery_beat",
     "corsheaders",
+    "huey.contrib.djhuey",
 ]
 
 LOCAL_APPS = ["mp.authx", "mp.jwt", "mp.cipher"]
@@ -226,3 +228,9 @@ DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY", default=None)
 # CIPHER DELETE DAYS PERIOD
 # We might want to move this into user specific configuration.
 CIPHER_DELETE_DAYS_PERIOD = env.int("CIPHER_DELETE_DAYS_PERIOD", default=30)
+
+
+# HUEY
+# ------------------------------------------------------------
+# https://huey.readthedocs.io/en/latest/django.html
+HUEY = SqliteHuey(filename="/tmp/huey.sqlite")

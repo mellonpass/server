@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -o errexit
+
+exec poetry run python manage.py run_huey

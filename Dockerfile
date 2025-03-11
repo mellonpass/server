@@ -92,6 +92,10 @@ COPY --from=build-stage ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 # Should re-used existing virtual env and installion should be faster.
 RUN poetry install ${POETRY_INSTALL_OPTS}
 
+# Copy Huey consumer script
+COPY deploy/common/start_huey_consumer /start_huey_consumer
+RUN chmod +x /start_huey_consumer
+
 # Copy all files.
 COPY . .
 

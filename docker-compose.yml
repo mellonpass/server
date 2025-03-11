@@ -5,8 +5,6 @@ networks:
 volumes:
   mellonpass-postgres-data:
     driver: local
-  mellonpass-rabbitmq-data:
-    driver: local
   mellonpass-redis-data:
     driver: local
   mellonpass-cache-data:
@@ -27,7 +25,6 @@ services:
     environment:
       # Persistent storage.
       - DATABASE_URL=postgres://postgres:postgres@mellonpass_db:5432/postgres
-      - RABBITMQ_BROKER_URL=amqp://admin:mypass@mellonpass_rabbitmq:5672/
       - REDIS_URL=redis://redis:redis@mellonpass_redis:6379
       # Django admin.
       - DJANGO_SUPERUSER_PASSWORD=admin
@@ -52,7 +49,6 @@ services:
       - "8000:8000"
     depends_on:
       - mellonpass_db
-      - mellonpass_rabbitmq
       - mellonpass_redis
     networks:
       - mellonpass-network
@@ -74,42 +70,15 @@ services:
     networks:
       - mellonpass-network
 
-  mellonpass_worker:
+  mellonpass_huey_consumer:
     <<: *mellonpass_server
-    container_name: mellonpass_worker
+    container_name: mellonpass_huey_consumer
     depends_on:
-      - mellonpass_rabbitmq
       - mellonpass_server
     ports: []
     volumes:
       - .:/code:ro
-    command: /start_worker
-    networks:
-      - mellonpass-network
-
-  mellonpass_beat:
-    <<: *mellonpass_server
-    container_name: mellonpass_beat
-    depends_on:
-      - mellonpass_rabbitmq
-      - mellonpass_server
-    ports: []
-    volumes:
-      - .:/code:ro
-    command: /start_beat
-    networks:
-      - mellonpass-network
-
-  mellonpass_rabbitmq:
-    image: rabbitmq:3.13.7-management-alpine
-    container_name: mellonpass_rabbitmq
-    ports:
-      - 5672:5672
-      - 15672:15672
-    volumes:
-      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-      - ./rabbitmq/definitions.json:/etc/rabbitmq/definitions.json:ro
-      - mellonpass-rabbitmq-data:/var/lib/rabbitmq
+    command: /start_huey_consumer
     networks:
       - mellonpass-network
 
