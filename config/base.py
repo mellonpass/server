@@ -15,7 +15,6 @@ from pathlib import Path
 
 import dj_database_url
 import environ
-from celery.schedules import crontab
 from corsheaders.defaults import default_headers
 
 env = environ.Env()
@@ -161,36 +160,6 @@ PASSWORD_HASHERS = [
 
 ES256_PRIVATE_KEY_PATH = env("ES256_PRIVATE_KEY_PATH")
 ES256_PUBLIC_KEY_PATH = env("ES256_PUBLIC_KEY_PATH")
-
-# CELERY
-# ------------------------------------------------------------------------
-# timezone for celery tasks
-if USE_TZ:
-    CELERY_TIMEZONE = TIME_ZONE
-
-CELERY_BROKER_URL = env("RABBITMQ_BROKER_URL")
-# hard time limit
-CELERY_TASK_TIME_LIMIT = 60 * 30
-CELERY_RESULT_BACKEND = "django-db"
-CELERY_CACHE_BACKEND = "django-cache"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TASK_SERIALIZER = "json"
-
-# list of periodic tasks
-CELERY_BEAT_SCHEDULE = {
-    "revoke_inactive_refresh_tokens": {
-        "task": "mp.jwt.tasks.revoke_inactive_refresh_tokens",
-        "schedule": crontab(minute=0, hour=0),
-    },
-    "remove_revoked_refresh_tokens": {
-        "task": "mp.jwt.tasks.remove_revoked_refresh_tokens",
-        "schedule": crontab(minute=0, hour=0),
-    },
-    "delete_ciphers_task": {
-        "task": "mp.cipher.tasks.delete_ciphers_task",
-        "schedule": crontab(minute=0, hour=0),
-    },
-}
 
 CACHES = {
     "default": {
