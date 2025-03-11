@@ -91,10 +91,8 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
             if http_origin is None and settings.APP_ENVIRONMENT == "test":
                 http_origin = "testserver"
 
-            transaction.on_commit(
-                lambda: send_account_verification_link_task.delay(
-                    app_origin=http_origin, email=user.email
-                )
+            send_account_verification_link_task(
+                app_origin=http_origin, email=user.email
             )
 
         return JsonResponse(

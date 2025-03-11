@@ -1,15 +1,16 @@
 import logging
 
-from celery import shared_task
 from django.db import transaction
 from django.utils import timezone
+from huey import crontab
+from huey.contrib.djhuey import db_periodic_task
 
 from mp.cipher.models import Cipher
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task
+@db_periodic_task(crontab(minute="0", hour="0"))
 def delete_ciphers_task():
     with transaction.atomic():
         qs = Cipher.objects.filter(delete_on__lte=timezone.now())
