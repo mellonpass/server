@@ -54,10 +54,10 @@ def test_account_create(mocker, client: Client, django_capture_on_commit_callbac
     assert data["email"] == "test@example.com"
     assert data["name"] == "john doe"  # should not be updated.
 
-    mock_send_account_verification_link_task.delay.assert_called_with(
+    mock_send_account_verification_link_task.assert_called_with(
         app_origin="testserver", email="test@example.com"
     )
-    assert mock_send_account_verification_link_task.delay.call_count == 2
+    assert mock_send_account_verification_link_task.call_count == 2
 
 
 def test_account_create_active_user(
@@ -86,7 +86,7 @@ def test_account_create_active_user(
     assert data["email"] == user.email
     assert data["name"] == user.name
 
-    assert not mock_send_account_verification_link_task.delay.called
+    assert not mock_send_account_verification_link_task.called
 
 
 def test_account_create_invalid_content_type(client: Client):

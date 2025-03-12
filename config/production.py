@@ -1,7 +1,6 @@
 import logging
 
 import sentry_sdk
-from sentry_sdk.integrations.celery import CeleryIntegration
 from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.strawberry import StrawberryIntegration
@@ -63,7 +62,6 @@ if env("SENTRY_DSN", default=None):
             cache_spans=False,
             signals_spans=False,
         ),
-        CeleryIntegration(),
         StrawberryIntegration(),
     ]
 
