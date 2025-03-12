@@ -9,6 +9,8 @@ volumes:
     driver: local
   mellonpass-cache-data:
     driver: local
+  mellonpass-tmp:
+    driver: local
 
 services:
   mellonpass_server: &mellonpass_server
@@ -43,6 +45,7 @@ services:
       - FERNET_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
     volumes:
       - .:/code
+      - mellonpass-tmp:/tmp
       # used for test only.
       - mellonpass-cache-data:/var/tmp/django_cache
     ports:
@@ -78,6 +81,7 @@ services:
     ports: []
     volumes:
       - .:/code:ro
+      - mellonpass-tmp:/tmp
     command: /start_huey_consumer
     networks:
       - mellonpass-network
