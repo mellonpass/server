@@ -16,6 +16,6 @@ def test_delete_ciphers_task():
     # Ciphers not yet to be deleted.
     CipherFactory.create_batch(3, delete_on=timezone.now() + timedelta(days=1))
 
-    delete_ciphers_task()
+    delete_ciphers_task.call_local()
 
     assert Cipher.objects.count() == 3

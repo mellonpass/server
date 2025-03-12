@@ -15,8 +15,8 @@ from pathlib import Path
 
 import dj_database_url
 import environ
-from celery.schedules import crontab
 from corsheaders.defaults import default_headers
+from huey import SqliteHuey
 
 env = environ.Env()
 
@@ -36,8 +36,13 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 DEBUG = env("DJANGO_DEBUG", default=True)
 ALLOWED_HOSTS = ["*"]
-# Application definition
 
+if APP_ENVIRONMENT == "production":
+    DJANGO_SETTINGS_MODULE = "config.production"
+else:
+    DJANGO_SETTINGS_MODULE = "config.base"
+
+# Application definition
 DJANGO_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -52,6 +57,7 @@ THIRD_PARTY_APPS = [
     "django_celery_results",
     "django_celery_beat",
     "corsheaders",
+    "huey.contrib.djhuey",
 ]
 
 LOCAL_APPS = ["mp.authx", "mp.jwt", "mp.cipher"]
@@ -157,36 +163,6 @@ PASSWORD_HASHERS = [
 ES256_PRIVATE_KEY_PATH = env("ES256_PRIVATE_KEY_PATH")
 ES256_PUBLIC_KEY_PATH = env("ES256_PUBLIC_KEY_PATH")
 
-# CELERY
-# ------------------------------------------------------------------------
-# timezone for celery tasks
-if USE_TZ:
-    CELERY_TIMEZONE = TIME_ZONE
-
-CELERY_BROKER_URL = env("RABBITMQ_BROKER_URL")
-# hard time limit
-CELERY_TASK_TIME_LIMIT = 60 * 30
-CELERY_RESULT_BACKEND = "django-db"
-CELERY_CACHE_BACKEND = "django-cache"
-CELERY_RESULT_SERIALIZER = "json"
-CELERY_TASK_SERIALIZER = "json"
-
-# list of periodic tasks
-CELERY_BEAT_SCHEDULE = {
-    "revoke_inactive_refresh_tokens": {
-        "task": "mp.jwt.tasks.revoke_inactive_refresh_tokens",
-        "schedule": crontab(minute=0, hour=0),
-    },
-    "remove_revoked_refresh_tokens": {
-        "task": "mp.jwt.tasks.remove_revoked_refresh_tokens",
-        "schedule": crontab(minute=0, hour=0),
-    },
-    "delete_ciphers_task": {
-        "task": "mp.cipher.tasks.delete_ciphers_task",
-        "schedule": crontab(minute=0, hour=0),
-    },
-}
-
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
@@ -252,3 +228,9 @@ DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY", default=None)
 # CIPHER DELETE DAYS PERIOD
 # We might want to move this into user specific configuration.
 CIPHER_DELETE_DAYS_PERIOD = env.int("CIPHER_DELETE_DAYS_PERIOD", default=30)
+
+
+# HUEY
+# ------------------------------------------------------------
+# https://huey.readthedocs.io/en/latest/django.html
+HUEY = SqliteHuey(filename="/tmp/huey.sqlite")

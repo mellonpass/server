@@ -40,7 +40,6 @@ jobs:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
           DJANGO_SETTINGS_MODULE: config.test
           DJANGO_SECRET_KEY: django-insecure-test-secret
-          RABBITMQ_BROKER_URL: amqp://
           REDIS_URL: redis://
           ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
           ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
