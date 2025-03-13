@@ -81,7 +81,7 @@ ROOT_URLCONF = "mp.config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "mp/templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
