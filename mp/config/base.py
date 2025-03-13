@@ -77,10 +77,15 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "mp.config.urls"
 
+APPEND_SLASH = False
+
+LOGIN_REDIRECT_URL = "/"
+LOGIN_URL = "/login"
+
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "mp/templates"],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [

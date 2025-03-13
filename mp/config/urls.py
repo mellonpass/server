@@ -16,12 +16,21 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.contrib.auth.decorators import login_required
 from django.urls import include, path
+from django.views.generic import TemplateView
 
 urlpatterns = [
+    path("", login_required(TemplateView.as_view(template_name="vault/index.html"))),
+    path("login", TemplateView.as_view(template_name="vault/login.html")),
+
+    # API related views.
+    # ------------------------------------------------------------------------
     path("accounts/", include("mp.apps.authx.urls")),
-    path("admin/", admin.site.urls),
     # Don't append with slash should be requested like:
     #   POST localhost:8000/graphql
     path("graphql", include("mp.graphql.urls")),
+
+    # ------------------------------------------------------------------------
+    path("admin", admin.site.urls),
 ]
