@@ -25,16 +25,6 @@ CSRF_COOKIE_DOMAIN = f".{DOMAIN}"
 CSRF_TRUSTED_ORIGINS = [f"https://*.{DOMAIN}"]
 CSRF_COOKIE_SECURE = True
 
-
-# JWTAuthToken
-# ------------------------------------------------------------
-# Make sure that mp.core.middleware.jwt.JWTAuthTokenMiddleware is
-# added on MIDDLEWARE.
-# NOTE: Temporarily disable, we use session for authorizing the
-# web application. In the future if we can support more client
-# we enable this.
-JWT_AUTH_ENABLE = False
-
 RATELIMIT_ENABLE = True
 
 # Emailing.

@@ -12,4 +12,3 @@ CACHES = {
 }
 
 RATELIMIT_ENABLE = False
-JWT_AUTH_ENABLE = False

@@ -73,7 +73,6 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "mp.core.middleware.jwt.JWTAuthTokenMiddleware",
 ]
 
 ROOT_URLCONF = "mp.config.urls"
@@ -174,11 +173,6 @@ CACHES = {
 # https://django-ratelimit.readthedocs.io/en/stable/settings.html
 # ------------------------------------------------------------
 RATELIMIT_ENABLE = False
-
-# JWTAuthToken
-# ------------------------------------------------------------
-JWT_AUTH_ENABLE = False  # Disable this feature for now.
-JWT_AUTH_PROTECTD_VIEWS = ["api.graphql.views.mp_graphql_view"]
 
 # Django CORS header
 # ------------------------------------------------------------
