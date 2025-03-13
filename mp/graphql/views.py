@@ -5,7 +5,7 @@ from strawberry.django.views import GraphQLView
 from strawberry.http import GraphQLHTTPResponse
 from strawberry.types import ExecutionResult
 
-from api.graphql.schema import schema
+from mp.graphql.schema import schema
 
 
 class MPGrahpQLView(GraphQLView):

@@ -17,12 +17,11 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import include, path
-from django.views.decorators.csrf import csrf_protect
-
-from api.graphql.views import mp_graphql_view
 
 urlpatterns = [
     path("accounts/", include("mp.authx.urls")),
     path("admin/", admin.site.urls),
-    path("graphql", csrf_protect(mp_graphql_view), name="graphql"),
+    # Don't append with slash should be requested like:
+    #   POST localhost:8000/graphql
+    path("graphql", include("mp.graphql.urls")),
 ]
