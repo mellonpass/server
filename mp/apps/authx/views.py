@@ -28,7 +28,6 @@ from mp.apps.authx.services import (
 )
 from mp.apps.authx.tasks import send_account_verification_link_task
 from mp.core.exceptions import ServiceValidationError
-from mp.core.utils.http import ResponseErrorCode
 from mp.core.utils.ip import rl_client_ip
 from mp.crypto import verify_jwt
 
@@ -56,7 +55,6 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": "Invalid request content-type.",
-                "code": ResponseErrorCode.INVALID_REQUEST,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -75,7 +73,6 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
             return JsonResponse(
                 {
                     "error": "Blocked, try again later.",
-                    "code": ResponseErrorCode.RATELIMIT_EXCEEDED,
                 },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
@@ -103,7 +100,6 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         return JsonResponse(
             {
                 "error": error.messages,
-                "code": ResponseErrorCode.INVALID_INPUT,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -202,7 +198,6 @@ def logout_view(request: HttpRequest):
         return JsonResponse(
             {
                 "error": "Invalid request content-type.",
-                "code": ResponseErrorCode.INVALID_REQUEST,
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -211,7 +206,6 @@ def logout_view(request: HttpRequest):
         return JsonResponse(
             {
                 "error": "No authenticated user.",
-                "code": ResponseErrorCode.INVALID_REQUEST,
             },
             status=HTTPStatus.NOT_ACCEPTABLE,
         )
@@ -248,7 +242,6 @@ def verify_view(request: HttpRequest):
         return JsonResponse(
             {
                 "error": "Misformatted request: Token not found.",
-                "code": "TOKEN_NOT_FOUND",
             },
             status=HTTPStatus.BAD_REQUEST,
         )
@@ -264,13 +257,13 @@ def verify_view(request: HttpRequest):
         logger.error(err, exc_info=1)
 
         return JsonResponse(
-            {"error": "Invalid token.", "code": "INVALID_TOKEN"},
+            {"error": "Invalid token."},
             status=HTTPStatus.FORBIDDEN,
         )
 
     if token.is_expired:
         return JsonResponse(
-            {"error": "Token expired.", "code": "TOKEN_EXPIRED"},
+            {"error": "Token expired."},
             status=HTTPStatus.UNPROCESSABLE_ENTITY,
         )
 

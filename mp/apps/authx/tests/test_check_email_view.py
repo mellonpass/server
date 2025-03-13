@@ -5,7 +5,6 @@ from django.test import Client
 from django.urls import reverse
 
 from mp.apps.authx.tests.factories import UserFactory
-from mp.core.utils.http import ResponseErrorCode
 
 pytestmark = pytest.mark.django_db
 

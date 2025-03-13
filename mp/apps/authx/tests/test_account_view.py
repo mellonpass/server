@@ -9,7 +9,6 @@ from django.urls import reverse
 
 from mp.apps.authx.models import User
 from mp.apps.authx.tests.factories import UserFactory
-from mp.core.utils.http import INVALID_INPUT, INVALID_REQUEST, RATELIMIT_EXCEEDED
 
 pytestmark = pytest.mark.django_db
 rf = RequestFactory()
@@ -101,7 +100,6 @@ def test_account_create_invalid_content_type(client: Client):
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid request content-type."
-    assert response.json()["code"] == INVALID_REQUEST
 
 
 def test_account_create_invalid_input(client: Client):
@@ -116,7 +114,6 @@ def test_account_create_invalid_input(client: Client):
     )
     assert response.status_code == HTTPStatus.BAD_REQUEST
     error = response.json()["error"]
-    assert response.json()["code"] == INVALID_INPUT
     assert error["email"][0] == "Not a valid email address."
     assert error["name"][0] == "Missing data for required field."
 
@@ -149,7 +146,6 @@ def test_account_create_ratelimit_exceeded(client: Client):
     response_4 = client_post(data=list_of_input_attack[3])
     assert response_4.status_code == HTTPStatus.TOO_MANY_REQUESTS
     assert response_4.json()["error"] == "Blocked, try again later."
-    assert response_4.json()["code"] == RATELIMIT_EXCEEDED
 
     # request no. 4 did not push through.
     assert User.objects.count() == 3

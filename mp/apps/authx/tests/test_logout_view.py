@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from mp.apps.authx.models import User
 from mp.apps.authx.tests.conftest import TEST_USER_LOGIN_HASH
-from mp.core.utils.http import INVALID_REQUEST
 
 pytestmark = pytest.mark.django_db
 
@@ -38,7 +37,6 @@ def test_logout_view_invalid_request(client: Client):
     response = client.post(path=url, content_type="application/xml")
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert response.json()["error"] == "Invalid request content-type."
-    assert response.json()["code"] == INVALID_REQUEST
 
 
 def test_logout_view_no_authenticated_user(client: Client):
@@ -46,4 +44,3 @@ def test_logout_view_no_authenticated_user(client: Client):
     response = client.post(path=url, content_type="application/json")
     assert response.status_code == HTTPStatus.NOT_ACCEPTABLE
     assert response.json()["error"] == "No authenticated user."
-    assert response.json()["code"] == INVALID_REQUEST
