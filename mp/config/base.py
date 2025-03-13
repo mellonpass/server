@@ -38,9 +38,9 @@ DEBUG = env("DJANGO_DEBUG", default=True)
 ALLOWED_HOSTS = ["*"]
 
 if APP_ENVIRONMENT == "production":
-    DJANGO_SETTINGS_MODULE = "config.production"
+    DJANGO_SETTINGS_MODULE = "mp.config.production"
 else:
-    DJANGO_SETTINGS_MODULE = "config.base"
+    DJANGO_SETTINGS_MODULE = "mp.config.base"
 
 # Application definition
 DJANGO_APPS = [
@@ -76,7 +76,7 @@ MIDDLEWARE = [
     "mp.core.middleware.jwt.JWTAuthTokenMiddleware",
 ]
 
-ROOT_URLCONF = "config.urls"
+ROOT_URLCONF = "mp.config.urls"
 
 TEMPLATES = [
     {
@@ -94,7 +94,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
+WSGI_APPLICATION = "mp.config.wsgi.application"
 
 
 # Database

@@ -5,7 +5,7 @@ from sentry_sdk.integrations.django import DjangoIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.strawberry import StrawberryIntegration
 
-from config.base import *
+from mp.config.base import *
 
 # Security
 # ------------------------------------------------------------

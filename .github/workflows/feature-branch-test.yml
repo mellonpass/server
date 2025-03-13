@@ -38,7 +38,7 @@ jobs:
         env:
           APP_ENVIRONMENT: test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-          DJANGO_SETTINGS_MODULE: config.test
+          DJANGO_SETTINGS_MODULE: mp.config.test
           DJANGO_SECRET_KEY: django-insecure-test-secret
           REDIS_URL: redis://
           ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem

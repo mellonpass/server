@@ -1,4 +1,4 @@
-from config.base import *
+from mp.config.base import *
 
 APP_ENVIRONMENT = "test"
 
