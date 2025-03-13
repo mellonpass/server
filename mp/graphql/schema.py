@@ -4,7 +4,7 @@ from graphql.validation import NoSchemaIntrospectionCustomRule
 from strawberry.extensions import AddValidationRules, QueryDepthLimiter
 from strawberry.tools import merge_types
 
-from mp.cipher.graphql import schema as cipher_schema
+from mp.apps.cipher.graphql import schema as cipher_schema
 
 
 def _get_extensions():

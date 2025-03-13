@@ -22,7 +22,7 @@ env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-APPS_DIR = BASE_DIR / "mp"
+APPS_DIR = BASE_DIR / "mp/apps"
 
 APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="local")
 
@@ -60,7 +60,7 @@ THIRD_PARTY_APPS = [
     "huey.contrib.djhuey",
 ]
 
-LOCAL_APPS = ["mp.authx", "mp.cipher"]
+LOCAL_APPS = ["mp.apps.authx", "mp.apps.cipher"]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
@@ -156,8 +156,8 @@ AUTH_USER_MODEL = "authx.User"
 AUTH_PASSWORD_VALIDATORS = []
 
 PASSWORD_HASHERS = [
-    "mp.authx.hashers.MellonPassArgon2PasswordHasher",
-    "mp.authx.hashers.MellonPassPBKDF2PasswordHasher",
+    "mp.apps.authx.hashers.MellonPassArgon2PasswordHasher",
+    "mp.apps.authx.hashers.MellonPassPBKDF2PasswordHasher",
 ]
 
 ES256_PRIVATE_KEY_PATH = env("ES256_PRIVATE_KEY_PATH")

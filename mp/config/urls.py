@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path("accounts/", include("mp.authx.urls")),
+    path("accounts/", include("mp.apps.authx.urls")),
     path("admin/", admin.site.urls),
     # Don't append with slash should be requested like:
     #   POST localhost:8000/graphql
