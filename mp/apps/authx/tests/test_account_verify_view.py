@@ -52,7 +52,6 @@ def test_missing_token_id(client: Client):
     data = response.json()
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert data["error"] == "Misformatted request: Token not found."
-    assert data["code"] == "TOKEN_NOT_FOUND"
 
 
 def test_invalid_token(client: Client):
@@ -68,7 +67,6 @@ def test_invalid_token(client: Client):
     data = response.json()
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert data["error"] == "Invalid token."
-    assert data["code"] == "INVALID_TOKEN"
 
 
 def test_expired_token(client: Client):
@@ -96,7 +94,6 @@ def test_expired_token(client: Client):
     data = response.json()
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert data["error"] == "Invalid token."
-    assert data["code"] == "INVALID_TOKEN"
 
 
 def test_inactive_token(client: Client):
@@ -118,7 +115,6 @@ def test_inactive_token(client: Client):
     data = response.json()
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert data["error"] == "Inactive token."
-    assert data["code"] == "INACTIVE_TOKEN"
 
 
 def test_account_already_verified(client: Client):

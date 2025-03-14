@@ -27,7 +27,7 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin@example.com
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DJANGO_SECRET_KEY="django-insecure-mpr*w$8(jttk%o88)76d@etbd@@8@_$!yty1!3c_b+6-_*17e+"
+      - DJANGO_SECRET_KEY="IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U="
       # Test user.
       - TEST_USER_EMAIL=testuser@example.com
       # Raw password: v}}\a5X%pEPn7d$n<L@-
