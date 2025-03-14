@@ -168,8 +168,7 @@ ES256_PUBLIC_KEY_PATH = env("ES256_PUBLIC_KEY_PATH")
 
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": env("REDIS_URL"),
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
     }
 }
 

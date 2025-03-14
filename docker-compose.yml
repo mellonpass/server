@@ -5,10 +5,6 @@ networks:
 volumes:
   mellonpass-postgres-data:
     driver: local
-  mellonpass-redis-data:
-    driver: local
-  mellonpass-cache-data:
-    driver: local
   mellonpass-tmp:
     driver: local
 
@@ -27,7 +23,6 @@ services:
     environment:
       # Persistent storage.
       - DATABASE_URL=postgres://postgres:postgres@mellonpass_db:5432/postgres
-      - REDIS_URL=redis://redis:redis@mellonpass_redis:6379
       # Django admin.
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin@example.com
@@ -45,13 +40,10 @@ services:
     volumes:
       - .:/code
       - mellonpass-tmp:/tmp
-      # used for test only.
-      - mellonpass-cache-data:/var/tmp/django_cache
     ports:
       - "8000:8000"
     depends_on:
       - mellonpass_db
-      - mellonpass_redis
     networks:
       - mellonpass-network
     command: /start_web
@@ -82,18 +74,5 @@ services:
       - .:/code:ro
       - mellonpass-tmp:/tmp
     command: /start_huey_consumer
-    networks:
-      - mellonpass-network
-
-  mellonpass_redis:
-    image: redis:7.2.5-alpine
-    container_name: mellonpass_redis
-    ports:
-      - 6379:6379
-    environment:
-      REDIS_PASSWORD: redis
-    volumes:
-      - ./redis/redis.conf:/etc/redis/redis.conf:ro
-      - mellonpass-redis-data:/data
     networks:
       - mellonpass-network
