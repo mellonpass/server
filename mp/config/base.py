@@ -197,7 +197,7 @@ SESSION_COOKIE_SECURE = False
 
 CSRF_COOKIE_DOMAIN = DOMAIN
 # Using https:// in production settings.
-CSRF_TRUSTED_ORIGINS = [f"http://{DOMAIN}:5173"]
+CSRF_TRUSTED_ORIGINS = [f"http://{DOMAIN}:5173"]  # The 5173 is the web app port.
 CSRF_COOKIE_SAMESITE = "Strict"
 # True in prod settings.
 CSRF_COOKIE_SECURE = False
@@ -219,13 +219,10 @@ TEST_USER_PROTECTED_SYMMETRIC_KEY = env(
     "TEST_USER_PROTECTED_SYMMETRIC_KEY", default=None
 )
 
-# DB Encryption
-# ------------------------------------------------------------
-DATA_SYMMETRIC_KEY = env("FERNET_SYMMETRIC_KEY", default=None)
 
 # CIPHER DELETE DAYS PERIOD
-# We might want to move this into user specific configuration.
-CIPHER_DELETE_DAYS_PERIOD = env.int("CIPHER_DELETE_DAYS_PERIOD", default=30)
+# ------------------------------------------------------------
+CIPHER_DELETE_DAYS_PERIOD = 30
 
 
 # HUEY

@@ -42,7 +42,6 @@ services:
       # Security.
       - ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem
       - ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem
-      - FERNET_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
     volumes:
       - .:/code
       - mellonpass-tmp:/tmp
