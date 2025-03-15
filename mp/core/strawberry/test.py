@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 from django.test import Client
 from strawberry.test import BaseGraphQLTestClient
 
-from mp.authx.models import User
+from mp.apps.authx.models import User
 
 VariableValues = Dict[str, Any]
 

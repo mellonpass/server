@@ -7,7 +7,7 @@ from django.db import transaction
 from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 
-from mp.authx.models import EmailVerificationToken
+from mp.apps.authx.models import EmailVerificationToken
 from mp.crypto import verify_jwt
 
 logger = logging.getLogger(__name__)

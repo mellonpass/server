@@ -5,9 +5,7 @@ networks:
 volumes:
   mellonpass-postgres-data:
     driver: local
-  mellonpass-redis-data:
-    driver: local
-  mellonpass-cache-data:
+  mellonpass-tmp:
     driver: local
 
 services:
@@ -23,14 +21,14 @@ services:
     stdin_open: true
     tty: true
     environment:
+      - APP_ENVIRONMENT=local
       # Persistent storage.
       - DATABASE_URL=postgres://postgres:postgres@mellonpass_db:5432/postgres
-      - REDIS_URL=redis://redis:redis@mellonpass_redis:6379
       # Django admin.
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin@example.com
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DJANGO_SECRET_KEY="django-insecure-mpr*w$8(jttk%o88)76d@etbd@@8@_$!yty1!3c_b+6-_*17e+"
+      - DJANGO_SECRET_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
       # Test user.
       - TEST_USER_EMAIL=testuser@example.com
       # Raw password: v}}\a5X%pEPn7d$n<L@-
@@ -40,16 +38,13 @@ services:
       # Security.
       - ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem
       - ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem
-      - FERNET_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
     volumes:
       - .:/code
-      # used for test only.
-      - mellonpass-cache-data:/var/tmp/django_cache
+      - mellonpass-tmp:/tmp
     ports:
       - "8000:8000"
     depends_on:
       - mellonpass_db
-      - mellonpass_redis
     networks:
       - mellonpass-network
     command: /start_web
@@ -78,19 +73,7 @@ services:
     ports: []
     volumes:
       - .:/code:ro
+      - mellonpass-tmp:/tmp
     command: /start_huey_consumer
-    networks:
-      - mellonpass-network
-
-  mellonpass_redis:
-    image: redis:7.2.5-alpine
-    container_name: mellonpass_redis
-    ports:
-      - 6379:6379
-    environment:
-      REDIS_PASSWORD: redis
-    volumes:
-      - ./redis/redis.conf:/etc/redis/redis.conf:ro
-      - mellonpass-redis-data:/data
     networks:
       - mellonpass-network
