@@ -80,6 +80,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           options: |
             -e APP_ENVIRONMENT
+            -e DOMAIN
             -e DATABASE_URL
             -e DJANGO_SETTINGS_MODULE
             -e DJANGO_SECRET_KEY
