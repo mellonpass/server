@@ -22,6 +22,7 @@ services:
     tty: true
     environment:
       - APP_ENVIRONMENT=local
+      - DOMAIN=localhost
       # Persistent storage.
       - DATABASE_URL=postgres://postgres:postgres@mellonpass_db:5432/postgres
       # Django admin.
