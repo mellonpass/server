@@ -44,6 +44,7 @@ DEBUG = env("DJANGO_DEBUG", default=True)
 ALLOWED_HOSTS = ["*"]
 
 if APP_ENVIRONMENT == "local":
+    # TODO: Create local.py and inherit from base.py then as use mp.config.local.
     DJANGO_SETTINGS_MODULE = "mp.config.base"
 else:
     DJANGO_SETTINGS_MODULE = "mp.config.production"
