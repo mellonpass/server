@@ -26,5 +26,5 @@ urlpatterns = [
     #   POST localhost:8000/graphql
     path("graphql", include("mp.graphql.urls")),
     # ------------------------------------------------------------------------
-    path("admin", admin.site.urls),
+    path("admin/", admin.site.urls),
 ]
