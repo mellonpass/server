@@ -22,7 +22,7 @@ env = environ.Env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-APPS_DIR = BASE_DIR / "mp/apps"
+APPS_DIR = BASE_DIR / "apps"
 
 # When building an image always ensure that the image is production ready.
 # For local development or users have a custom environment like staging and sandbox,
@@ -151,7 +151,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "mp/static_cdn")
+STATIC_ROOT = os.path.join(BASE_DIR, "static_cdn")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
