@@ -25,7 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 APPS_DIR = BASE_DIR / "mp/apps"
 
 # When building an image always ensure that the image is production ready.
-# For development, explicitly add it on the envs.
+# For local development or users have a custom environment like staging and sandbox,
+# explicitly add it on the envs.
+# Use `local`, for local development mode.
 APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="production")
 
 # For users, they must need to set this on their .env.
@@ -41,10 +43,10 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 DEBUG = env("DJANGO_DEBUG", default=True)
 ALLOWED_HOSTS = ["*"]
 
-if APP_ENVIRONMENT == "production":
-    DJANGO_SETTINGS_MODULE = "mp.config.production"
-else:
+if APP_ENVIRONMENT == "local":
     DJANGO_SETTINGS_MODULE = "mp.config.base"
+else:
+    DJANGO_SETTINGS_MODULE = "mp.config.production"
 
 # Application definition
 DJANGO_APPS = [
