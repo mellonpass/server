@@ -124,5 +124,3 @@ jobs:
           target: production
           tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache: true
-          cache-repository: ghcr.io/${{ github.repository }}/cache
