@@ -24,14 +24,18 @@ env = environ.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent
 APPS_DIR = BASE_DIR / "mp/apps"
 
-APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="local")
+# When building an image always ensure that the image is production ready.
+# For development, explicitly add it on the envs.
+APP_ENVIRONMENT = env("APP_ENVIRONMENT", default="production")
 
-DOMAIN = env("DOMAIN", default="localhost")
+# For users, they must need to set this on their .env.
+DOMAIN = env("DOMAIN")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# For users, they must need to set this on their .env.
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 DEBUG = env("DJANGO_DEBUG", default=True)
@@ -106,6 +110,8 @@ WSGI_APPLICATION = "mp.config.wsgi.application"
 
 DATABASES = {
     "default": dj_database_url.config(
+        # For users, they must need to set this on their .env.
+        # TODO: Support sqlite as a default db engine.
         default=env("DATABASE_URL"),
         conn_max_age=600,
         conn_health_checks=True,
@@ -212,6 +218,9 @@ NO_REPLY_EMAIL = f"no-reply@{DOMAIN}"
 
 # App data
 # ------------------------------------------------------------
+# This is only for development purpose, users don't need to provide
+# it on production.
+# TODO: Move this settings on local.py.
 TEST_USER_EMAIL = env("TEST_USER_EMAIL", default=None)
 TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default=None)
 TEST_USER_PROTECTED_SYMMETRIC_KEY = env(

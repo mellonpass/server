@@ -21,13 +21,14 @@ services:
     stdin_open: true
     tty: true
     environment:
+      - APP_ENVIRONMENT=local
       # Persistent storage.
       - DATABASE_URL=postgres://postgres:postgres@mellonpass_db:5432/postgres
       # Django admin.
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin@example.com
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DJANGO_SECRET_KEY="IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U="
+      - DJANGO_SECRET_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
       # Test user.
       - TEST_USER_EMAIL=testuser@example.com
       # Raw password: v}}\a5X%pEPn7d$n<L@-

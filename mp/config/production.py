@@ -30,6 +30,7 @@ RATELIMIT_ENABLE = True
 # Emailing.
 # ------------------------------------------------------------
 ANYMAIL = {
+    # For users, they must need to set this on their .env.
     "MAILGUN_API_KEY": env("MAILGUN_API_KEY"),
     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN"),
 }
@@ -40,6 +41,7 @@ SERVER_EMAIL = f"server@{DOMAIN}"
 
 # Sentry.
 # ------------------------------------------------------------
+# This is optional.
 if env("SENTRY_DSN", default=None):
     sentry_logging = LoggingIntegration(
         level=logging.INFO,
