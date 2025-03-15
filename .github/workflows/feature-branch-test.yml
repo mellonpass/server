@@ -40,7 +40,8 @@ jobs:
           DOMAIN: example.com
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
           DJANGO_SETTINGS_MODULE: mp.config.test
-          DJANGO_SECRET_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
+          SECRET_KEY: django-insecure-secret-key
+          DB_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
           ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
           ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
         run: poetry run pytest .

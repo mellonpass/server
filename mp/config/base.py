@@ -38,7 +38,7 @@ DOMAIN = env("DOMAIN")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # For users, they must need to set this on their .env.
-SECRET_KEY = env("DJANGO_SECRET_KEY")
+SECRET_KEY = env("SECRET_KEY")
 
 DEBUG = env("DJANGO_DEBUG", default=True)
 ALLOWED_HOSTS = ["*"]
@@ -235,6 +235,9 @@ TEST_USER_PROTECTED_SYMMETRIC_KEY = env(
 # ------------------------------------------------------------
 CIPHER_DELETE_DAYS_PERIOD = 30
 
+# FERNET
+# ------------------------------------------------------------
+DB_SYMMETRIC_KEY = env("DB_SYMMETRIC_KEY")
 
 # HUEY
 # ------------------------------------------------------------

@@ -29,7 +29,7 @@ services:
       - DJANGO_SUPERUSER_PASSWORD=admin
       - DJANGO_SUPERUSER_USERNAME=admin@example.com
       - DJANGO_SUPERUSER_EMAIL=admin@example.com
-      - DJANGO_SECRET_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
+      - SECRET_KEY=django-insecure-secret-key
       # Test user.
       - TEST_USER_EMAIL=testuser@example.com
       # Raw password: v}}\a5X%pEPn7d$n<L@-
@@ -39,6 +39,7 @@ services:
       # Security.
       - ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem
       - ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem
+      - DB_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
     volumes:
       - .:/code
       - mellonpass-tmp:/tmp
