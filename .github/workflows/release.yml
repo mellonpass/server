@@ -75,16 +75,16 @@ jobs:
           ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
           ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
         run: |
-          docker run --rm
-            -e APP_ENVIRONMENT
-            -e DOMAIN
-            -e DATABASE_URL
-            -e DJANGO_SETTINGS_MODULE
-            -e SECRET_KEY
-            -e DB_SYMMETRIC_KEY
-            -e ES256_PRIVATE_KEY_PATH
-            -e ES256_PUBLIC_KEY_PATH
-            ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
+          docker run --rm \
+            -e APP_ENVIRONMENT \
+            -e DOMAIN \
+            -e DATABASE_URL \
+            -e DJANGO_SETTINGS_MODULE \
+            -e SECRET_KEY \
+            -e DB_SYMMETRIC_KEY \
+            -e ES256_PRIVATE_KEY_PATH \
+            -e ES256_PUBLIC_KEY_PATH \
+            ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }} \
             bash -c pytest .
       - name: Delete test image from ghcr.io
         uses: chipkent/action-cleanup-package@v1.0.3
