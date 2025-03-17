@@ -104,5 +104,5 @@ jobs:
             POETRY_INSTALL_OPTS=--no-root --without dev
             POETRY_VERSION=1.8.5
           target: production
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          cache-to: type=inline
