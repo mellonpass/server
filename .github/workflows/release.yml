@@ -54,7 +54,6 @@ jobs:
           context: .
           push: true
           tags: localhost:5000/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
-          labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             POETRY_INSTALL_OPTS=--no-root
             POETRY_VERSION=1.8.5
@@ -99,7 +98,6 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-          labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
             POETRY_INSTALL_OPTS=--no-root --without dev
             POETRY_VERSION=1.8.5
