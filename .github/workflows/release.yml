@@ -84,7 +84,7 @@ jobs:
             -e DB_SYMMETRIC_KEY \
             -e ES256_PRIVATE_KEY_PATH \
             -e ES256_PUBLIC_KEY_PATH \
-            ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }} \
+            ghcr.io/${{ github.repository }}:${{ needs.build-test-image.outputs.image_sha }} \
             bash -c pytest .
       - name: Delete test image from ghcr.io
         uses: chipkent/action-cleanup-package@v1.0.3
