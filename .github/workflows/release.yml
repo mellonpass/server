@@ -1,7 +1,7 @@
 # 1. Build the test image using current commit hash as tag.
 # 2. Pull test image, run tests, clean up test image.
 # 3. Build production ready image for staging or production.
-name: Build test and publish
+name: release
 
 on:
   push:
@@ -26,21 +26,22 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
       - name: Logging in to ghrc.io
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and upload test docker image on ghrc.io
-        uses: int128/kaniko-action@v1
+        uses: docker/build-push-action@v5
         with:
+          context: .
           push: true
-          build-args: |
-            - POETRY_INSTALL_OPTS="--no-root"
-            - POETRY_VERSION="1.8.5"
-          target: production
           tags: ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
           labels: ${{ steps.metadata.outputs.labels }}
+          build-args: |
+            POETRY_INSTALL_OPTS="--no-root"
+            POETRY_VERSION="1.8.5"
+          target: production
 
   run-test-image:
     needs: build-test-image
@@ -64,7 +65,6 @@ jobs:
           --health-retries 5
     steps:
       - name: Run tests
-        uses: addnab/docker-run-action@v3
         env:
           APP_ENVIRONMENT: test
           DOMAIN: example.com
@@ -74,12 +74,8 @@ jobs:
           DB_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
           ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
           ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
-        with:
-          registry: ghcr.io
-          image: ghcr.io/${{ github.repository }}:${{ needs.build-test-image.outputs.image_sha }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          options: |
+        run: |
+          docker run --rm
             -e APP_ENVIRONMENT
             -e DOMAIN
             -e DATABASE_URL
@@ -88,8 +84,8 @@ jobs:
             -e DB_SYMMETRIC_KEY
             -e ES256_PRIVATE_KEY_PATH
             -e ES256_PUBLIC_KEY_PATH
-          run: |
-            poetry run pytest .
+            ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
+            bash -c pytest .
       - name: Delete test image from ghcr.io
         uses: chipkent/action-cleanup-package@v1.0.3
         with:
@@ -115,15 +111,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and upload docker image on ghrc.io
-        uses: int128/kaniko-action@v1
+        uses: docker/build-push-action@v5
         with:
+          context: .
           push: true
-          build-args: |
-            - POETRY_INSTALL_OPTS="--no-root --without dev"
-            - POETRY_VERSION="1.8.5"
-          target: production
           tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           labels: ${{ steps.metadata.outputs.labels }}
-          cache: true
-          cache-repository: ghcr.io/${{ github.repository }}/cache
-          digest-file: /dev/null
+          build-args: |
+            POETRY_INSTALL_OPTS="--no-root --without dev"
+            POETRY_VERSION="1.8.5"
+          target: production
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
