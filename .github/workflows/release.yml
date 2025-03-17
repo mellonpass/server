@@ -39,8 +39,8 @@ jobs:
           tags: ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
-            POETRY_INSTALL_OPTS="--no-root"
-            POETRY_VERSION="1.8.5"
+            POETRY_INSTALL_OPTS=--no-root
+            POETRY_VERSION=1.8.5
           target: production
 
   run-test-image:
@@ -118,8 +118,8 @@ jobs:
           tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           labels: ${{ steps.metadata.outputs.labels }}
           build-args: |
-            POETRY_INSTALL_OPTS="--no-root --without dev"
-            POETRY_VERSION="1.8.5"
+            POETRY_INSTALL_OPTS=--no-root --without dev
+            POETRY_VERSION=1.8.5
           target: production
           cache-from: type=gha
           cache-to: type=gha,mode=max
