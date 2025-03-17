@@ -94,11 +94,10 @@ jobs:
         uses: chipkent/action-cleanup-package@v1.0.3
         with:
           package-name: ${{ github.event.repository.name }}
-          tag: ghcr.io/${{ github.repository }}:${{ needs.build-test-image.outputs.image_sha }}
+          tag: ${{ needs.build-test-image.outputs.image_sha }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    needs: run-test-image
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
