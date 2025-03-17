@@ -24,7 +24,6 @@ jobs:
           POSTGRES_DB: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: postgres
           POSTGRES_PORT: 5432
         ports:
           - 5432:5432
@@ -65,7 +64,7 @@ jobs:
           docker run --rm \
             -e APP_ENVIRONMENT=test \
             -e DOMAIN=example.com \
-            -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres \
+            -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
             -e DJANGO_SETTINGS_MODULE=mp.config.test \
             -e SECRET_KEY=django-insecure-secret-key \
             -e DB_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U= \
