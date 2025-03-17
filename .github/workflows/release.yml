@@ -95,7 +95,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver: containerd
+          driver: docker
 
       - name: Build and upload docker image on ghrc.io
         uses: docker/build-push-action@v6
