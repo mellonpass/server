@@ -48,7 +48,7 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
 
-      - name: Build and upload test docker image on ghrc.io
+      - name: Build and upload test docker image on the local registry
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -71,7 +71,7 @@ jobs:
             -e DB_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U= \
             -e ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem \
             -e ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem \
-            ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }} \
+            localhost:5000/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }} \
             bash -c pytest .
 
   build:
