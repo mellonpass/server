@@ -35,8 +35,8 @@ jobs:
           --health-retries 5
     steps:
 
-      - name: Preparing environments
       - uses: actions/checkout@v3
+      - name: Preparing environments
         id: build_env
         shell: bash
         run: |
@@ -79,8 +79,8 @@ jobs:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
-      - name: Preparing metadata
       - uses: actions/checkout@v3
+      - name: Preparing metadata
         uses: docker/metadata-action@v3
         id: metadata
         with:
