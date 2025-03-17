@@ -62,7 +62,7 @@ jobs:
 
       - name: Run tests
         run: |
-          docker run --rm --network=host \
+          docker run --rm \
             -e APP_ENVIRONMENT=test \
             -e DOMAIN=example.com \
             -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres \
