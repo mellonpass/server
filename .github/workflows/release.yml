@@ -102,9 +102,10 @@ jobs:
           push: true
           tags: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
           labels: ${{ steps.metadata.outputs.labels }}
+          target: production
+          provenance: false
           build-args: |
             POETRY_INSTALL_OPTS=--no-root --without dev
             POETRY_VERSION=1.8.5
-          target: production
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}-cache:${{ github.ref_name }}
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}-cache:${{ github.ref_name }},compression=zstd,mode=max
