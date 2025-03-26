@@ -36,9 +36,7 @@ Make sure you have the following installed on your machine:
 
 - GraphQL server is accessible via `http://localhost:8000/graphql`.
 - Django admin is accessible via `http://localhost:8000/admin`. 
-    - See `.django.env` file for a test admin user and test user credentials.
-- RabbitMQ admin is accessible via `http://localhost:15672/admin`. 
-    - Username and password is: `rabbit`.
+    - See `docker-compose.yml` file for a test admin user and test user credentials.
 
 # Development
 
@@ -49,20 +47,6 @@ To access Django shell session:
 ```
 docker exec -it mellonpass_server poetry run python manage.py shell_plus
 ```
-
-### Database migration
-
-1. Generate model migration files after an update to the models.
-
-    ```
-    docker exec -it mellonpass_server poetry run python manage.py makemigrations
-    ```
-
-1. Execute generated migration files:
-
-    ```
-    docker exec -it mellonpass_server poetry run python manage.py migrate
-    ```
 
 ### Testing
 

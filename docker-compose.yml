@@ -33,7 +33,7 @@ services:
       # Test user.
       - TEST_USER_EMAIL=testuser@example.com
       # Raw password: v}}\a5X%pEPn7d$n<L@-
-      # This raw password is tightly coupled to the TEST_USER_LOGIN_HASH and TEST_USER_PROTECTED_SYMMETRIC_KEY values.
+      # This raw password is related to the TEST_USER_LOGIN_HASH and TEST_USER_PROTECTED_SYMMETRIC_KEY values.
       - TEST_USER_LOGIN_HASH=11b0ca97c2a0f88bd4a0907729c38eca7224130ff09b8b42d81f163f4cb44363
       - TEST_USER_PROTECTED_SYMMETRIC_KEY=YTE4NzYxMGUwY2NjYjJhMmZmMTU4NTM1MDFiMWJkZDk1NWIwM2E1OGFhNzAyMmYwY2Q0ZTc3OTk1OTNiNTA2N2RjMzdiY2E4NmU5MjRjOWZlMjZjZjkwMGY5NzBlZDBlYmFiZjBiMDAzNGJjOThiOTk5MDhhNTIwMTEyM2NiNjZkYTkwNjZiYTJhYzY1NTJjOGRlNjIyNTMwY2I1MTI3MzkwYjgzNzg3YTdiNWQ4YWY2ZTFjYWU4MzdkZDBkZDllZmNkMjczMzdhY2RhMjdiMDZiNWVmYTViYzNlYzcwNWY=
       # Security.
