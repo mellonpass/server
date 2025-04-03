@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from cryptography.hazmat.primitives import hashes
@@ -102,7 +102,6 @@ class UserECC(Model):
 
 
 class EmailVerificationToken(Model):
-    DEFAULT_EXPIRY_DURATION = timezone.now() + timedelta(days=1)
 
     token_id = CharField(max_length=100, null=False, blank=False, unique=True)
     expiry = DateTimeField(null=False, blank=False)
@@ -131,7 +130,7 @@ class EmailVerificationToken(Model):
             payload={
                 "sub": digest.finalize().hex().upper(),
                 "iat": int(timezone.now().timestamp()),
-                "exp": int(cls.DEFAULT_EXPIRY_DURATION.timestamp()),
+                "exp": int(cls.get_default_expiry_date().timestamp()),
                 "jti": str(uuid4()),
             }
         )
@@ -143,3 +142,7 @@ class EmailVerificationToken(Model):
     def invalidate(self):
         self.active = False
         self.save(update_fields=["active"])
+
+    @staticmethod
+    def get_default_expiry_date() -> datetime:
+        return timezone.now() + timedelta(days=1)

@@ -37,6 +37,6 @@ class EmailVerificationTokenFactory(DjangoModelFactory):
     class Meta:
         model = EmailVerificationToken
 
-    expiry = EmailVerificationToken.DEFAULT_EXPIRY_DURATION
+    expiry = EmailVerificationToken.get_default_expiry_date()
     active = True
     user = SubFactory(UserFactory)

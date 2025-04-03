@@ -31,7 +31,7 @@ def send_account_verification_link(app_origin: str, email: str):
         EmailVerificationToken.objects.create(
             token_id=payload["sub"],
             user=user,
-            expiry=EmailVerificationToken.DEFAULT_EXPIRY_DURATION,
+            expiry=EmailVerificationToken.get_default_expiry_date(),
         )
 
         context = {"setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"}
