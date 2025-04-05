@@ -2,7 +2,7 @@ name: Feature branch test
 
 on:
   pull_request:
-    branches: [ "master", "production", "latest" ]
+    branches: [ "master", "latest" ]
 
 jobs:
   test:
