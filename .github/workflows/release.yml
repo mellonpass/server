@@ -1,11 +1,11 @@
 # 1. Build the test image using current commit hash as tag.
 # 2. Pull test image, run tests, clean up test image.
-# 3. Build production ready image for staging or production.
+# 3. Build stable image.
 name: release
 
 on:
   push:
-    branches: ["production"]
+    branches: ["production", "latest"]
 
 jobs:
   test:
