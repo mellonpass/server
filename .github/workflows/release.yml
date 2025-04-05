@@ -5,7 +5,7 @@ name: release
 
 on:
   push:
-    branches: ["production", "latest"]
+    branches: ["latest"]
 
 jobs:
   test:
