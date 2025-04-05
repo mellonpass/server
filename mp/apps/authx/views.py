@@ -109,22 +109,14 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
-def login_view(request: HttpRequest, *args, **kwargs):
+def login_view(request: HttpRequest):
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=login_view)
         same_client_ip_usage = get_usage(
             request, key=rl_client_ip, rate="5/m", fn=login_view
         )
 
-        if same_email_usage["should_limit"]:
-            return JsonResponse(
-                {
-                    "error": f"Too many login atttempts using the same email.",
-                },
-                status=HTTPStatus.TOO_MANY_REQUESTS,
-            )
-
-        if same_client_ip_usage["should_limit"]:
+        if same_email_usage["should_limit"] or same_client_ip_usage["should_limit"]:
             return JsonResponse(
                 {
                     "error": "Blocked, try again later.",
@@ -254,7 +246,7 @@ def verify_view(request: HttpRequest):
 
         token = get_object_or_404(EmailVerificationToken, token_id=res["sub"])
     except (Http404, InvalidTokenError) as err:
-        logger.error(err, exc_info=1)
+        logger.exception(err)
 
         return JsonResponse(
             {"error": "Invalid token."},

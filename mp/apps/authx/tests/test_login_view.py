@@ -183,4 +183,4 @@ def test_login_view_failed_attempt_same_email(
         data={"email": user.email, "login_hash": "last_invalid_hash"}
     )
 
-    assert response.json()["error"] == "Too many login atttempts using the same email."
+    assert response.json()["error"] == "Blocked, try again later."
