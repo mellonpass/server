@@ -71,3 +71,13 @@ if env("SENTRY_DSN", default=None):
             "continuous_profiling_auto_start": True,
         },
     )
+
+
+# Cache
+# ------------------------------------------------------------
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
+        "LOCATION": "/tmp/mellonpass_cache",
+    }
+}
