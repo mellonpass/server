@@ -116,6 +116,9 @@ def login_view(request: HttpRequest):
             request, key=rl_client_ip, rate="5/m", fn=login_view
         )
 
+        logger.info("same_email_usage: %s", same_email_usage)
+        logger.info("same_client_ip_usage: %s", same_client_ip_usage)
+
         if same_email_usage["should_limit"] or same_client_ip_usage["should_limit"]:
             return JsonResponse(
                 {
