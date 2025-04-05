@@ -134,6 +134,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = "authx.User"
+AUTH_PASSWORD_VALIDATORS = []
+
+PASSWORD_HASHERS = [
+    "mp.apps.authx.hashers.MellonPassArgon2PasswordHasher",
+    "mp.apps.authx.hashers.MellonPassPBKDF2PasswordHasher",
+]
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
@@ -158,13 +166,40 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static_cdn")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = "authx.User"
-AUTH_PASSWORD_VALIDATORS = []
+# Loggings
+# https://docs.djangoproject.com/en/4.2/topics/logging/
 
-PASSWORD_HASHERS = [
-    "mp.apps.authx.hashers.MellonPassArgon2PasswordHasher",
-    "mp.apps.authx.hashers.MellonPassPBKDF2PasswordHasher",
-]
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+    },
+}
+
+# Custom external settings
+# ------------------------------------------------------------
+
 
 ES256_PRIVATE_KEY_PATH = env("ES256_PRIVATE_KEY_PATH")
 ES256_PUBLIC_KEY_PATH = env("ES256_PUBLIC_KEY_PATH")
@@ -178,7 +213,7 @@ CACHES = {
 # Ratelimit
 # https://django-ratelimit.readthedocs.io/en/stable/settings.html
 # ------------------------------------------------------------
-RATELIMIT_ENABLE = False
+RATELIMIT_ENABLE = True
 
 # Django CORS header
 # ------------------------------------------------------------
