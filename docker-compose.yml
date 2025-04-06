@@ -1,5 +1,6 @@
 networks:
   mellonpass-network:
+    name: mellonpass-network
     driver: bridge
 
 volumes:
@@ -17,6 +18,9 @@ services:
       target: local
       dockerfile: Dockerfile
     container_name: mellonpass_server
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
     restart: always
     stdin_open: true
     tty: true
