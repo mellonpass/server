@@ -89,6 +89,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         self.verified = True
         self.save(update_fields=["verified"])
 
+    def get_short_name(self):
+        return self.name
+
 
 class UserECC(Model):
     key = TextField(null=False, blank=False, help_text="Encrypted ECC private key.")
