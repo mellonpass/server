@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Annotated, List, Union
 
 import strawberry
-import strawberry.annotation
 from strawberry import relay
 from strawberry.scalars import JSON
 
@@ -25,6 +24,21 @@ class Cipher(relay.Node):
     created: datetime
     updated: datetime
 
+    @classmethod
+    def from_model(cls, model: CipherModel):
+        return cls(
+            uuid=model.uuid,
+            owner_id=model.owner.uuid,
+            type=model.type,
+            name=model.name,
+            key=model.key,
+            is_favorite=model.is_favorite,
+            status=model.status,
+            data=model.data.to_json(),
+            created=model.created,
+            updated=model.updated,
+        )
+
 
 @strawberry.type
 class CipherConnection(relay.ListConnection[Cipher]):
@@ -32,18 +46,7 @@ class CipherConnection(relay.ListConnection[Cipher]):
     def resolve_node(
         cls, node: CipherModel, *, info: strawberry.Info, **kwargs
     ) -> Cipher:
-        return Cipher(
-            uuid=node.uuid,
-            owner_id=node.owner.uuid,
-            type=node.type,
-            name=node.name,
-            key=node.key,
-            is_favorite=node.is_favorite,
-            status=node.status,
-            data=node.data.to_json(),
-            created=node.created,
-            updated=node.updated,
-        )
+        return Cipher.from_model(node)
 
 
 @strawberry.type
@@ -95,4 +98,5 @@ class UpdateCipherInput:
     is_favorite: str
     status: str
     name: str
+    data: JSON
     data: JSON

@@ -7,7 +7,6 @@ from django.contrib.contenttypes.models import ContentType
 from django.db.models import (
     CASCADE,
     RESTRICT,
-    BooleanField,
     CharField,
     DateTimeField,
     ForeignKey,
