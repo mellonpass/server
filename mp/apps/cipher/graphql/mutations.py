@@ -1,6 +1,5 @@
 import logging
 from typing import List
-from uuid import UUID
 
 import strawberry
 from django.db import transaction
@@ -45,19 +44,7 @@ class CipherMutation:
                 is_favorite=input.isFavorite,
                 data=input.data,
             )
-
-            return Cipher(
-                uuid=cipher.uuid,
-                owner_id=cipher.owner.uuid,
-                type=cipher.type,
-                name=cipher.name,
-                key=cipher.key,
-                is_favorite=cipher.is_favorite,
-                status=cipher.status,
-                data=cipher.data.to_json(),
-                created=cipher.created,
-                updated=cipher.updated,
-            )
+            return Cipher.from_model(cipher)
 
         except Exception as error:
             # log error with stacktrace do not reveal on API.
@@ -80,18 +67,8 @@ class CipherMutation:
                 status=input.status,
                 data=input.data,
             )
-            return Cipher(
-                uuid=cipher.uuid,
-                owner_id=cipher.owner.uuid,
-                type=cipher.type,
-                name=cipher.name,
-                key=cipher.key,
-                is_favorite=cipher.is_favorite,
-                status=cipher.status,
-                data=cipher.data.to_json(),
-                created=cipher.created,
-                updated=cipher.updated,
-            )
+            return Cipher.from_model(cipher)
+
         except CipherModel.DoesNotExist as error:
             return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
         except Exception as error:
@@ -119,18 +96,7 @@ class CipherMutation:
                 )
                 cipher = update_cipher_to_delete_state(owner=owner, uuid=cipher.uuid)
 
-                return Cipher(
-                    uuid=cipher.uuid,
-                    owner_id=cipher.owner.uuid,
-                    type=cipher.type,
-                    name=cipher.name,
-                    key=cipher.key,
-                    is_favorite=cipher.is_favorite,
-                    status=cipher.status,
-                    data=cipher.data.to_json(),
-                    created=cipher.created,
-                    updated=cipher.updated,
-                )
+                return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
             return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
         except Exception as error:
@@ -158,19 +124,7 @@ class CipherMutation:
                     data=input.data,
                 )
                 cipher = restore_cipher_from_delete_state(owner=owner, uuid=cipher.uuid)
-
-                return Cipher(
-                    uuid=cipher.uuid,
-                    owner_id=cipher.owner.uuid,
-                    type=cipher.type,
-                    name=cipher.name,
-                    key=cipher.key,
-                    is_favorite=cipher.is_favorite,
-                    status=cipher.status,
-                    data=cipher.data.to_json(),
-                    created=cipher.created,
-                    updated=cipher.updated,
-                )
+                return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
             return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
         except Exception as error:
