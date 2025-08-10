@@ -20,3 +20,6 @@ class AccountSetupSerializer(Schema):
     protected_symmetric_key = fields.Str(required=True, load_only=True)
     login_hash = fields.Str(required=True, load_only=True)
     hint = fields.Str(validate=validate.Length(max=50), load_only=True)
+
+    ecc_protected_private_key = fields.Str(required=True, load_only=True)
+    ecc_public_key = fields.Str(required=True, load_only=True)

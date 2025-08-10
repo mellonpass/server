@@ -94,8 +94,10 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 
 class UserECC(Model):
-    key = TextField(null=False, blank=False, help_text="Encrypted ECC private key.")
-    pub = TextField(null=False, blank=False, help_text="Raw ECC public key.")
+    key = EncryptedTextField(
+        null=False, blank=False, help_text="Protected ECC private key."
+    )
+    pub = EncryptedTextField(null=False, blank=False, help_text="ECC public key.")
     created = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)
 
