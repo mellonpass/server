@@ -45,6 +45,8 @@ pytest-django = "^4.8.0"
 factory-boy = "^3.3.1"
 freezegun = "^1.5.1"
 pytest-mock = "^3.14.0"
+tox = "^4.28.4"
+psycopg2-binary = "^2.9.10"
 
 [build-system]
 requires = ["poetry-core"]
