@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpRequest
 
-from mp.apps.authx.models import User, UserECC
+from mp.apps.authx.models import RSAOAEPKey, User
 from mp.core.exceptions import ServiceValidationError
 
 logger = logging.getLogger(__name__)
@@ -44,8 +44,8 @@ def setup_account(
     email: str,
     login_hash: str,
     protected_symmetric_key: str,
-    ecc_protected_private_key: str,
-    ecc_public_key: str,
+    rsa_protected_private_key: str,
+    rsa_public_key: str,
     hint: Optional[str] = None,
 ) -> User:
     user = UserModel.objects.get(email=email)
@@ -63,10 +63,10 @@ def setup_account(
     user.is_active = True
     user.save()
 
-    UserECC.objects.create(
+    RSAOAEPKey.objects.create(
         user=user,
-        key=ecc_protected_private_key,
-        pub=ecc_public_key,
+        protected_key=rsa_protected_private_key,
+        public_key=rsa_public_key,
     )
 
     return user

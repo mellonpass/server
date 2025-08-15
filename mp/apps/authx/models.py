@@ -93,16 +93,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.name
 
 
-class UserECC(Model):
-    key = EncryptedTextField(
-        null=False, blank=False, help_text="Protected ECC private key."
+class RSAOAEPKey(Model):
+    protected_key = EncryptedTextField(
+        null=False, blank=False, help_text="Protected private key."
     )
-    pub = EncryptedTextField(null=False, blank=False, help_text="ECC public key.")
+    public_key = EncryptedTextField(null=False, blank=False)
     created = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)
 
     user = OneToOneField(
-        User, related_name="ecc", null=False, blank=False, on_delete=PROTECT
+        User, related_name="asymmetric_key", null=False, blank=False, on_delete=PROTECT
     )
 
 

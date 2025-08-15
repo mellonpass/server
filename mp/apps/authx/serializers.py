@@ -21,5 +21,5 @@ class AccountSetupSerializer(Schema):
     login_hash = fields.Str(required=True, load_only=True)
     hint = fields.Str(validate=validate.Length(max=50), load_only=True)
 
-    ecc_protected_private_key = fields.Str(required=True, load_only=True)
-    ecc_public_key = fields.Str(required=True, load_only=True)
+    rsa_protected_private_key = fields.Str(required=True, load_only=True)
+    rsa_public_key = fields.Str(required=True, load_only=True)

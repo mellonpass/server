@@ -15,8 +15,8 @@ def test_setup_view(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    ecc_key = base64.urlsafe_b64encode("my-ecc-key".encode()).decode()
-    ecc_pub = base64.urlsafe_b64encode("my-ecc-pub".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
     response = client.post(
@@ -26,8 +26,8 @@ def test_setup_view(client: Client):
             "email": user.email,
             "login_hash": login_hash,
             "protected_symmetric_key": psk,
-            "ecc_protected_private_key": ecc_key,
-            "ecc_public_key": ecc_pub,
+            "rsa_protected_private_key": rsa_pkey,
+            "rsa_public_key": rsa_pub,
             "hint": "my-hint",
         },
     )
@@ -39,8 +39,8 @@ def test_setup_view(client: Client):
     assert user.check_password(login_hash)
     assert user.is_active
 
-    assert user.ecc.key == ecc_key
-    assert user.ecc.pub == ecc_pub
+    assert user.asymmetric_key.protected_key == rsa_pkey
+    assert user.asymmetric_key.public_key == rsa_pub
 
 
 def test_setup_view_unverified(client: Client):
@@ -48,8 +48,8 @@ def test_setup_view_unverified(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    ecc_key = base64.urlsafe_b64encode("my-ecc-key".encode()).decode()
-    ecc_pub = base64.urlsafe_b64encode("my-ecc-pub".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
     response = client.post(
@@ -59,8 +59,8 @@ def test_setup_view_unverified(client: Client):
             "email": user.email,
             "login_hash": login_hash,
             "protected_symmetric_key": psk,
-            "ecc_protected_private_key": ecc_key,
-            "ecc_public_key": ecc_pub,
+            "rsa_protected_private_key": rsa_pkey,
+            "rsa_public_key": rsa_pub,
             "hint": "my-hint",
         },
     )
@@ -78,8 +78,8 @@ def test_setup_view_active_user(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    ecc_key = base64.urlsafe_b64encode("my-ecc-key".encode()).decode()
-    ecc_pub = base64.urlsafe_b64encode("my-ecc-pub".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
     response = client.post(
@@ -89,8 +89,8 @@ def test_setup_view_active_user(client: Client):
             "email": user.email,
             "login_hash": login_hash,
             "protected_symmetric_key": psk,
-            "ecc_protected_private_key": ecc_key,
-            "ecc_public_key": ecc_pub,
+            "rsa_protected_private_key": rsa_pkey,
+            "rsa_public_key": rsa_pub,
             "hint": "my-hint",
         },
     )
