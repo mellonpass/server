@@ -105,6 +105,9 @@ class RSAOAEPKey(Model):
         User, related_name="asymmetric_key", null=False, blank=False, on_delete=PROTECT
     )
 
+    def __str__(self):
+        return self.user.email
+
 
 class EmailVerificationToken(Model):
 
