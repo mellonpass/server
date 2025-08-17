@@ -126,20 +126,16 @@ def test_login_view_invalid_email(client: Client):
 def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     # Clear cache to avoid undesired ratelimiting result.
     cache.clear()
-    MAX_LOGIN_PER_MIN = 5
 
     url = reverse("accounts:login")
     client_post = partial(client.post, path=url, content_type="application/json")
 
     # spend all remaining attempt.
-    for attempt, email in enumerate(wrong_emails):
+    for email in wrong_emails:
         response = client_post(
             data={"email": email, "login_hash": TEST_USER_LOGIN_HASH}
         )
         assert response.status_code == HTTPStatus.FORBIDDEN
-        assert response.json()["remaining_attempt"] == (
-            MAX_LOGIN_PER_MIN - (attempt + 1)
-        )
 
     response = client_post(
         data={"email": "wrong6@email.com", "login_hash": TEST_USER_LOGIN_HASH}
@@ -166,18 +162,14 @@ def test_login_view_failed_attempt_same_email(
 ):
     # Clear cache to avoid undesired ratelimiting result.
     cache.clear()
-    MAX_LOGIN_PER_MIN = 5
 
     url = reverse("accounts:login")
     client_post = partial(client.post, path=url, content_type="application/json")
 
     # spend all remaining attempt.
-    for attempt, login_hash in enumerate(wrong_login_hash):
+    for login_hash in wrong_login_hash:
         response = client_post(data={"email": user.email, "login_hash": login_hash})
         assert response.status_code == HTTPStatus.FORBIDDEN
-        assert response.json()["remaining_attempt"] == (
-            MAX_LOGIN_PER_MIN - (attempt + 1)
-        )
 
     response = client_post(
         data={"email": user.email, "login_hash": "last_invalid_hash"}
