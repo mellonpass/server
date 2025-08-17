@@ -276,3 +276,10 @@ DB_SYMMETRIC_KEY = env("DB_SYMMETRIC_KEY")
 # ------------------------------------------------------------
 # https://huey.readthedocs.io/en/latest/django.html
 HUEY = SqliteHuey(filename="/tmp/huey.sqlite")
+
+# CloudFlare
+# ------------------------------------------------------------
+CF_ENABLE_TURNSTILE_INTEGRATION = env("CF_ENABLE_TURNSTILE_INTEGRATION", default=False)
+if CF_ENABLE_TURNSTILE_INTEGRATION:
+    CF_TURNSTILE_CHALLENGE_API = env("CF_TURNSTILE_CHALLENGE_API")
+    CF_TURNSTILE_SECRET_KEY = env("CF_TURNSTILE_SECRET_KEY")

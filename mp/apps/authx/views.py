@@ -1,6 +1,7 @@
 import json
 import logging
 from http import HTTPStatus
+from typing import Dict
 
 from django.conf import settings
 from django.db import transaction
@@ -27,6 +28,7 @@ from mp.apps.authx.services import (
     setup_account,
 )
 from mp.apps.authx.tasks import send_account_verification_link_task
+from mp.cloudflare import validate_turnstile
 from mp.core.exceptions import ServiceValidationError
 from mp.core.utils.ip import rl_client_ip
 from mp.crypto import verify_jwt
@@ -103,11 +105,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         )
 
 
-@ratelimit(key=rl_email, rate="5/m", block=False)
-@ratelimit(key=rl_client_ip, rate="5/m", block=False)
-@require_POST
-@csrf_exempt
-def login_view(request: HttpRequest):
+def _login_view_rate_limit_checker(request: HTTPStatus):
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=login_view)
         same_client_ip_usage = get_usage(
@@ -124,6 +122,41 @@ def login_view(request: HttpRequest):
                 },
                 status=HTTPStatus.TOO_MANY_REQUESTS,
             )
+
+        logger.info(
+            "Ratelimit ramining attempt for client IP: %s",
+            int(same_client_ip_usage["limit"] - same_client_ip_usage["count"]),
+        )
+
+
+# TODO: add unit test.
+def _login_view_turnstile_integration(auth_data: Dict):
+    try:
+        turnstile_token = auth_data.pop("cf_turnstile_token")
+        turnstile_response = validate_turnstile(action="login", token=turnstile_token)
+        if turnstile_response and not turnstile_response["success"]:
+            return JsonResponse(
+                error_data={
+                    "error": "Verification failed.",
+                },
+                status=HTTPStatus.BAD_REQUEST,
+            )
+    except KeyError as error:
+        # CF integration is optional.
+        logger.warning(
+            "Cloudflare turnstile is not fully enabled. Check the error logs.",
+            exc_info=error,
+        )
+
+
+@ratelimit(key=rl_email, rate="5/m", block=False)
+@ratelimit(key=rl_client_ip, rate="5/m", block=False)
+@require_POST
+@csrf_exempt
+def login_view(request: HttpRequest):
+
+    if ratelimite_check_response := _login_view_rate_limit_checker(request):
+        return ratelimite_check_response
 
     if request.content_type != "application/json":
         return JsonResponse(
@@ -152,6 +185,11 @@ def login_view(request: HttpRequest):
             status=HTTPStatus.BAD_REQUEST,
         )
 
+    # --
+    # CF Integration (optional).
+    if turnstile_response := _login_view_turnstile_integration(auth_data):
+        return turnstile_response
+
     user, is_success = login_user(**auth_data, request=request)
 
     if is_success:
@@ -171,15 +209,6 @@ def login_view(request: HttpRequest):
             "Please check your email and master password."
         ),
     }
-
-    if settings.RATELIMIT_ENABLE:
-        error_data.update(
-            {
-                "remaining_attempt": int(
-                    same_client_ip_usage["limit"] - same_client_ip_usage["count"]
-                ),
-            }
-        )
 
     return JsonResponse(error_data, status=HTTPStatus.FORBIDDEN)
 

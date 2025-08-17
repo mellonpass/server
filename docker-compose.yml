@@ -46,6 +46,11 @@ services:
       - ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem
       - ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem
       - DB_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
+      # Cloudflare.
+      - CF_ENABLE_TURNSTILE_INTEGRATION=False
+      # If CF_ENABLE_TURNSTILE_INTEGRATION is enabled you need to provide value for these variables.
+      # - CF_TURNSTILE_CHALLENGE_API=
+      # - CF_TURNSTILE_SECRET_KEY=
     volumes:
       - .:/code
       - mellonpass-tmp:/tmp
