@@ -136,7 +136,7 @@ def _login_view_turnstile_integration(auth_data: Dict):
         turnstile_response = validate_turnstile(action="login", token=turnstile_token)
         if turnstile_response and not turnstile_response["success"]:
             return JsonResponse(
-                error_data={
+                {
                     "error": "Verification failed.",
                 },
                 status=HTTPStatus.BAD_REQUEST,
