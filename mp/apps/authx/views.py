@@ -44,6 +44,25 @@ def rl_email(group, request: HttpRequest):
     return auth_data["email"]
 
 
+# TODO: add unit test.
+def _turnstile_view_validation(action: str, token: str):
+    try:
+        turnstile_response = validate_turnstile(action=action, token=token)
+        if turnstile_response and not turnstile_response["success"]:
+            return JsonResponse(
+                {
+                    "error": "Verification failed.",
+                },
+                status=HTTPStatus.BAD_REQUEST,
+            )
+    except KeyError as error:
+        # CF integration is optional.
+        logger.warning(
+            "Cloudflare turnstile is not fully enabled. Check the error logs.",
+            exc_info=error,
+        )
+
+
 @transaction.atomic()
 @ratelimit(key=rl_client_ip, rate="3/m", block=False)
 @require_POST
@@ -79,6 +98,20 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
 
         serializer = AccountCreateSerializer()
         account_data = serializer.load(json.loads(request.body))
+
+        # --
+        # CF Integration (optional).
+        cftoken_key = "cf_turnstile_token"
+        turnstile_token = account_data.get(cftoken_key, None) and account_data.pop(
+            cftoken_key
+        )
+        turnstile_response = _turnstile_view_validation(
+            action="signup", token=turnstile_token
+        )
+        if turnstile_response:
+            return turnstile_response
+        # --
+
         user, created = create_account(**account_data)
 
         if not user.is_active:
@@ -129,26 +162,6 @@ def _login_view_rate_limit_checker(request: HTTPStatus):
         )
 
 
-# TODO: add unit test.
-def _login_view_turnstile_validation(auth_data: Dict):
-    try:
-        turnstile_token = auth_data.pop("cf_turnstile_token")
-        turnstile_response = validate_turnstile(action="login", token=turnstile_token)
-        if turnstile_response and not turnstile_response["success"]:
-            return JsonResponse(
-                {
-                    "error": "Verification failed.",
-                },
-                status=HTTPStatus.BAD_REQUEST,
-            )
-    except KeyError as error:
-        # CF integration is optional.
-        logger.warning(
-            "Cloudflare turnstile is not fully enabled. Check the error logs.",
-            exc_info=error,
-        )
-
-
 @ratelimit(key=rl_email, rate="5/m", block=False)
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
@@ -187,8 +200,14 @@ def login_view(request: HttpRequest):
 
     # --
     # CF Integration (optional).
-    if turnstile_response := _login_view_turnstile_validation(auth_data):
+    cftoken_key = "cf_turnstile_token"
+    turnstile_token = auth_data.get(cftoken_key, None) and auth_data.pop(cftoken_key)
+    turnstile_response = _turnstile_view_validation(
+        action="login", token=turnstile_token
+    )
+    if turnstile_response:
         return turnstile_response
+    # --
 
     user, is_success = login_user(**auth_data, request=request)
 
