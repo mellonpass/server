@@ -11,7 +11,9 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture
-def login_user(client: Client, user: User):
+def login_user(settings, client: Client, user: User):
+    settings.CF_ENABLE_TURNSTILE_INTEGRATION = False
+
     url = reverse("accounts:login")
     response = client.post(
         path=url,

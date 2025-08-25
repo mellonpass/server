@@ -36,7 +36,11 @@ def validate_turnstile(
 
         # FIXME: Validate resp_data for expected action.
 
-        logger.info("Cloudflare turnstile %s action is valid for token: %s.", action, data["response"])
+        logger.info(
+            "Cloudflare turnstile %s action is valid for token: %s.",
+            action,
+            data["response"],
+        )
 
         return resp_data
     except requests.RequestException as e:

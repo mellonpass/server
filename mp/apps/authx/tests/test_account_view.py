@@ -14,6 +14,7 @@ pytestmark = pytest.mark.django_db
 rf = RequestFactory()
 
 
+@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=False)
 def test_account_create(mocker, client: Client, django_capture_on_commit_callbacks):
     mock_send_account_verification_link_task = mocker.patch(
         "mp.apps.authx.views.send_account_verification_link_task"
@@ -59,6 +60,7 @@ def test_account_create(mocker, client: Client, django_capture_on_commit_callbac
     assert mock_send_account_verification_link_task.call_count == 2
 
 
+@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=False)
 def test_account_create_active_user(
     mocker, client: Client, django_capture_on_commit_callbacks
 ):
@@ -118,7 +120,7 @@ def test_account_create_invalid_input(client: Client):
     assert error["name"][0] == "Missing data for required field."
 
 
-@override_settings(RATELIMIT_ENABLE=True)
+@override_settings(RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False)
 def test_account_create_ratelimit_exceeded(client: Client):
     # clear ratelimit cache to avoid undesired result.
     cache.clear()
