@@ -130,7 +130,7 @@ def _login_view_rate_limit_checker(request: HTTPStatus):
 
 
 # TODO: add unit test.
-def _login_view_turnstile_integration(auth_data: Dict):
+def _login_view_turnstile_validation(auth_data: Dict):
     try:
         turnstile_token = auth_data.pop("cf_turnstile_token")
         turnstile_response = validate_turnstile(action="login", token=turnstile_token)
@@ -187,7 +187,7 @@ def login_view(request: HttpRequest):
 
     # --
     # CF Integration (optional).
-    if turnstile_response := _login_view_turnstile_integration(auth_data):
+    if turnstile_response := _login_view_turnstile_validation(auth_data):
         return turnstile_response
 
     user, is_success = login_user(**auth_data, request=request)

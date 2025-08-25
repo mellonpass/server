@@ -49,8 +49,9 @@ services:
       # Cloudflare.
       - CF_ENABLE_TURNSTILE_INTEGRATION=False
       # If CF_ENABLE_TURNSTILE_INTEGRATION is enabled you need to provide value for these variables.
-      # - CF_TURNSTILE_CHALLENGE_API=
-      # - CF_TURNSTILE_SECRET_KEY=
+      # - CF_TURNSTILE_CHALLENGE_API=https://challenges.cloudflare.com/turnstile/v0/siteverify
+      # For more secret keys, see: https://developers.cloudflare.com/turnstile/troubleshooting/testing/#dummy-sitekeys-and-secret-keys
+      # - CF_TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
     volumes:
       - .:/code
       - mellonpass-tmp:/tmp
