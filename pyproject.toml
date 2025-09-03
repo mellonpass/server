@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mellonpass"
-version = "0.1.0"
+version = "0.2.0"
 description = "API For MellonPass UI."
 authors = ["Roel Delos Reyes <badcoder28@gmail.com>"]
 readme = "README.md"
