@@ -1,14 +1,31 @@
 import logging
+from http import HTTPStatus
 from typing import Dict, Optional
 
+import backoff
 import requests
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
 
-# TODO: Add backoff strategy for retrying transient errors: 503, 429, etc..
-# TODO: Add validation for expected action.
+def _non_transient_errors(e: requests.exceptions.RequestException):
+    """Give up if status code not in the list of transient errors."""
+    return e.response.status_code not in [
+        HTTPStatus.SERVICE_UNAVAILABLE,
+        HTTPStatus.GATEWAY_TIMEOUT,
+        HTTPStatus.TOO_MANY_REQUESTS,
+        HTTPStatus.REQUEST_TIMEOUT,
+    ]
+
+
+@backoff.on_exception(
+    backoff.expo,
+    requests.exceptions.RequestException,
+    max_time=180,  # 3mins.
+    raise_on_giveup=False,
+    giveup=_non_transient_errors,
+)
 def validate_turnstile(
     action: str, token: str, remoteip: Optional[str] = None
 ) -> Optional[Dict]:
@@ -26,23 +43,11 @@ def validate_turnstile(
     if remoteip:
         data["remoteip"] = remoteip
 
-    try:
-        response = requests.post(
-            settings.CF_TURNSTILE_CHALLENGE_API, data=data, timeout=10
-        )
+    response = requests.post(settings.CF_TURNSTILE_CHALLENGE_API, data=data, timeout=10)
+    data = response.json()
+
+    if not data["success"]:
+        # TODO: add test.
         response.raise_for_status()
 
-        resp_data = response.json()
-
-        # FIXME: Validate resp_data for expected action.
-
-        logger.info(
-            "Cloudflare turnstile %s action is valid for token: %s.",
-            action,
-            data["response"],
-        )
-
-        return resp_data
-    except requests.RequestException as e:
-        logger.error("Invalid Cloudflare turnstile action.", exc_info=e)
-        return {"success": False, "error-codes": ["internal-error"]}
+    return data

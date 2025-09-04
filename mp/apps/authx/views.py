@@ -48,7 +48,7 @@ def rl_email(group, request: HttpRequest):
 def _turnstile_view_validation(action: str, token: str):
     try:
         turnstile_response = validate_turnstile(action=action, token=token)
-        if turnstile_response and not turnstile_response["success"]:
+        if not turnstile_response["success"]:
             return JsonResponse(
                 {
                     "error": "Verification failed.",
