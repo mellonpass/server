@@ -32,6 +32,7 @@ gunicorn = "^23.0.0"
 argon2-cffi = "^23.1.0"
 sentry-sdk = {extras = ["django"], version = "^2.22.0"}
 huey = "^2.5.2"
+backoff = "^2.2.1"
 
 
 [tool.poetry.group.dev.dependencies]
