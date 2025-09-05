@@ -48,13 +48,26 @@ def rl_email(group, request: HttpRequest):
 def _turnstile_view_validation(action: str, token: str):
     try:
         turnstile_response = validate_turnstile(action=action, token=token)
-        if not turnstile_response["success"]:
+
+        # CF turnstile is disabled.
+        if turnstile_response is False:
+            return
+
+        error_msg = None
+        if turnstile_response and not turnstile_response["success"] is False:
+            error_msg = "Verification failed."
+
+        if turnstile_response is None:
+            error_msg = "Err: Something went wrong. Contact the administrator."
+
+        if error_msg:
             return JsonResponse(
                 {
-                    "error": "Verification failed.",
+                    "error": error_msg,
                 },
                 status=HTTPStatus.BAD_REQUEST,
             )
+
     except KeyError as error:
         # CF integration is optional.
         logger.warning(
