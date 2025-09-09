@@ -15,10 +15,6 @@ class AuthenticationSerializer(Schema):
     cf_turnstile_token = fields.Str(required=False, allow_none=True, load_only=True)
 
 
-class RefreshTokenSerializer(Schema):
-    token = fields.Str(required=True, load_only=True)
-
-
 class AccountSetupSerializer(Schema):
     email = fields.Email(required=True, load_only=True)
     protected_symmetric_key = fields.Str(required=True, load_only=True)
