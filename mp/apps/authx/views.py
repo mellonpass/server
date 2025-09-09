@@ -44,17 +44,16 @@ def rl_email(group, request: HttpRequest):
     return auth_data["email"]
 
 
-# TODO: add unit test.
 def _turnstile_view_validation(action: str, token: str):
     try:
         turnstile_response = validate_turnstile(action=action, token=token)
 
-        # CF turnstile is disabled.
+        # CF turnstile is disabled if it returns boolean False value.
         if turnstile_response is False:
             return
 
         error_msg = None
-        if turnstile_response and not turnstile_response["success"] is False:
+        if turnstile_response and turnstile_response["success"] is False:
             error_msg = "Verification failed."
 
         if turnstile_response is None:
