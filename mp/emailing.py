@@ -34,9 +34,13 @@ def send_account_verification_link(app_origin: str, email: str):
             expiry=EmailVerificationToken.get_default_expiry_date(),
         )
 
-        context = {"setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"}
+        context = {
+            "setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"
+        }
 
-        html_content = render_to_string("emails/verification_email.html", context)
+        html_content = render_to_string(
+            "emails/verification_email.html", context
+        )
         # Remove html tags.
         text_content = strip_tags(html_content)
 

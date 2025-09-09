@@ -15,7 +15,9 @@ rf = RequestFactory()
 
 
 @override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=False)
-def test_account_create(mocker, client: Client, django_capture_on_commit_callbacks):
+def test_account_create(
+    mocker, client: Client, django_capture_on_commit_callbacks
+):
     mock_send_account_verification_link_task = mocker.patch(
         "mp.apps.authx.views.send_account_verification_link_task"
     )
@@ -120,7 +122,9 @@ def test_account_create_invalid_input(client: Client):
     assert error["name"][0] == "Missing data for required field."
 
 
-@override_settings(RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 def test_account_create_ratelimit_exceeded(client: Client):
     # clear ratelimit cache to avoid undesired result.
     cache.clear()
@@ -129,11 +133,14 @@ def test_account_create_ratelimit_exceeded(client: Client):
         "name": "john doe",
     }
     list_of_input_attack = [
-        {"email": f"johndoe{i}@example.com", **base_input_data} for i in range(4)
+        {"email": f"johndoe{i}@example.com", **base_input_data}
+        for i in range(4)
     ]
 
     url = reverse("accounts:create")
-    client_post = partial(client.post, path=url, content_type="application/json")
+    client_post = partial(
+        client.post, path=url, content_type="application/json"
+    )
 
     # OK
     response_1 = client_post(data=list_of_input_attack[0])

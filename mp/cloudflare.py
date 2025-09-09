@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 EXIT_CF_UNAVAILABLE = False
 
+
 def _non_transient_errors(e: requests.exceptions.RequestException):
     """Give up if status code not in the list of transient errors."""
     return e.response.status_code not in [
@@ -30,7 +31,6 @@ def _non_transient_errors(e: requests.exceptions.RequestException):
 def validate_turnstile(
     action: str, token: str, remoteip: Optional[str] = None
 ) -> Optional[Union[Dict, int]]:
-
     if not settings.CF_ENABLE_TURNSTILE_INTEGRATION:
         logger.warning("Cloudflare turnstile is currently disabled.")
         return EXIT_CF_UNAVAILABLE
@@ -44,6 +44,8 @@ def validate_turnstile(
     if remoteip:
         data["remoteip"] = remoteip
 
-    response = requests.post(settings.CF_TURNSTILE_CHALLENGE_API, data=data, timeout=10)
+    response = requests.post(
+        settings.CF_TURNSTILE_CHALLENGE_API, data=data, timeout=10
+    )
     response.raise_for_status()
     return response.json()

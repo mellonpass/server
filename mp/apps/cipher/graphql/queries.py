@@ -18,7 +18,9 @@ logger = logging.getLogger(__name__)
 @strawberry.type
 class CipherQuery:
     @strawberry.field(permission_classes=[IsAuthenticated])
-    def cipher(self, info: strawberry.Info, id: relay.GlobalID) -> Optional[Cipher]:
+    def cipher(
+        self, info: strawberry.Info, id: relay.GlobalID
+    ) -> Optional[Cipher]:
         try:
             cipher = get_cipher_by_owner_and_uuid(
                 owner=info.context.request.user, uuid=id.node_id

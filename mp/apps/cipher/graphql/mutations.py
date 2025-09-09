@@ -70,7 +70,7 @@ class CipherMutation:
             return Cipher.from_model(cipher)
 
         except CipherModel.DoesNotExist as error:
-            msg=f"Resource not found for: {input.id}."
+            msg = f"Resource not found for: {input.id}."
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
         except Exception as error:
@@ -96,7 +96,9 @@ class CipherMutation:
                     status=input.status,
                     data=input.data,
                 )
-                cipher = update_cipher_to_delete_state(owner=owner, uuid=cipher.uuid)
+                cipher = update_cipher_to_delete_state(
+                    owner=owner, uuid=cipher.uuid
+                )
 
                 return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
@@ -117,7 +119,6 @@ class CipherMutation:
             owner = info.context.request.user
 
             with transaction.atomic():
-
                 cipher = update_cipher(
                     owner=owner,
                     uuid=input.id.node_id,
@@ -127,7 +128,9 @@ class CipherMutation:
                     status=input.status,
                     data=input.data,
                 )
-                cipher = restore_cipher_from_delete_state(owner=owner, uuid=cipher.uuid)
+                cipher = restore_cipher_from_delete_state(
+                    owner=owner, uuid=cipher.uuid
+                )
                 return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
             msg = f"Resource not found for: {input.id}."
@@ -148,6 +151,7 @@ class CipherMutation:
         )
         return CipherDeletePayload(
             deleted_ids=[
-                relay.GlobalID("Cipher", str(_uuid)) for _uuid in affected_uuids
+                relay.GlobalID("Cipher", str(_uuid))
+                for _uuid in affected_uuids
             ]
         )

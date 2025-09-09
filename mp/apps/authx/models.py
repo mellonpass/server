@@ -62,10 +62,16 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = EmailField(unique=True, blank=False, null=False)
     name = CharField(max_length=150, null=False, blank=True, default="")
     hint = CharField(
-        max_length=50, null=False, blank=True, default="", help_text="Password hint."
+        max_length=50,
+        null=False,
+        blank=True,
+        default="",
+        help_text="Password hint.",
     )
 
-    protected_symmetric_key = EncryptedTextField(null=False, blank=True, default="")
+    protected_symmetric_key = EncryptedTextField(
+        null=False, blank=True, default=""
+    )
     password = EncryptedTextField(_("password"), max_length=128)
 
     is_active = BooleanField(default=False)
@@ -101,7 +107,11 @@ class RSAOAEPKey(Model):
     updated = DateTimeField(auto_now=True)
 
     user = OneToOneField(
-        User, related_name="asymmetric_key", null=False, blank=False, on_delete=PROTECT
+        User,
+        related_name="asymmetric_key",
+        null=False,
+        blank=False,
+        on_delete=PROTECT,
     )
 
     def __str__(self):
@@ -109,7 +119,6 @@ class RSAOAEPKey(Model):
 
 
 class EmailVerificationToken(Model):
-
     token_id = CharField(max_length=100, null=False, blank=False, unique=True)
     expiry = DateTimeField(null=False, blank=False)
     active = BooleanField(null=False, blank=False, default=True)

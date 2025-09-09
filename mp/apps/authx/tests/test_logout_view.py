@@ -11,7 +11,9 @@ from mp.apps.authx.tests.conftest import TEST_USER_LOGIN_HASH
 pytestmark = pytest.mark.django_db
 
 
-@override_settings(RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 def test_logout_view(client: Client, user: User):
     login_url = reverse("accounts:login")
     login_response = client.post(
@@ -28,7 +30,8 @@ def test_logout_view(client: Client, user: User):
     response = client.post(path=url, content_type="application/json")
     assert response.status_code == HTTPStatus.ACCEPTED
     assert (
-        response.json()["message"] == f"User {user.email} has successfully logged out."
+        response.json()["message"]
+        == f"User {user.email} has successfully logged out."
     )
 
 

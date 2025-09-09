@@ -9,7 +9,6 @@ from mp.graphql.schema import schema
 
 
 class MPGrahpQLView(GraphQLView):
-
     def process_result(
         self, request: HttpRequest, result: ExecutionResult
     ) -> GraphQLHTTPResponse:

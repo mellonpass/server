@@ -8,14 +8,16 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from mp.apps.authx.models import EmailVerificationToken
-from mp.apps.authx.tests.factories import EmailVerificationTokenFactory, UserFactory
+from mp.apps.authx.tests.factories import (
+    EmailVerificationTokenFactory,
+    UserFactory,
+)
 from mp.crypto import verify_jwt
 
 pytestmark = pytest.mark.django_db
 
 
 def test_verify_email(client: Client):
-
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 
@@ -35,7 +37,9 @@ def test_verify_email(client: Client):
     assert response.json()["data"]["verified_email"] == token_object.user.email
 
     # All user tokens should be invalidated.
-    assert not token_object.user.verification_tokens.filter(active=True).exists()
+    assert not token_object.user.verification_tokens.filter(
+        active=True
+    ).exists()
 
 
 def test_missing_token_id(client: Client):
@@ -70,7 +74,6 @@ def test_invalid_token(client: Client):
 
 
 def test_expired_token(client: Client):
-
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 

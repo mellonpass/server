@@ -20,5 +20,7 @@ def test_create_account():
         email="johndoe@example.com",
     )
     assert not created
-    assert existing_user.name == "john doe"  # existing user name should not be updated.
+    assert (
+        existing_user.name == "john doe"
+    )  # existing user name should not be updated.
     assert existing_user.email == "johndoe@example.com"

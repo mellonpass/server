@@ -1,4 +1,7 @@
-from django.contrib.auth.hashers import Argon2PasswordHasher, PBKDF2PasswordHasher
+from django.contrib.auth.hashers import (
+    Argon2PasswordHasher,
+    PBKDF2PasswordHasher,
+)
 
 
 class MellonPassPBKDF2PasswordHasher(PBKDF2PasswordHasher):

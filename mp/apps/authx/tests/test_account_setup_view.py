@@ -15,7 +15,9 @@ def test_setup_view(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode(
+        "my-rsa-protected-key".encode()
+    ).decode()
     rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
@@ -48,7 +50,9 @@ def test_setup_view_unverified(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode(
+        "my-rsa-protected-key".encode()
+    ).decode()
     rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
@@ -66,7 +70,10 @@ def test_setup_view_unverified(client: Client):
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == f"User's email {user.email} is not verified."
+    assert (
+        response.json()["error"]
+        == f"User's email {user.email} is not verified."
+    )
 
 
 def test_setup_view_active_user(client: Client):
@@ -78,7 +85,9 @@ def test_setup_view_active_user(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode(
+        "my-rsa-protected-key".encode()
+    ).decode()
     rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
@@ -118,4 +127,6 @@ def test_setup_view_hint_max_length_error(client: Client):
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"]["hint"][0] == "Longer than maximum length 50."
+    assert (
+        response.json()["error"]["hint"][0] == "Longer than maximum length 50."
+    )

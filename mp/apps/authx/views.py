@@ -113,9 +113,9 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         # --
         # CF Integration (optional).
         cftoken_key = "cf_turnstile_token"
-        turnstile_token = account_data.get(cftoken_key, None) and account_data.pop(
-            cftoken_key
-        )
+        turnstile_token = account_data.get(
+            cftoken_key, None
+        ) and account_data.pop(cftoken_key)
         turnstile_response = _turnstile_view_validation(
             action="signup", token=turnstile_token
         )
@@ -126,7 +126,6 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         user, created = create_account(**account_data)
 
         if not user.is_active:
-
             # HTTP_ORIGIN does not exists on pytest.
             http_origin = request.META.get("HTTP_ORIGIN", None)
             if http_origin is None and settings.APP_ENVIRONMENT == "test":
@@ -151,7 +150,9 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
 
 def _login_view_rate_limit_checker(request: HTTPStatus):
     if settings.RATELIMIT_ENABLE:
-        same_email_usage = get_usage(request, key=rl_email, rate="5/m", fn=login_view)
+        same_email_usage = get_usage(
+            request, key=rl_email, rate="5/m", fn=login_view
+        )
         same_client_ip_usage = get_usage(
             request, key=rl_client_ip, rate="5/m", fn=login_view
         )
@@ -159,7 +160,10 @@ def _login_view_rate_limit_checker(request: HTTPStatus):
         logger.info("same_email_usage: %s", same_email_usage)
         logger.info("same_client_ip_usage: %s", same_client_ip_usage)
 
-        if same_email_usage["should_limit"] or same_client_ip_usage["should_limit"]:
+        if (
+            same_email_usage["should_limit"]
+            or same_client_ip_usage["should_limit"]
+        ):
             return JsonResponse(
                 {
                     "error": "Blocked, try again later.",
@@ -178,7 +182,6 @@ def _login_view_rate_limit_checker(request: HTTPStatus):
 @require_POST
 @csrf_exempt
 def login_view(request: HttpRequest):
-
     if ratelimite_check_response := _login_view_rate_limit_checker(request):
         return ratelimite_check_response
 
@@ -212,7 +215,9 @@ def login_view(request: HttpRequest):
     # --
     # CF Integration (optional).
     cftoken_key = "cf_turnstile_token"
-    turnstile_token = auth_data.get(cftoken_key, None) and auth_data.pop(cftoken_key)
+    turnstile_token = auth_data.get(cftoken_key, None) and auth_data.pop(
+        cftoken_key
+    )
     turnstile_response = _turnstile_view_validation(
         action="login", token=turnstile_token
     )
@@ -235,8 +240,7 @@ def login_view(request: HttpRequest):
 
     error_data = {
         "error": (
-            "Invalid credentials provided. "
-            "Please check your email and master password."
+            "Invalid credentials provided. Please check your email and master password."
         ),
     }
 
@@ -347,7 +351,9 @@ def setup_view(request: HttpRequest):
         serializer = AccountSetupSerializer()
         data = serializer.load(json.loads(request.body))
         user = setup_account(**data)
-        return JsonResponse({"data": {"user_email": user.email}}, status=HTTPStatus.OK)
+        return JsonResponse(
+            {"data": {"user_email": user.email}}, status=HTTPStatus.OK
+        )
     except ValidationError as error:
         return JsonResponse(
             {
@@ -381,7 +387,6 @@ def whoami_view(request: HttpRequest):
 @require_POST
 @csrf_exempt
 def unlock_view(request: HttpRequest):
-
     if not request.user.is_authenticated:
         return JsonResponse(
             {
