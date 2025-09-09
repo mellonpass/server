@@ -1,7 +1,6 @@
 import json
 import logging
 from http import HTTPStatus
-from typing import Dict
 
 from django.conf import settings
 from django.db import transaction

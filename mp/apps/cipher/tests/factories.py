@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import factory
 from django.utils import timezone
-from factory import Faker, SubFactory
+from factory import SubFactory
 from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyChoice
 from faker import Faker as _Faker

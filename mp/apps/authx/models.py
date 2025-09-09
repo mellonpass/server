@@ -16,7 +16,6 @@ from django.db.models import (
     ForeignKey,
     Model,
     OneToOneField,
-    TextField,
     UUIDField,
 )
 from django.utils import timezone

@@ -70,7 +70,9 @@ class CipherMutation:
             return Cipher.from_model(cipher)
 
         except CipherModel.DoesNotExist as error:
-            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+            msg=f"Resource not found for: {input.id}."
+            logger.warning(msg, exc_info=error)
+            return CipherUpdateFailed(message=msg)
         except Exception as error:
             logger.exception(error)
             return CipherUpdateFailed(
@@ -98,7 +100,9 @@ class CipherMutation:
 
                 return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
-            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+            msg = f"Resource not found for: {input.id}."
+            logger.warning(msg, exc_info=error)
+            return CipherUpdateFailed(message=msg)
         except Exception as error:
             logger.exception(error)
             return CipherUpdateFailed(
@@ -126,7 +130,9 @@ class CipherMutation:
                 cipher = restore_cipher_from_delete_state(owner=owner, uuid=cipher.uuid)
                 return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
-            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+            msg = f"Resource not found for: {input.id}."
+            logger.warning(msg, exc_info=error)
+            return CipherUpdateFailed(message=msg)
         except Exception as error:
             logger.exception(error)
             return CipherUpdateFailed(

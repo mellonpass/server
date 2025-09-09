@@ -1,3 +1,4 @@
+# ruff: noqa: F405, F403
 import logging
 
 import sentry_sdk

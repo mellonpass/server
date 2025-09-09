@@ -28,4 +28,4 @@ def test_restore_cipher_from_delete_state():
     restored_cipher = restore_cipher_from_delete_state(
         owner=cipher.owner, uuid=cipher.uuid
     )
-    assert restored_cipher.delete_on == None
+    assert restored_cipher.delete_on is None
