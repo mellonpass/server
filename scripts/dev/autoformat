@@ -1,3 +1,4 @@
 #!/bin/bash
 
-poetry run black .
+poetry run ruff format .
+poetry run ruff check --select I --fix .
