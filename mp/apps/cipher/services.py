@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, TypedDict, Union, cast
 from uuid import UUID
 
 from django.conf import settings
@@ -41,9 +41,7 @@ def create_cipher(
     is_favorite: str,
     data: Dict,
 ) -> Cipher:
-    cipher_data = _build_cipher_data(
-        cipher_type=CipherTypeEnum(type), data=data
-    )
+    cipher_data = _build_cipher_data(cipher_type=CipherTypeEnum(type), data=data)
     return Cipher.objects.create(
         owner=owner,
         status=status,
@@ -91,14 +89,16 @@ def update_cipher(
     cipher.save()
 
     if cipher.type == CipherType.LOGIN:
-        login_data: CipherDataLogin = cipher.data
-        login_data.username = data["username"]
-        login_data.password = data["password"]
+        cipher_login = cast(CipherLogin, data)
+        login_data = cast(CipherDataLogin, cipher.data)
+        login_data.username = cipher_login["username"]
+        login_data.password = cipher_login["password"]
         login_data.save()
 
     if cipher.type == CipherType.SECURE_NOTE:
-        secure_note_data: CipherDataSecureNote = cipher.data
-        secure_note_data.note = data["note"]
+        cipher_secure_note = cast(CipherSecureNote, data)
+        secure_note_data = cast(CipherDataSecureNote, cipher.data)
+        secure_note_data.note = cipher_secure_note["note"]
         secure_note_data.save()
 
     return cipher
@@ -120,9 +120,7 @@ def restore_cipher_from_delete_state(owner: User, uuid: UUID) -> Cipher:
     return cipher
 
 
-def delete_ciphers_by_owner_and_uuids(
-    owner: User, uuids: List[UUID]
-) -> List[UUID]:
+def delete_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> List[UUID]:
     qs = Cipher.objects.filter(owner=owner, uuid__in=uuids)
     to_delete_uuids = list(qs.values_list("uuid", flat=True))
     qs.delete()
@@ -134,9 +132,7 @@ def get_cipher_by_owner_and_uuid(owner: User, uuid: UUID) -> Cipher:
     return Cipher.objects.get(owner=owner, uuid=uuid)
 
 
-def get_ciphers_by_owner_and_uuids(
-    owner: User, uuids: List[UUID]
-) -> QuerySet[Cipher]:
+def get_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> QuerySet[Cipher]:
     return Cipher.objects.filter(owner=owner, uuid__in=uuids)
 
 

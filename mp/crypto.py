@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Tuple, Union
+from typing import Dict, Tuple, Union, cast
 
 import jwt
 from cryptography.hazmat.primitives import serialization
@@ -63,14 +63,16 @@ def generate_ecdsa_p256_keys():
 def load_ES256_key(path: str) -> ec.EllipticCurvePrivateKey:
     with open(path, encoding="utf-8") as f:
         serialized_private_key = f.read()
-        return serialization.load_pem_private_key(
+        key = serialization.load_pem_private_key(
             serialized_private_key.encode("utf-8"), password=None
         )
+        return cast(ec.EllipticCurvePrivateKey, key)
 
 
 def load_ecdsa_ES256_pub(path: str) -> ec.EllipticCurvePublicKey:
     with open(path, encoding="utf-8") as f:
         serialized_public_key = f.read()
-        return serialization.load_pem_public_key(
+        key = serialization.load_pem_public_key(
             serialized_public_key.encode("utf-8"),
         )
+        return cast(ec.EllipticCurvePublicKey, key)

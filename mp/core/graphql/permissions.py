@@ -9,6 +9,6 @@ class IsAuthenticated(BasePermission):
     error_extensions = {"code": "UNAUTHORIZED"}
 
     def has_permission(
-        self, root: typing.Any, info: strawberry.Info, **kwargs
-    ) -> bool:
+        self, source: typing.Any, info: strawberry.Info, **kwargs
+    ) -> typing.Union[bool, typing.Awaitable[bool]]:
         return info.context.request.user.is_authenticated

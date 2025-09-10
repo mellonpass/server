@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from uuid import UUID
 
 import strawberry
 from django.db import transaction
@@ -60,7 +61,7 @@ class CipherMutation:
         try:
             cipher = update_cipher(
                 owner=info.context.request.user,
-                uuid=input.id.node_id,
+                uuid=UUID(input.id.node_id),
                 is_favorite=input.is_favorite,
                 key=input.key,
                 name=input.name,
@@ -89,7 +90,7 @@ class CipherMutation:
             with transaction.atomic():
                 cipher = update_cipher(
                     owner=owner,
-                    uuid=input.id.node_id,
+                    uuid=UUID(input.id.node_id),
                     is_favorite=input.is_favorite,
                     key=input.key,
                     name=input.name,
@@ -121,7 +122,7 @@ class CipherMutation:
             with transaction.atomic():
                 cipher = update_cipher(
                     owner=owner,
-                    uuid=input.id.node_id,
+                    uuid=UUID(input.id.node_id),
                     is_favorite=input.is_favorite,
                     key=input.key,
                     name=input.name,
@@ -147,7 +148,8 @@ class CipherMutation:
         self, info: strawberry.Info, ids: List[relay.GlobalID]
     ) -> CipherDeletePayload:
         affected_uuids = delete_ciphers_by_owner_and_uuids(
-            owner=info.context.request.user, uuids=[_id.node_id for _id in ids]
+            owner=info.context.request.user,
+            uuids=[UUID(_id.node_id) for _id in ids],
         )
         return CipherDeletePayload(
             deleted_ids=[

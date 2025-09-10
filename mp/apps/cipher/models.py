@@ -1,11 +1,8 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from uuid import uuid4
 
 from django.conf import settings
-from django.contrib.contenttypes.fields import (
-    GenericForeignKey,
-    GenericRelation,
-)
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import (
     CASCADE,
@@ -46,7 +43,7 @@ class Cipher(Model):
     )
 
     data_id = PositiveIntegerField()
-    data: "CipherData" = GenericForeignKey("content_type", "data_id")
+    data: "CipherData" = GenericForeignKey("content_type", "data_id")  # type: ignore
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
 
     owner = ForeignKey(
@@ -95,7 +92,7 @@ class CipherModelMixin(Model):
         return data
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.id}"
+        return f"{self.__class__.__name__}:{self.id}"  # type: ignore
 
     class Meta:
         abstract = True

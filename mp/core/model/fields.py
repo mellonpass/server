@@ -5,7 +5,7 @@ from django.conf import settings
 from django.db.models import TextField
 
 
-def _encrypt_db_data(data: str) -> Fernet:
+def _encrypt_db_data(data: str) -> str:
     f = Fernet(settings.DB_SYMMETRIC_KEY)
     encrypted_data = f.encrypt(data.encode("utf-8"))
     return base64.urlsafe_b64encode(encrypted_data).decode("utf-8")
