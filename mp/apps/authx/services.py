@@ -46,7 +46,7 @@ def setup_account(
     protected_symmetric_key: str,
     rsa_protected_private_key: str,
     rsa_public_key: str,
-    hint: Optional[str] = None,
+    hint: str = "",
 ) -> User:
     user = UserModel.objects.get(email=email)
 
@@ -55,7 +55,7 @@ def setup_account(
 
     if user.is_active:
         # You can't setup activated account and overrite credentials.
-        raise ServiceValidationError(f"Unable to setup up user account.")
+        raise ServiceValidationError("Unable to setup up user account.")
 
     user.set_password(login_hash)
     user.protected_symmetric_key = protected_symmetric_key

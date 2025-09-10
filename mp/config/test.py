@@ -1,3 +1,4 @@
+# ruff: noqa: F403
 from mp.config.base import *
 
 APP_ENVIRONMENT = "test"

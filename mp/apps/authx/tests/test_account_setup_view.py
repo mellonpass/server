@@ -11,11 +11,14 @@ pytestmark = pytest.mark.django_db()
 
 
 def test_setup_view(client: Client):
+
     user = UserFactory(verified=True, is_active=False)
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode(
+        "my-rsa-protected-key".encode()
+    ).decode()
     rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
@@ -33,14 +36,14 @@ def test_setup_view(client: Client):
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json()["data"]["user_email"] == user.email
+    assert response.json()["data"]["user_email"] == user.email  # type: ignore[attr-defined]
 
-    user.refresh_from_db(fields=["password", "is_active"])
-    assert user.check_password(login_hash)
-    assert user.is_active
+    user.refresh_from_db(fields=["password", "is_active"])  # type: ignore[attr-defined]
+    assert user.check_password(login_hash)  # type: ignore[attr-defined]
+    assert user.is_active  # type: ignore[attr-defined]
 
-    assert user.asymmetric_key.protected_key == rsa_pkey
-    assert user.asymmetric_key.public_key == rsa_pub
+    assert user.asymmetric_key.protected_key == rsa_pkey  # type: ignore[attr-defined]
+    assert user.asymmetric_key.public_key == rsa_pub  # type: ignore[attr-defined]
 
 
 def test_setup_view_unverified(client: Client):
@@ -48,7 +51,9 @@ def test_setup_view_unverified(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode(
+        "my-rsa-protected-key".encode()
+    ).decode()
     rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
@@ -66,7 +71,10 @@ def test_setup_view_unverified(client: Client):
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == f"User's email {user.email} is not verified."
+    assert (
+        response.json()["error"]
+        == f"User's email {user.email} is not verified."
+    )
 
 
 def test_setup_view_active_user(client: Client):
@@ -78,7 +86,9 @@ def test_setup_view_active_user(client: Client):
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
     psk = base64.urlsafe_b64encode("my-psk".encode()).decode()
-    rsa_pkey = base64.urlsafe_b64encode("my-rsa-protected-key".encode()).decode()
+    rsa_pkey = base64.urlsafe_b64encode(
+        "my-rsa-protected-key".encode()
+    ).decode()
     rsa_pub = base64.urlsafe_b64encode("my-rsa-pub".encode()).decode()
 
     url = reverse("accounts:setup")
@@ -96,7 +106,7 @@ def test_setup_view_active_user(client: Client):
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == f"Unable to setup up user account."
+    assert response.json()["error"] == "Unable to setup up user account."
 
 
 def test_setup_view_hint_max_length_error(client: Client):
@@ -118,4 +128,6 @@ def test_setup_view_hint_max_length_error(client: Client):
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"]["hint"][0] == "Longer than maximum length 50."
+    assert (
+        response.json()["error"]["hint"][0] == "Longer than maximum length 50."
+    )

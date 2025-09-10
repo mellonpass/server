@@ -28,24 +28,33 @@ def send_account_verification_link(app_origin: str, email: str):
         jwt_token = EmailVerificationToken.generate_token_id()
         _, payload = verify_jwt(jwt_token, verify=False)
 
+        if not isinstance(payload, dict):
+            raise TypeError(
+                f"Unable to send verification link. Something went wrong when generating a token {payload:r}"
+            )
+
         EmailVerificationToken.objects.create(
             token_id=payload["sub"],
             user=user,
             expiry=EmailVerificationToken.get_default_expiry_date(),
         )
 
-        context = {"setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"}
+        context = {
+            "setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"
+        }
 
-        html_content = render_to_string("emails/verification_email.html", context)
+        html_content = render_to_string(
+            "emails/verification_email.html", context
+        )
         # Remove html tags.
         text_content = strip_tags(html_content)
 
-        email = EmailMultiAlternatives(
+        email_ma = EmailMultiAlternatives(
             subject="Verify your account",
             body=text_content,
             from_email=settings.NO_REPLY_EMAIL,
             to=[email],
         )
 
-        email.attach_alternative(html_content, "text/html")
-        email.send()
+        email_ma.attach_alternative(html_content, "text/html")
+        email_ma.send()

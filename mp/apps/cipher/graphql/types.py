@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, List, Union
+from typing import Annotated, List, Union, cast
 
 import strawberry
 from strawberry import relay
@@ -27,9 +27,9 @@ class Cipher(relay.Node):
     @classmethod
     def from_model(cls, model: CipherModel):
         return cls(
-            uuid=model.uuid,
-            owner_id=model.owner.uuid,
-            type=model.type,
+            uuid=cast(strawberry.ID, model.uuid),
+            owner_id=cast(strawberry.ID, model.owner.uuid),
+            type=CipherTypeEnum(model.type),
             name=model.name,
             key=model.key,
             is_favorite=model.is_favorite,
@@ -60,7 +60,7 @@ class CipherCreateFailed(CipherMutateFailed): ...
 
 @strawberry.type
 class CipherDeletePayload:
-    deleted_ids: List[strawberry.ID]
+    deleted_ids: List[relay.GlobalID]
 
 
 @strawberry.type
@@ -98,5 +98,4 @@ class UpdateCipherInput:
     is_favorite: str
     status: str
     name: str
-    data: JSON
     data: JSON

@@ -13,7 +13,9 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if settings.APP_ENVIRONMENT != "local":
             self.stdout.write(
-                self.style.ERROR("Unable to set test user for non-local environment.")
+                self.style.ERROR(
+                    "Unable to set test user for non-local environment."
+                )
             )
             return
 
@@ -36,4 +38,6 @@ class Command(BaseCommand):
             },
         )
 
-        self.stdout.write(self.style.SUCCESS("Test user %s is set." % user.email))
+        self.stdout.write(
+            self.style.SUCCESS("Test user %s is set." % user.email)
+        )

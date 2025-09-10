@@ -1,3 +1,4 @@
+# mypy: disable-error-code=var-annotated
 import base64
 import os
 
@@ -20,7 +21,7 @@ class UserFactory(DjangoModelFactory):
     is_active = True
 
     # Random base64 token generator for fake psk.
-    @factory.lazy_attribute
+    @factory.lazy_attribute  # type: ignore
     def protected_symmetric_key(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
 

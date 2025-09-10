@@ -8,7 +8,10 @@ from strawberry import relay
 
 from mp.apps.authx.tests.factories import UserFactory
 from mp.apps.cipher.models import Cipher, CipherType
-from mp.apps.cipher.tests.factories import CipherDataSecureNoteFactory, CipherFactory
+from mp.apps.cipher.tests.factories import (
+    CipherDataSecureNoteFactory,
+    CipherFactory,
+)
 from mp.core.strawberry.test import TestClient
 
 pytestmark = pytest.mark.django_db
@@ -88,7 +91,9 @@ def test_create_cipher_failed(mocker):
     user = UserFactory()
     client = TestClient("/graphql")
 
-    mock_create_cipher = mocker.patch("mp.apps.cipher.graphql.mutations.create_cipher")
+    mock_create_cipher = mocker.patch(
+        "mp.apps.cipher.graphql.mutations.create_cipher"
+    )
     mock_create_cipher.side_effect = Exception("kaboink!")
 
     with client.login(user):
@@ -151,7 +156,9 @@ def test_update_login_cipher():
 def test_update_secure_note_cipher():
     user = UserFactory()
     cipher = CipherFactory(
-        owner=user, type=CipherType.SECURE_NOTE, data=CipherDataSecureNoteFactory()
+        owner=user,
+        type=CipherType.SECURE_NOTE,
+        data=CipherDataSecureNoteFactory(),
     )
 
     query = """
@@ -228,13 +235,18 @@ def test_update_non_existing_cipher():
 
     with client.login(user):
         response = client.query(query, variables=variables)
-        assert "Resource not found" in response.data["cipher"]["update"]["message"]
+        assert (
+            "Resource not found"
+            in response.data["cipher"]["update"]["message"]
+        )
 
 
 def test_update_cipher_to_delete():
     user = UserFactory()
     cipher = CipherFactory(
-        owner=user, type=CipherType.SECURE_NOTE, data=CipherDataSecureNoteFactory()
+        owner=user,
+        type=CipherType.SECURE_NOTE,
+        data=CipherDataSecureNoteFactory(),
     )
 
     query = """

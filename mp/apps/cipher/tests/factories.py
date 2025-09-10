@@ -1,10 +1,11 @@
+# mypy: disable-error-code="arg-type,var-annotated"
 import base64
 import os
 from uuid import uuid4
 
 import factory
 from django.utils import timezone
-from factory import Faker, SubFactory
+from factory import SubFactory
 from factory.django import DjangoModelFactory
 from factory.fuzzy import FuzzyChoice
 from faker import Faker as _Faker

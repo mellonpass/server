@@ -234,7 +234,9 @@ SESSION_COOKIE_SECURE = False
 
 CSRF_COOKIE_DOMAIN = DOMAIN
 # Using https:// in production settings.
-CSRF_TRUSTED_ORIGINS = [f"http://{DOMAIN}:5173"]  # The 5173 is the web app port.
+CSRF_TRUSTED_ORIGINS = [
+    f"http://{DOMAIN}:5173"
+]  # The 5173 is the web app port.
 CSRF_COOKIE_SAMESITE = "Strict"
 # True in prod settings.
 CSRF_COOKIE_SECURE = False
@@ -279,7 +281,9 @@ HUEY = SqliteHuey(filename="/tmp/huey.sqlite")
 
 # CloudFlare
 # ------------------------------------------------------------
-CF_ENABLE_TURNSTILE_INTEGRATION = env("CF_ENABLE_TURNSTILE_INTEGRATION", default=False)
+CF_ENABLE_TURNSTILE_INTEGRATION = env(
+    "CF_ENABLE_TURNSTILE_INTEGRATION", default=False
+)
 if CF_ENABLE_TURNSTILE_INTEGRATION:
     CF_TURNSTILE_CHALLENGE_API = env("CF_TURNSTILE_CHALLENGE_API")
     CF_TURNSTILE_SECRET_KEY = env("CF_TURNSTILE_SECRET_KEY")

@@ -1,6 +1,5 @@
 from datetime import timedelta
-from enum import Enum
-from typing import Dict, List, TypedDict, Union
+from typing import Dict, List, TypedDict, Union, cast
 from uuid import UUID
 
 from django.conf import settings
@@ -90,14 +89,16 @@ def update_cipher(
     cipher.save()
 
     if cipher.type == CipherType.LOGIN:
-        login_data: CipherDataLogin = cipher.data
-        login_data.username = data["username"]
-        login_data.password = data["password"]
+        cipher_login = cast(CipherLogin, data)
+        login_data = cast(CipherDataLogin, cipher.data)
+        login_data.username = cipher_login["username"]
+        login_data.password = cipher_login["password"]
         login_data.save()
 
     if cipher.type == CipherType.SECURE_NOTE:
-        secure_note_data: CipherDataSecureNote = cipher.data
-        secure_note_data.note = data["note"]
+        cipher_secure_note = cast(CipherSecureNote, data)
+        secure_note_data = cast(CipherDataSecureNote, cipher.data)
+        secure_note_data.note = cipher_secure_note["note"]
         secure_note_data.save()
 
     return cipher

@@ -13,7 +13,9 @@ from mp.apps.authx.tests.conftest import TEST_USER_LOGIN_HASH
 pytestmark = pytest.mark.django_db
 
 
-@override_settings(RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 def test_login_view(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
@@ -39,7 +41,9 @@ def test_login_view_invalid_content_type(client: Client, user: User):
     assert response.json()["error"] == "Invalid request content-type."
 
 
-@override_settings(RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 def test_login_view_user_already_authenticated(client: Client, user: User):
     url = reverse("accounts:login")
 
@@ -80,7 +84,9 @@ def test_login_view_invalid_input(client: Client, user: User):
     assert error["password"][0] == "Unknown field."
 
 
-@override_settings(RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 def test_login_view_invalid_login_hash(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
@@ -95,7 +101,9 @@ def test_login_view_invalid_login_hash(client: Client, user: User):
     )
 
 
-@override_settings(RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 def test_login_view_invalid_email(client: Client):
     url = reverse("accounts:login")
     response = client.post(
@@ -110,7 +118,9 @@ def test_login_view_invalid_email(client: Client):
     )
 
 
-@override_settings(RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 @pytest.mark.parametrize(
     "wrong_emails",
     [
@@ -128,7 +138,9 @@ def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     cache.clear()
 
     url = reverse("accounts:login")
-    client_post = partial(client.post, path=url, content_type="application/json")
+    client_post = partial(
+        client.post, path=url, content_type="application/json"
+    )
 
     # spend all remaining attempt.
     for email in wrong_emails:
@@ -144,7 +156,9 @@ def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     assert response.json()["error"] == "Blocked, try again later."
 
 
-@override_settings(RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False)
+@override_settings(
+    RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False
+)
 @pytest.mark.parametrize(
     "wrong_login_hash",
     [
@@ -164,11 +178,15 @@ def test_login_view_failed_attempt_same_email(
     cache.clear()
 
     url = reverse("accounts:login")
-    client_post = partial(client.post, path=url, content_type="application/json")
+    client_post = partial(
+        client.post, path=url, content_type="application/json"
+    )
 
     # spend all remaining attempt.
     for login_hash in wrong_login_hash:
-        response = client_post(data={"email": user.email, "login_hash": login_hash})
+        response = client_post(
+            data={"email": user.email, "login_hash": login_hash}
+        )
         assert response.status_code == HTTPStatus.FORBIDDEN
 
     response = client_post(
