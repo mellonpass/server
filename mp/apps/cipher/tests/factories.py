@@ -1,3 +1,4 @@
+# mypy: disable-error-code="arg-type,var-annotated"
 import base64
 import os
 from uuid import uuid4

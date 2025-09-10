@@ -11,6 +11,7 @@ pytestmark = pytest.mark.django_db()
 
 
 def test_setup_view(client: Client):
+
     user = UserFactory(verified=True, is_active=False)
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()
@@ -35,14 +36,14 @@ def test_setup_view(client: Client):
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json()["data"]["user_email"] == user.email
+    assert response.json()["data"]["user_email"] == user.email  # type: ignore[attr-defined]
 
-    user.refresh_from_db(fields=["password", "is_active"])
-    assert user.check_password(login_hash)
-    assert user.is_active
+    user.refresh_from_db(fields=["password", "is_active"])  # type: ignore[attr-defined]
+    assert user.check_password(login_hash)  # type: ignore[attr-defined]
+    assert user.is_active  # type: ignore[attr-defined]
 
-    assert user.asymmetric_key.protected_key == rsa_pkey
-    assert user.asymmetric_key.public_key == rsa_pub
+    assert user.asymmetric_key.protected_key == rsa_pkey  # type: ignore[attr-defined]
+    assert user.asymmetric_key.public_key == rsa_pub  # type: ignore[attr-defined]
 
 
 def test_setup_view_unverified(client: Client):

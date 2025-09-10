@@ -8,10 +8,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from mp.apps.authx.models import EmailVerificationToken
-from mp.apps.authx.tests.factories import (
-    EmailVerificationTokenFactory,
-    UserFactory,
-)
+from mp.apps.authx.tests.factories import EmailVerificationTokenFactory, UserFactory
 from mp.crypto import verify_jwt
 
 pytestmark = pytest.mark.django_db
@@ -20,6 +17,8 @@ pytestmark = pytest.mark.django_db
 def test_verify_email(client: Client):
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
+
+    assert isinstance(jwt, dict)
 
     token_object = EmailVerificationTokenFactory(
         token_id=jwt["sub"], user=UserFactory(is_active=False)
@@ -34,10 +33,10 @@ def test_verify_email(client: Client):
         },
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json()["data"]["verified_email"] == token_object.user.email
+    assert response.json()["data"]["verified_email"] == token_object.user.email  # type: ignore
 
     # All user tokens should be invalidated.
-    assert not token_object.user.verification_tokens.filter(
+    assert not token_object.user.verification_tokens.filter(  # type: ignore
         active=True
     ).exists()
 
@@ -77,6 +76,8 @@ def test_expired_token(client: Client):
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 
+    assert isinstance(jwt, dict)
+
     EmailVerificationTokenFactory(
         token_id=jwt["sub"], user=UserFactory(is_active=False)
     )
@@ -103,6 +104,8 @@ def test_inactive_token(client: Client):
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
 
+    assert isinstance(jwt, dict)
+
     EmailVerificationTokenFactory(token_id=jwt["sub"], active=False)
 
     url = reverse("accounts:verify")
@@ -124,7 +127,9 @@ def test_account_already_verified(client: Client):
     """Test email is verified but user is not done with account setup."""
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
-
+    
+    assert isinstance(jwt, dict)
+    
     token_obj = EmailVerificationTokenFactory(
         token_id=jwt["sub"], user=UserFactory(verified=True, is_active=False)
     )
@@ -141,4 +146,4 @@ def test_account_already_verified(client: Client):
 
     data = response.json()
     assert response.status_code == HTTPStatus.OK
-    assert data["data"]["verified_email"] == token_obj.user.email
+    assert data["data"]["verified_email"] == token_obj.user.email  # type: ignore

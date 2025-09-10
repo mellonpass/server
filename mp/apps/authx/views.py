@@ -52,7 +52,7 @@ def _turnstile_view_validation(action: str, token: str):
             return
 
         error_msg = None
-        if turnstile_response and turnstile_response["success"] is False:
+        if isinstance(turnstile_response, dict) and turnstile_response["success"] is False:
             error_msg = "Verification failed."
 
         if turnstile_response is None:
@@ -148,7 +148,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         )
 
 
-def _login_view_rate_limit_checker(request: HTTPStatus):
+def _login_view_rate_limit_checker(request: HttpRequest):
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(
             request, key=rl_email, rate="5/m", fn=login_view
@@ -227,7 +227,7 @@ def login_view(request: HttpRequest):
 
     user, is_success = login_user(**auth_data, request=request)
 
-    if is_success:
+    if user is not None and is_success:
         success_response = JsonResponse(
             {
                 "data": {
@@ -305,7 +305,7 @@ def verify_view(request: HttpRequest):
     try:
         is_valid, res = verify_jwt(data["token_id"])
 
-        if not is_valid:
+        if isinstance(res, str) or not is_valid:
             raise InvalidTokenError(res)
 
         token = get_object_or_404(EmailVerificationToken, token_id=res["sub"])

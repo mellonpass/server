@@ -46,7 +46,7 @@ def setup_account(
     protected_symmetric_key: str,
     rsa_protected_private_key: str,
     rsa_public_key: str,
-    hint: Optional[str] = None,
+    hint: str = "",
 ) -> User:
     user = UserModel.objects.get(email=email)
 

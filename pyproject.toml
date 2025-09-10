@@ -49,6 +49,8 @@ pytest-mock = "^3.14.0"
 tox = "^4.28.4"
 psycopg2-binary = "^2.9.10"
 ruff = "^0.12.12"
+types-requests = "^2.32.4.20250809"
+types-factory-boy = "^0.4.1"
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.

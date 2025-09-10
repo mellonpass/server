@@ -1,6 +1,6 @@
 import logging
 from http import HTTPStatus
-from typing import Dict, Optional, Union
+from typing import Callable, Dict, Optional, Union
 
 import backoff
 import requests
@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 EXIT_CF_UNAVAILABLE = False
 
 
-def _non_transient_errors(e: requests.exceptions.RequestException):
+def _non_transient_errors(e: requests.exceptions.RequestException) -> bool:
     """Give up if status code not in the list of transient errors."""
-    return e.response.status_code not in [
+    return e.response is not None and HTTPStatus(e.response.status_code) not in [
         HTTPStatus.SERVICE_UNAVAILABLE,
         HTTPStatus.GATEWAY_TIMEOUT,
         HTTPStatus.TOO_MANY_REQUESTS,
@@ -26,7 +26,7 @@ def _non_transient_errors(e: requests.exceptions.RequestException):
     requests.exceptions.RequestException,
     max_tries=3,
     raise_on_giveup=False,
-    giveup=_non_transient_errors,
+    giveup=_non_transient_errors,  # type: ignore
 )
 def validate_turnstile(
     action: str, token: str, remoteip: Optional[str] = None
