@@ -8,7 +8,10 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from mp.apps.authx.models import EmailVerificationToken
-from mp.apps.authx.tests.factories import EmailVerificationTokenFactory, UserFactory
+from mp.apps.authx.tests.factories import (
+    EmailVerificationTokenFactory,
+    UserFactory,
+)
 from mp.crypto import verify_jwt
 
 pytestmark = pytest.mark.django_db

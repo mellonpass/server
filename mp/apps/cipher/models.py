@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Dict, Optional
 from uuid import uuid4
 
 from django.conf import settings

@@ -1,6 +1,6 @@
 import logging
 from http import HTTPStatus
-from typing import Callable, Dict, Optional, Union
+from typing import Dict, Optional, Union
 
 import backoff
 import requests
