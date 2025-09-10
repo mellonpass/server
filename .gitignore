@@ -120,6 +120,8 @@ GitHub.sublime-settings
 
 .DS_Store
 
+.ruff_cache
+
 # Developer-specific choice of using docker or local poetry for pre-commit
 # migrations check
 scripts/local_pre_commit/.use_docker
