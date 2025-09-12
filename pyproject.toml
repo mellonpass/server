@@ -51,6 +51,7 @@ psycopg2-binary = "^2.9.10"
 ruff = "^0.12.12"
 types-requests = "^2.32.4.20250809"
 types-factory-boy = "^0.4.1"
+bandit = {extras = ["toml"], version = "^1.8.6"}
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
@@ -131,6 +132,9 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.bandit]
+exclude_dirs = ["**/tests/*"]
 
 [build-system]
 requires = ["poetry-core"]

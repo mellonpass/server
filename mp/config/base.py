@@ -277,7 +277,7 @@ DB_SYMMETRIC_KEY = env("DB_SYMMETRIC_KEY")
 # HUEY
 # ------------------------------------------------------------
 # https://huey.readthedocs.io/en/latest/django.html
-HUEY = SqliteHuey(filename="/tmp/huey.sqlite")
+HUEY = SqliteHuey(filename="/tmp/huey.sqlite")  # nosec
 
 # CloudFlare
 # ------------------------------------------------------------
