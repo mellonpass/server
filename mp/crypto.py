@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Tuple, Union, cast
+from typing import cast
 
 import jwt
 from cryptography.hazmat.primitives import serialization
@@ -9,26 +9,25 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 
-def es256_jwt(payload: Dict) -> str:
+def es256_jwt(payload: dict) -> str:
     return jwt.encode(
         payload,
-        load_ES256_key(settings.ES256_PRIVATE_KEY_PATH),
+        load_es256_key(settings.ES256_PRIVATE_KEY_PATH),
         algorithm="ES256",
     )
 
 
-def verify_jwt(token: str, verify=True) -> Tuple[bool, Union[str, Dict]]:
+def verify_jwt(token: str, *, verify: bool = True) -> tuple[bool, str | dict]:
     try:
         payload = jwt.decode(
             token,
-            load_ecdsa_ES256_pub(settings.ES256_PUBLIC_KEY_PATH),
+            load_ecdsa_es256_pub(settings.ES256_PUBLIC_KEY_PATH),
             algorithms=["ES256"],
             options={
                 "require": ["exp", "iat", "sub", "jti"],
                 "verify_signature": verify,
             },
         )
-        return True, payload
     except jwt.InvalidSignatureError as err:
         message = "Invalid token signature."
         logger.warning(message, exc_info=err)
@@ -41,9 +40,11 @@ def verify_jwt(token: str, verify=True) -> Tuple[bool, Union[str, Dict]]:
         message = "Token is missing required claim."
         logger.warning(message, exc_info=err)
         return False, message
+    else:
+        return True, payload
 
 
-def generate_ecdsa_p256_keys():
+def generate_ecdsa_p256_keys() -> str:
     private_key = ec.generate_private_key(ec.SECP256R1())
     serialized_private = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
@@ -57,22 +58,23 @@ def generate_ecdsa_p256_keys():
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     )
 
-    print(f"{serialized_private.decode()}\n{serialized_public.decode()}")
+    return f"{serialized_private.decode()}\n{serialized_public.decode()}"
 
 
-def load_ES256_key(path: str) -> ec.EllipticCurvePrivateKey:
+def load_es256_key(path: str) -> ec.EllipticCurvePrivateKey:
     with open(path, encoding="utf-8") as f:
         serialized_private_key = f.read()
         key = serialization.load_pem_private_key(
-            serialized_private_key.encode("utf-8"), password=None
+            serialized_private_key.encode("utf-8"),
+            password=None,
         )
-        return cast(ec.EllipticCurvePrivateKey, key)
+        return cast("ec.EllipticCurvePrivateKey", key)
 
 
-def load_ecdsa_ES256_pub(path: str) -> ec.EllipticCurvePublicKey:
+def load_ecdsa_es256_pub(path: str) -> ec.EllipticCurvePublicKey:
     with open(path, encoding="utf-8") as f:
         serialized_public_key = f.read()
         key = serialization.load_pem_public_key(
             serialized_public_key.encode("utf-8"),
         )
-        return cast(ec.EllipticCurvePublicKey, key)
+        return cast("ec.EllipticCurvePublicKey", key)

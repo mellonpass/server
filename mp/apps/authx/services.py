@@ -1,5 +1,4 @@
 import logging
-from typing import Optional, Tuple
 
 from django.contrib.auth import authenticate, get_user_model, login, logout
 from django.http import HttpRequest
@@ -15,21 +14,23 @@ UserModel = get_user_model()
 def create_account(
     email: str,
     name: str,
-) -> Tuple[User, bool]:
+) -> tuple[User, bool]:
     return UserModel.objects.get_or_create(
-        email=email, defaults={"name": name, "is_active": False}
+        email=email,
+        defaults={"name": name, "is_active": False},
     )
 
 
 def login_user(
-    email: str, login_hash: str, request: HttpRequest
-) -> Tuple[Optional[User], bool]:
+    email: str,
+    login_hash: str,
+    request: HttpRequest,
+) -> tuple[User | None, bool]:
     user = authenticate(username=email, password=login_hash)
     if user is not None:
         login(request, user)
         return user, True
-    else:
-        return None, False
+    return None, False
 
 
 def logout_user(request: HttpRequest):
@@ -51,11 +52,13 @@ def setup_account(
     user = UserModel.objects.get(email=email)
 
     if not user.verified:
-        raise ServiceValidationError(f"User's email {email} is not verified.")
+        err_msg = f"User's email {email} is not verified."
+        raise ServiceValidationError(err_msg)
 
     if user.is_active:
         # You can't setup activated account and overrite credentials.
-        raise ServiceValidationError("Unable to setup up user account.")
+        err_msg = "Unable to setup up user account."
+        raise ServiceValidationError(err_msg)
 
     user.set_password(login_hash)
     user.protected_symmetric_key = protected_symmetric_key

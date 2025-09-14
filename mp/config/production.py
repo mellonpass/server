@@ -17,7 +17,7 @@ ALLOWED_HOSTS = [f".{DOMAIN}"]
 CORS_ALLOW_ALL_ORIGINS = False
 
 _host, *_ext = DOMAIN.split(".")
-CORS_ALLOWED_ORIGIN_REGEXES = [f"^https://\S+\.{_host}\.{'.'.join(_ext)}$"]
+CORS_ALLOWED_ORIGIN_REGEXES = [rf"^https://\S+\.{_host}\.{'.'.join(_ext)}$"]
 
 SESSION_COOKIE_DOMAIN = f".{DOMAIN}"
 SESSION_COOKIE_SECURE = True
@@ -62,7 +62,8 @@ if env("SENTRY_DSN", default=None):
         dsn=env("SENTRY_DSN"),
         environment=APP_ENVIRONMENT,
         # Add data like request headers and IP for users,
-        # see https://docs.sentry.io/platforms/python/data-management/data-collected/ for more info
+        # see https://docs.sentry.io/platforms/python/data-management/data-collected/
+        # for more info
         send_default_pii=True,
         traces_sample_rate=0.1,
         _experiments={
@@ -79,6 +80,6 @@ if env("SENTRY_DSN", default=None):
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": "/tmp/mellonpass_cache",  # nosec
-    }
+        "LOCATION": "/tmp/mellonpass_cache",
+    },
 }

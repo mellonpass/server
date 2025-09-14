@@ -20,7 +20,7 @@ def _decrypt_db_data(data: str) -> str:
 class EncryptedTextField(TextField):
     description = "Encrypts field value on the database."
 
-    def get_db_prep_save(self, value, connection):
+    def get_db_prep_save(self, value, connection):  # noqa: ANN001
         value = super().get_db_prep_value(value, connection)
         if value is None or len(value) == 0:
             return value
@@ -28,7 +28,7 @@ class EncryptedTextField(TextField):
         # Encrypt the value before saving
         return _encrypt_db_data(value)
 
-    def from_db_value(self, value, *args, **kwargs):
+    def from_db_value(self, value: str | None, *args, **kwargs):  # noqa: ANN002
         if value is None or len(value) == 0:
             return value
         # Decrypt the value when retrieving

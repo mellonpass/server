@@ -1,4 +1,3 @@
-from typing import Dict, Optional
 from uuid import uuid4
 
 from django.conf import settings
@@ -43,11 +42,14 @@ class Cipher(Model):
     )
 
     data_id = PositiveIntegerField()
-    data: "CipherData" = GenericForeignKey("content_type", "data_id")  # type: ignore
+    data: "CipherData" = GenericForeignKey("content_type", "data_id")
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
 
     owner = ForeignKey(
-        settings.AUTH_USER_MODEL, null=False, blank=False, on_delete=RESTRICT
+        settings.AUTH_USER_MODEL,
+        null=False,
+        blank=False,
+        on_delete=RESTRICT,
     )
 
     delete_on = DateTimeField(
@@ -58,31 +60,39 @@ class Cipher(Model):
     created = DateTimeField(auto_now_add=True)
     updated = DateTimeField(auto_now=True)
 
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.type} - {self.id}"
-
     class Meta:
-        indexes = [
-            Index(fields=["content_type", "data_id"]),
-        ]
+        indexes = (Index(fields=["content_type", "data_id"]),)
         unique_together = (
             "content_type",
             "data_id",
         )
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}:{self.type} - {self.id}"
+
 
 class CipherModelMixin(Model):
     uuid = UUIDField(
-        unique=True, null=False, blank=False, default=uuid4, editable=False
+        unique=True,
+        null=False,
+        blank=False,
+        default=uuid4,
+        editable=False,
     )
 
     ciphers = GenericRelation(Cipher)
 
+    class Meta:
+        abstract = True
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}:{self.id}"
+
     @property
-    def cipher(self) -> Optional[Cipher]:
+    def cipher(self) -> Cipher | None:
         return self.ciphers.first()
 
-    def to_json(self) -> Dict:
+    def to_json(self) -> dict:
         skip_fields = ("id", "uuid")
         data = {}
         for f in self._meta.concrete_fields:
@@ -90,12 +100,6 @@ class CipherModelMixin(Model):
                 continue
             data[f.name] = f.value_from_object(self)
         return data
-
-    def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.id}"  # type: ignore
-
-    class Meta:
-        abstract = True
 
 
 CipherData = CipherModelMixin

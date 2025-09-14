@@ -1,5 +1,6 @@
 import logging
-from typing import Iterable, Optional, cast
+from collections.abc import Iterable
+from typing import cast
 from uuid import UUID
 
 import strawberry
@@ -20,19 +21,27 @@ logger = logging.getLogger(__name__)
 class CipherQuery:
     @strawberry.field(permission_classes=[IsAuthenticated])
     def cipher(
-        self, info: strawberry.Info, id: relay.GlobalID
-    ) -> Optional[Cipher]:
+        self,
+        info: strawberry.Info,
+        id: relay.GlobalID,
+    ) -> Cipher | None:
         try:
             cipher = get_cipher_by_owner_and_uuid(
-                owner=info.context.request.user, uuid=UUID(id.node_id)
+                owner=info.context.request.user,
+                uuid=UUID(id.node_id),
             )
             return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
             logger.warning(
-                "Cipher resource not found for %s", id.node_id, exc_info=error
+                "Cipher resource not found for %s",
+                id.node_id,
+                exc_info=error,
             )
         return None
 
     @relay.connection(CipherConnection, permission_classes=[IsAuthenticated])
     def ciphers(self, info: strawberry.Info) -> Iterable[Cipher]:
-        return cast(Iterable, get_all_ciphers_by_owner(owner=info.context.request.user))
+        return cast(
+            "Iterable",
+            get_all_ciphers_by_owner(owner=info.context.request.user),
+        )

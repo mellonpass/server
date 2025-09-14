@@ -6,7 +6,9 @@ class AccountCreateSerializer(Schema):
     name = fields.Str(required=True, validate=validate.Length(min=3))
 
     cf_turnstile_token = fields.Str(
-        required=False, allow_none=True, load_only=True
+        required=False,
+        allow_none=True,
+        load_only=True,
     )
 
 
@@ -15,7 +17,9 @@ class AuthenticationSerializer(Schema):
     login_hash = fields.Str(required=True, load_only=True)
 
     cf_turnstile_token = fields.Str(
-        required=False, allow_none=True, load_only=True
+        required=False,
+        allow_none=True,
+        load_only=True,
     )
 
 

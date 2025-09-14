@@ -10,12 +10,12 @@ User = get_user_model()
 class Command(BaseCommand):
     help = "Seed initial user for local testing."
 
-    def handle(self, *args, **options):
+    def handle(self, *args, **options):  # noqa: ANN002
         if settings.APP_ENVIRONMENT != "local":
             self.stdout.write(
                 self.style.ERROR(
-                    "Unable to set test user for non-local environment."
-                )
+                    "Unable to set test user for non-local environment.",
+                ),
             )
             return
 
@@ -39,5 +39,5 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(
-            self.style.SUCCESS("Test user %s is set." % user.email)
+            self.style.SUCCESS(f"Test user {user.email} is set."),
         )

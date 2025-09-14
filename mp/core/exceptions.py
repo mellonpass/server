@@ -1,5 +1,6 @@
-class MPException(Exception): ...
+class MPError(Exception):
+    """Base MP exception class."""
 
 
-class ServiceValidationError(MPException):
+class ServiceValidationError(MPError):
     """Error for service validation."""

@@ -10,7 +10,9 @@ from mp.graphql.schema import schema
 
 class MPGrahpQLView(GraphQLView):
     def process_result(
-        self, request: HttpRequest, result: ExecutionResult
+        self,
+        request: HttpRequest,
+        result: ExecutionResult,
     ) -> GraphQLHTTPResponse:
         data: GraphQLHTTPResponse = {"data": result.data}
 
@@ -22,7 +24,7 @@ class MPGrahpQLView(GraphQLView):
         return data
 
     @classonlymethod
-    def as_view(cls, **initkwargs):
+    def as_view(self, **initkwargs):
         view = super().as_view(**initkwargs)
         view.__name__ = "mp_graphql_view"
 

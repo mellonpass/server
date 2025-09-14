@@ -31,7 +31,7 @@ class UserAdmin(BaseUserAdmin):
                     "date_joined",
                     "protected_symmetric_key",
                     "updated",
-                ]
+                ],
             },
         ),
     )
@@ -44,7 +44,7 @@ class UserAdmin(BaseUserAdmin):
             },
         ),
     )
-    readonly_fields = ["date_joined", "updated", "protected_symmetric_key"]
+    readonly_fields = ("date_joined", "updated", "protected_symmetric_key")
     search_fields = ("email",)
     ordering = ("email",)
 
@@ -62,18 +62,18 @@ class SessionAdmin(admin.ModelAdmin):
         "raw_session_data",
     )
 
-    def user(self, obj):
+    def user(self, obj):  # noqa: ANN001
         user_id = obj.get_decoded()["_auth_user_id"]
         return User.objects.get(pk=user_id)
 
-    def user_login(self, obj):
+    def user_login(self, obj):  # noqa: ANN001
         user_id = obj.get_decoded()["_auth_user_id"]
         return User.objects.get(pk=user_id).last_login
 
-    def raw_session_data(self, obj):
+    def raw_session_data(self, obj):  # noqa: ANN001
         return obj.get_decoded()
 
-    def has_add_permission(self, request):
+    def has_add_permission(self, request):  # noqa: ANN001
         return False
 
 

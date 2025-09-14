@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Dict, List, TypedDict, Union, cast
+from typing import TypedDict, cast
 from uuid import UUID
 
 from django.conf import settings
@@ -28,7 +28,7 @@ class CipherSecureNote(TypedDict):
     note: str
 
 
-CipherData = Union[CipherLogin, CipherSecureNote]
+CipherData = CipherLogin | CipherSecureNote
 
 
 @transaction.atomic
@@ -39,9 +39,12 @@ def create_cipher(
     key: str,
     status: str,
     is_favorite: str,
-    data: Dict,
+    data: dict,
 ) -> Cipher:
-    cipher_data = _build_cipher_data(cipher_type=CipherTypeEnum(type), data=data)
+    cipher_data = _build_cipher_data(
+        cipher_type=CipherTypeEnum(type),
+        data=data,
+    )
     return Cipher.objects.create(
         owner=owner,
         status=status,
@@ -54,9 +57,10 @@ def create_cipher(
 
 
 def _build_cipher_data(
-    cipher_type: CipherTypeEnum, data: Dict
-) -> Union[CipherDataLogin, CipherDataSecureNote]:
-    cipher_data: Union[CipherDataLogin, CipherDataSecureNote]
+    cipher_type: CipherTypeEnum,
+    data: dict,
+) -> CipherDataLogin | CipherDataSecureNote:
+    cipher_data: CipherDataLogin | CipherDataSecureNote
     match cipher_type:
         case CipherTypeEnum.LOGIN:
             cipher_data = CipherDataLogin(
@@ -66,7 +70,8 @@ def _build_cipher_data(
         case CipherTypeEnum.SECURE_NOTE:
             cipher_data = CipherDataSecureNote(note=data["note"])
         case _:
-            raise ServiceValidationError(f"Invalid CipherType {cipher_type}.")
+            err_msg = f"Invalid CipherType {cipher_type}."
+            raise ServiceValidationError(err_msg)
     cipher_data.save()
     return cipher_data
 
@@ -89,15 +94,15 @@ def update_cipher(
     cipher.save()
 
     if cipher.type == CipherType.LOGIN:
-        cipher_login = cast(CipherLogin, data)
-        login_data = cast(CipherDataLogin, cipher.data)
+        cipher_login = cast("CipherLogin", data)
+        login_data = cast("CipherDataLogin", cipher.data)
         login_data.username = cipher_login["username"]
         login_data.password = cipher_login["password"]
         login_data.save()
 
     if cipher.type == CipherType.SECURE_NOTE:
-        cipher_secure_note = cast(CipherSecureNote, data)
-        secure_note_data = cast(CipherDataSecureNote, cipher.data)
+        cipher_secure_note = cast("CipherSecureNote", data)
+        secure_note_data = cast("CipherDataSecureNote", cipher.data)
         secure_note_data.note = cipher_secure_note["note"]
         secure_note_data.save()
 
@@ -107,7 +112,7 @@ def update_cipher(
 def update_cipher_to_delete_state(owner: User, uuid: UUID) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.delete_on = timezone.now() + timedelta(
-        days=settings.CIPHER_DELETE_DAYS_PERIOD
+        days=settings.CIPHER_DELETE_DAYS_PERIOD,
     )
     cipher.save(update_fields=["delete_on"])
     return cipher
@@ -120,7 +125,10 @@ def restore_cipher_from_delete_state(owner: User, uuid: UUID) -> Cipher:
     return cipher
 
 
-def delete_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> List[UUID]:
+def delete_ciphers_by_owner_and_uuids(
+    owner: User,
+    uuids: list[UUID],
+) -> list[UUID]:
     qs = Cipher.objects.filter(owner=owner, uuid__in=uuids)
     to_delete_uuids = list(qs.values_list("uuid", flat=True))
     qs.delete()
@@ -132,7 +140,10 @@ def get_cipher_by_owner_and_uuid(owner: User, uuid: UUID) -> Cipher:
     return Cipher.objects.get(owner=owner, uuid=uuid)
 
 
-def get_ciphers_by_owner_and_uuids(owner: User, uuids: List[UUID]) -> QuerySet[Cipher]:
+def get_ciphers_by_owner_and_uuids(
+    owner: User,
+    uuids: list[UUID],
+) -> QuerySet[Cipher]:
     return Cipher.objects.filter(owner=owner, uuid__in=uuids)
 
 

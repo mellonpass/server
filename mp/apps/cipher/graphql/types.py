@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, List, Union, cast
+from typing import Annotated, cast
 
 import strawberry
 from strawberry import relay
@@ -25,10 +25,10 @@ class Cipher(relay.Node):
     updated: datetime
 
     @classmethod
-    def from_model(cls, model: CipherModel):
+    def from_model(cls, model: CipherModel) -> "Cipher":
         return cls(
-            uuid=cast(strawberry.ID, model.uuid),
-            owner_id=cast(strawberry.ID, model.owner.uuid),
+            uuid=cast("strawberry.ID", model.uuid),
+            owner_id=cast("strawberry.ID", model.owner.uuid),
             type=CipherTypeEnum(model.type),
             name=model.name,
             key=model.key,
@@ -43,9 +43,7 @@ class Cipher(relay.Node):
 @strawberry.type
 class CipherConnection(relay.ListConnection[Cipher]):
     @classmethod
-    def resolve_node(
-        cls, node: CipherModel, *, info: strawberry.Info, **kwargs
-    ) -> Cipher:
+    def resolve_node(cls, node: CipherModel) -> Cipher:
         return Cipher.from_model(node)
 
 
@@ -60,7 +58,7 @@ class CipherCreateFailed(CipherMutateFailed): ...
 
 @strawberry.type
 class CipherDeletePayload:
-    deleted_ids: List[relay.GlobalID]
+    deleted_ids: list[relay.GlobalID]
 
 
 @strawberry.type
@@ -68,12 +66,12 @@ class CipherUpdateFailed(CipherMutateFailed): ...
 
 
 CipherCreatePayload = Annotated[
-    Union[Cipher, CipherCreateFailed],
+    Cipher | CipherCreateFailed,
     strawberry.union("CipherCreatePayload"),
 ]
 
 CipherUpdatePayload = Annotated[
-    Union[Cipher, CipherUpdateFailed],
+    Cipher | CipherUpdateFailed,
     strawberry.union("CipherUpdatePayload"),
 ]
 
@@ -87,7 +85,7 @@ class CreateCipherInput:
     key: str
     name: str
     data: JSON
-    isFavorite: str
+    isFavorite: str  # noqa: N815 FIXME.
     status: str
 
 

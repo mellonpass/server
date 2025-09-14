@@ -15,12 +15,15 @@ logger = logging.getLogger(__name__)
 
 def send_account_verification_link(app_origin: str, email: str):
     with transaction.atomic():
-        User = get_user_model()
+        User = get_user_model()  # noqa: N806
         user = User.objects.get(email=email)
 
         if user.is_active:
             logger.warning(
-                "Something trying to resend verification link to active user's email %s",
+                (
+                    "Something trying to resend verification "
+                    "link to active user's email %s"
+                ),
                 user.email,
             )
             return
@@ -29,9 +32,11 @@ def send_account_verification_link(app_origin: str, email: str):
         _, payload = verify_jwt(jwt_token, verify=False)
 
         if not isinstance(payload, dict):
-            raise TypeError(
-                f"Unable to send verification link. Something went wrong when generating a token {payload:r}"
+            err_msg = (
+                "Unable to send verification link. "
+                f"Something went wrong when generating a token {payload:r}",
             )
+            raise TypeError(err_msg)
 
         EmailVerificationToken.objects.create(
             token_id=payload["sub"],
@@ -40,11 +45,12 @@ def send_account_verification_link(app_origin: str, email: str):
         )
 
         context = {
-            "setup_link": f"{app_origin}/account-setup?token_id={jwt_token}"
+            "setup_link": f"{app_origin}/account-setup?token_id={jwt_token}",
         }
 
         html_content = render_to_string(
-            "emails/verification_email.html", context
+            "emails/verification_email.html",
+            context,
         )
         # Remove html tags.
         text_content = strip_tags(html_content)
