@@ -46,7 +46,10 @@ class Cipher(Model):
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
 
     owner = ForeignKey(
-        settings.AUTH_USER_MODEL, null=False, blank=False, on_delete=RESTRICT,
+        settings.AUTH_USER_MODEL,
+        null=False,
+        blank=False,
+        on_delete=RESTRICT,
     )
 
     delete_on = DateTimeField(
@@ -58,7 +61,6 @@ class Cipher(Model):
     updated = DateTimeField(auto_now=True)
 
     class Meta:
-
         indexes = (Index(fields=["content_type", "data_id"]),)
         unique_together = (
             "content_type",
@@ -71,7 +73,11 @@ class Cipher(Model):
 
 class CipherModelMixin(Model):
     uuid = UUIDField(
-        unique=True, null=False, blank=False, default=uuid4, editable=False,
+        unique=True,
+        null=False,
+        blank=False,
+        default=uuid4,
+        editable=False,
     )
 
     ciphers = GenericRelation(Cipher)

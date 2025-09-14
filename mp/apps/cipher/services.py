@@ -42,7 +42,8 @@ def create_cipher(
     data: dict,
 ) -> Cipher:
     cipher_data = _build_cipher_data(
-        cipher_type=CipherTypeEnum(type), data=data,
+        cipher_type=CipherTypeEnum(type),
+        data=data,
     )
     return Cipher.objects.create(
         owner=owner,
@@ -56,7 +57,8 @@ def create_cipher(
 
 
 def _build_cipher_data(
-    cipher_type: CipherTypeEnum, data: dict,
+    cipher_type: CipherTypeEnum,
+    data: dict,
 ) -> CipherDataLogin | CipherDataSecureNote:
     cipher_data: CipherDataLogin | CipherDataSecureNote
     match cipher_type:
@@ -124,7 +126,8 @@ def restore_cipher_from_delete_state(owner: User, uuid: UUID) -> Cipher:
 
 
 def delete_ciphers_by_owner_and_uuids(
-    owner: User, uuids: list[UUID],
+    owner: User,
+    uuids: list[UUID],
 ) -> list[UUID]:
     qs = Cipher.objects.filter(owner=owner, uuid__in=uuids)
     to_delete_uuids = list(qs.values_list("uuid", flat=True))
@@ -138,7 +141,8 @@ def get_cipher_by_owner_and_uuid(owner: User, uuid: UUID) -> Cipher:
 
 
 def get_ciphers_by_owner_and_uuids(
-    owner: User, uuids: list[UUID],
+    owner: User,
+    uuids: list[UUID],
 ) -> QuerySet[Cipher]:
     return Cipher.objects.filter(owner=owner, uuid__in=uuids)
 

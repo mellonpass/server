@@ -65,7 +65,8 @@ def load_es256_key(path: str) -> ec.EllipticCurvePrivateKey:
     with open(path, encoding="utf-8") as f:
         serialized_private_key = f.read()
         key = serialization.load_pem_private_key(
-            serialized_private_key.encode("utf-8"), password=None,
+            serialized_private_key.encode("utf-8"),
+            password=None,
         )
         return cast("ec.EllipticCurvePrivateKey", key)
 

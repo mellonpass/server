@@ -10,6 +10,9 @@ class IsAuthenticated(BasePermission):
     error_extensions: ClassVar[dict] = {"code": "UNAUTHORIZED"}
 
     def has_permission(
-        self, source: Any, info: strawberry.Info, **kwargs,  # noqa: ANN401
+        self,
+        source: Any,  # noqa: ANN401
+        info: strawberry.Info,
+        **kwargs,
     ) -> bool | Awaitable[bool]:
         return info.context.request.user.is_authenticated

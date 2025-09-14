@@ -256,10 +256,12 @@ NO_REPLY_EMAIL = f"no-reply@{DOMAIN}"
 TEST_USER_EMAIL = env("TEST_USER_EMAIL", default=None)
 TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default=None)
 TEST_USER_PROTECTED_SYMMETRIC_KEY = env(
-    "TEST_USER_PROTECTED_SYMMETRIC_KEY", default=None,
+    "TEST_USER_PROTECTED_SYMMETRIC_KEY",
+    default=None,
 )
 TEST_USER_RSA_PROTECTED_PRIVATE_KEY = env(
-    "TEST_USER_RSA_PROTECTED_PRIVATE_KEY", default=None,
+    "TEST_USER_RSA_PROTECTED_PRIVATE_KEY",
+    default=None,
 )
 TEST_USER_RSA_PUBLIC_KEY = env("TEST_USER_RSA_PUBLIC_KEY", default=None)
 
@@ -281,7 +283,8 @@ HUEY = SqliteHuey(filename="/tmp/huey.sqlite")  # noqa: S108
 # CloudFlare
 # ------------------------------------------------------------
 CF_ENABLE_TURNSTILE_INTEGRATION = env(
-    "CF_ENABLE_TURNSTILE_INTEGRATION", default=False,
+    "CF_ENABLE_TURNSTILE_INTEGRATION",
+    default=False,
 )
 if CF_ENABLE_TURNSTILE_INTEGRATION:
     CF_TURNSTILE_CHALLENGE_API = env("CF_TURNSTILE_CHALLENGE_API")

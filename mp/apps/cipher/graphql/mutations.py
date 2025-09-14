@@ -32,7 +32,9 @@ logger = logging.getLogger(__name__)
 class CipherMutation:
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def create(
-        self, info: strawberry.Info, input: CreateCipherInput,
+        self,
+        info: strawberry.Info,
+        input: CreateCipherInput,
     ) -> CipherCreatePayload:
         try:
             cipher = create_cipher(
@@ -56,7 +58,9 @@ class CipherMutation:
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update(
-        self, info: strawberry.Info, input: UpdateCipherInput,
+        self,
+        info: strawberry.Info,
+        input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
         try:
             cipher = update_cipher(
@@ -83,7 +87,9 @@ class CipherMutation:
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update_to_delete(
-        self, info: strawberry.Info, input: UpdateCipherInput,
+        self,
+        info: strawberry.Info,
+        input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
         try:
             owner = info.context.request.user
@@ -99,7 +105,8 @@ class CipherMutation:
                     data=input.data,
                 )
                 cipher = update_cipher_to_delete_state(
-                    owner=owner, uuid=cipher.uuid,
+                    owner=owner,
+                    uuid=cipher.uuid,
                 )
 
                 return Cipher.from_model(cipher)
@@ -115,10 +122,11 @@ class CipherMutation:
                 message="Something went wrong when updating a vault item.",
             )
 
-
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def restore_cipher_from_delete(
-        self, info: strawberry.Info, input: UpdateCipherInput,
+        self,
+        info: strawberry.Info,
+        input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
         try:
             owner = info.context.request.user
@@ -134,7 +142,8 @@ class CipherMutation:
                     data=input.data,
                 )
                 cipher = restore_cipher_from_delete_state(
-                    owner=owner, uuid=cipher.uuid,
+                    owner=owner,
+                    uuid=cipher.uuid,
                 )
                 return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
@@ -149,7 +158,9 @@ class CipherMutation:
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def bulk_delete(
-        self, info: strawberry.Info, ids: list[relay.GlobalID],
+        self,
+        info: strawberry.Info,
+        ids: list[relay.GlobalID],
     ) -> CipherDeletePayload:
         affected_uuids = delete_ciphers_by_owner_and_uuids(
             owner=info.context.request.user,
@@ -157,7 +168,6 @@ class CipherMutation:
         )
         return CipherDeletePayload(
             deleted_ids=[
-                relay.GlobalID("Cipher", str(_uuid))
-                for _uuid in affected_uuids
+                relay.GlobalID("Cipher", str(_uuid)) for _uuid in affected_uuids
             ],
         )

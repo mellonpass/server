@@ -96,7 +96,10 @@ def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001,
         # This will become `True` if user the same IP created more than 5 accounts
         # per minute. Also does not commit account creation.
         same_client_ip_usage = get_usage(
-            request, key=rl_client_ip, rate="3/m", fn=account_create_view,
+            request,
+            key=rl_client_ip,
+            rate="3/m",
+            fn=account_create_view,
         )
 
         if settings.RATELIMIT_ENABLE and same_client_ip_usage["should_limit"]:
@@ -115,10 +118,12 @@ def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001,
         # CF Integration (optional).
         cftoken_key = "cf_turnstile_token"
         turnstile_token = account_data.get(
-            cftoken_key, None,
+            cftoken_key,
+            None,
         ) and account_data.pop(cftoken_key)
         turnstile_response = _turnstile_view_validation(
-            action="signup", token=turnstile_token,
+            action="signup",
+            token=turnstile_token,
         )
         if turnstile_response:
             return turnstile_response
@@ -133,7 +138,8 @@ def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001,
                 http_origin = "testserver"
 
             send_account_verification_link_task(
-                app_origin=http_origin, email=user.email,
+                app_origin=http_origin,
+                email=user.email,
             )
 
         return JsonResponse(
@@ -152,19 +158,22 @@ def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001,
 def _login_view_rate_limit_checker(request: HttpRequest) -> JsonResponse | None:
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(
-            request, key=rl_email, rate="5/m", fn=login_view,
+            request,
+            key=rl_email,
+            rate="5/m",
+            fn=login_view,
         )
         same_client_ip_usage = get_usage(
-            request, key=rl_client_ip, rate="5/m", fn=login_view,
+            request,
+            key=rl_client_ip,
+            rate="5/m",
+            fn=login_view,
         )
 
         logger.info("same_email_usage: %s", same_email_usage)
         logger.info("same_client_ip_usage: %s", same_client_ip_usage)
 
-        if (
-            same_email_usage["should_limit"]
-            or same_client_ip_usage["should_limit"]
-        ):
+        if same_email_usage["should_limit"] or same_client_ip_usage["should_limit"]:
             return JsonResponse(
                 {
                     "error": "Blocked, try again later.",
@@ -229,7 +238,8 @@ def login_view(request: HttpRequest):
         cftoken_key,
     )
     turnstile_response = _turnstile_view_validation(
-        action="login", token=turnstile_token,
+        action="login",
+        token=turnstile_token,
     )
     if turnstile_response:
         return turnstile_response
@@ -353,7 +363,8 @@ def verify_view(request: HttpRequest):
     token.user.verify_account()
 
     return JsonResponse(
-        {"data": {"verified_email": token.user.email}}, status=HTTPStatus.OK,
+        {"data": {"verified_email": token.user.email}},
+        status=HTTPStatus.OK,
     )
 
 
@@ -365,7 +376,8 @@ def setup_view(request: HttpRequest):
         data = serializer.load(json.loads(request.body))
         user = setup_account(**data)
         return JsonResponse(
-            {"data": {"user_email": user.email}}, status=HTTPStatus.OK,
+            {"data": {"user_email": user.email}},
+            status=HTTPStatus.OK,
         )
     except ValidationError as error:
         return JsonResponse(

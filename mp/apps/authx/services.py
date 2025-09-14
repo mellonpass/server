@@ -16,12 +16,15 @@ def create_account(
     name: str,
 ) -> tuple[User, bool]:
     return UserModel.objects.get_or_create(
-        email=email, defaults={"name": name, "is_active": False},
+        email=email,
+        defaults={"name": name, "is_active": False},
     )
 
 
 def login_user(
-    email: str, login_hash: str, request: HttpRequest,
+    email: str,
+    login_hash: str,
+    request: HttpRequest,
 ) -> tuple[User | None, bool]:
     user = authenticate(username=email, password=login_hash)
     if user is not None:

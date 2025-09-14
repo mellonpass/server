@@ -49,7 +49,8 @@ def send_account_verification_link(app_origin: str, email: str):
         }
 
         html_content = render_to_string(
-            "emails/verification_email.html", context,
+            "emails/verification_email.html",
+            context,
         )
         # Remove html tags.
         text_content = strip_tags(html_content)
