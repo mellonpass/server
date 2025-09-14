@@ -5,8 +5,25 @@ on:
     branches: ["main"]
 
 jobs:
-  test:
+  setup: &setup-dependencies
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up python environment
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install pipx
+          python -m pipx ensurepath
+          python -m pipx install poetry==1.8.5
+          poetry install --no-root
+
+  test:
+    <<: *setup-dependencies
     services:
       postgres:
         image: postgres:15-alpine
@@ -23,17 +40,6 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v3
-      - name: Set up python environment
-        uses: actions/setup-python@v3
-        with:
-          python-version: 3.11.11
-      - name: Install dependencies
-        run: |
-          python -m pip install pipx
-          python -m pipx ensurepath
-          python -m pipx install poetry==1.8.5
-          poetry install --no-root
       - name: Run tests
         env:
           APP_ENVIRONMENT: test
@@ -45,3 +51,9 @@ jobs:
           ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
           ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
         run: poetry run pytest .
+
+  code-quality:
+    <<: *setup-dependencies
+    steps:
+      - name: Run staticcheck
+        run: scripts/dev/staticcheck
