@@ -1,4 +1,5 @@
-import typing
+from collections.abc import Awaitable
+from typing import Any, ClassVar
 
 import strawberry
 from strawberry.permission import BasePermission
@@ -6,9 +7,9 @@ from strawberry.permission import BasePermission
 
 class IsAuthenticated(BasePermission):
     message = "User is not authenticated on this client!"
-    error_extensions = {"code": "UNAUTHORIZED"}
+    error_extensions: ClassVar[dict] = {"code": "UNAUTHORIZED"}
 
     def has_permission(
-        self, source: typing.Any, info: strawberry.Info, **kwargs
-    ) -> typing.Union[bool, typing.Awaitable[bool]]:
+        self, source: Any, info: strawberry.Info, **kwargs,  # noqa: ANN401
+    ) -> bool | Awaitable[bool]:
         return info.context.request.user.is_authenticated

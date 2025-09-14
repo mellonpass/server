@@ -1,3 +1,5 @@
+from typing import Any
+
 import strawberry
 from django.conf import settings
 from graphql.validation import NoSchemaIntrospectionCustomRule
@@ -7,7 +9,7 @@ from strawberry.tools import merge_types
 from mp.apps.cipher.graphql import schema as cipher_schema
 
 
-def _get_extensions():
+def _get_extensions() -> list[Any]:
     ext = []
 
     if not settings.DEBUG:

@@ -11,7 +11,6 @@ pytestmark = pytest.mark.django_db()
 
 
 def test_setup_view(client: Client):
-
     user = UserFactory(verified=True, is_active=False)
 
     login_hash = base64.urlsafe_b64encode("my-hash".encode()).decode()

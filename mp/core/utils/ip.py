@@ -4,6 +4,6 @@ from ipware import get_client_ip
 
 # Used for ratelimiting.
 # Detect CLIENT_IP properly using ipware.
-def rl_client_ip(group, request: HttpRequest):
+def rl_client_ip(group, request: HttpRequest):  # noqa: ARG001, ANN001
     client_ip, _ = get_client_ip(request)
     return client_ip

@@ -37,22 +37,25 @@ logger = logging.getLogger(__name__)
 
 # Used for ratelimiting.
 # Detect login with the same email.
-def rl_email(group, request: HttpRequest):
+def rl_email(group, request: HttpRequest):  # noqa: ARG001, ANN001
     serializer = AuthenticationSerializer()
     auth_data = serializer.load(json.loads(request.body))
     return auth_data["email"]
 
 
-def _turnstile_view_validation(action: str, token: str):
+def _turnstile_view_validation(action: str, token: str) -> JsonResponse | None:
     try:
         turnstile_response = validate_turnstile(action=action, token=token)
 
         # CF turnstile is disabled if it returns boolean False value.
         if turnstile_response is False:
-            return
+            return None
 
         error_msg = None
-        if isinstance(turnstile_response, dict) and turnstile_response["success"] is False:
+        if (
+            isinstance(turnstile_response, dict)
+            and turnstile_response["success"] is False
+        ):
             error_msg = "Verification failed."
 
         if turnstile_response is None:
@@ -78,9 +81,7 @@ def _turnstile_view_validation(action: str, token: str):
 @ratelimit(key=rl_client_ip, rate="3/m", block=False)
 @require_POST
 @csrf_exempt
-def account_create_view(request: HttpRequest, *args, **kwargs):
-    """A single purpose account view to create user accounts."""
-
+def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001, ANN002
     if request.content_type != "application/json":
         return JsonResponse(
             {
@@ -95,7 +96,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         # This will become `True` if user the same IP created more than 5 accounts
         # per minute. Also does not commit account creation.
         same_client_ip_usage = get_usage(
-            request, key=rl_client_ip, rate="3/m", fn=account_create_view
+            request, key=rl_client_ip, rate="3/m", fn=account_create_view,
         )
 
         if settings.RATELIMIT_ENABLE and same_client_ip_usage["should_limit"]:
@@ -114,10 +115,10 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         # CF Integration (optional).
         cftoken_key = "cf_turnstile_token"
         turnstile_token = account_data.get(
-            cftoken_key, None
+            cftoken_key, None,
         ) and account_data.pop(cftoken_key)
         turnstile_response = _turnstile_view_validation(
-            action="signup", token=turnstile_token
+            action="signup", token=turnstile_token,
         )
         if turnstile_response:
             return turnstile_response
@@ -132,7 +133,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
                 http_origin = "testserver"
 
             send_account_verification_link_task(
-                app_origin=http_origin, email=user.email
+                app_origin=http_origin, email=user.email,
             )
 
         return JsonResponse(
@@ -148,13 +149,13 @@ def account_create_view(request: HttpRequest, *args, **kwargs):
         )
 
 
-def _login_view_rate_limit_checker(request: HttpRequest):
+def _login_view_rate_limit_checker(request: HttpRequest) -> JsonResponse | None:
     if settings.RATELIMIT_ENABLE:
         same_email_usage = get_usage(
-            request, key=rl_email, rate="5/m", fn=login_view
+            request, key=rl_email, rate="5/m", fn=login_view,
         )
         same_client_ip_usage = get_usage(
-            request, key=rl_client_ip, rate="5/m", fn=login_view
+            request, key=rl_client_ip, rate="5/m", fn=login_view,
         )
 
         logger.info("same_email_usage: %s", same_email_usage)
@@ -176,17 +177,20 @@ def _login_view_rate_limit_checker(request: HttpRequest):
             int(same_client_ip_usage["limit"] - same_client_ip_usage["count"]),
         )
 
+    return None
+
 
 @ratelimit(key=rl_email, rate="5/m", block=False)
 @ratelimit(key=rl_client_ip, rate="5/m", block=False)
 @require_POST
 @csrf_exempt
 def login_view(request: HttpRequest):
-    if ratelimite_check_response := _login_view_rate_limit_checker(request):
-        return ratelimite_check_response
+    request_issue: JsonResponse
+
+    request_issue = _login_view_rate_limit_checker(request)
 
     if request.content_type != "application/json":
-        return JsonResponse(
+        request_issue = JsonResponse(
             {
                 "error": "Invalid request content-type.",
             },
@@ -194,12 +198,18 @@ def login_view(request: HttpRequest):
         )
 
     if request.user.is_authenticated:
-        return JsonResponse(
+        request_issue = JsonResponse(
             {
-                "error": f"User {request.user.email} is already authenticated. Logout current user first!",
+                "error": (
+                    f"User {request.user.email} is already authenticated. "
+                    "Logout current user first!"
+                ),
             },
             status=HTTPStatus.BAD_REQUEST,
         )
+
+    if request_issue:
+        return request_issue
 
     try:
         serializer = AuthenticationSerializer()
@@ -216,10 +226,10 @@ def login_view(request: HttpRequest):
     # CF Integration (optional).
     cftoken_key = "cf_turnstile_token"
     turnstile_token = auth_data.get(cftoken_key, None) and auth_data.pop(
-        cftoken_key
+        cftoken_key,
     )
     turnstile_response = _turnstile_view_validation(
-        action="login", token=turnstile_token
+        action="login", token=turnstile_token,
     )
     if turnstile_response:
         return turnstile_response
@@ -228,15 +238,14 @@ def login_view(request: HttpRequest):
     user, is_success = login_user(**auth_data, request=request)
 
     if user is not None and is_success:
-        success_response = JsonResponse(
+        return JsonResponse(
             {
                 "data": {
                     "psk": user.protected_symmetric_key,
-                }
+                },
             },
             status=HTTPStatus.ACCEPTED,
         )
-        return success_response
 
     error_data = {
         "error": (
@@ -269,11 +278,10 @@ def logout_view(request: HttpRequest):
     user_email = request.user.email
     logout_user(request)
 
-    response = JsonResponse(
+    return JsonResponse(
         {"message": f"User {user_email} has successfully logged out."},
         status=HTTPStatus.ACCEPTED,
     )
-    return response
 
 
 @require_POST
@@ -287,6 +295,15 @@ def check_email_view(request: HttpRequest):
         },
         status=HTTPStatus.OK,
     )
+
+
+def _verify_or_raise_invalid_token_error(token_id: str) -> dict:
+    is_valid, res = verify_jwt(token_id)
+
+    if isinstance(res, str) or not is_valid:
+        raise InvalidTokenError(res)
+
+    return res
 
 
 @require_POST
@@ -303,14 +320,10 @@ def verify_view(request: HttpRequest):
         )
 
     try:
-        is_valid, res = verify_jwt(data["token_id"])
-
-        if isinstance(res, str) or not is_valid:
-            raise InvalidTokenError(res)
-
-        token = get_object_or_404(EmailVerificationToken, token_id=res["sub"])
+        payload = _verify_or_raise_invalid_token_error(data["token_id"])
+        token = get_object_or_404(EmailVerificationToken, token_id=payload["sub"])
     except (Http404, InvalidTokenError) as err:
-        logger.exception(err)
+        logger.exception("Error verifying token.", exc_info=err)
 
         return JsonResponse(
             {"error": "Invalid token."},
@@ -340,7 +353,7 @@ def verify_view(request: HttpRequest):
     token.user.verify_account()
 
     return JsonResponse(
-        {"data": {"verified_email": token.user.email}}, status=HTTPStatus.OK
+        {"data": {"verified_email": token.user.email}}, status=HTTPStatus.OK,
     )
 
 
@@ -352,7 +365,7 @@ def setup_view(request: HttpRequest):
         data = serializer.load(json.loads(request.body))
         user = setup_account(**data)
         return JsonResponse(
-            {"data": {"user_email": user.email}}, status=HTTPStatus.OK
+            {"data": {"user_email": user.email}}, status=HTTPStatus.OK,
         )
     except ValidationError as error:
         return JsonResponse(
@@ -378,7 +391,7 @@ def whoami_view(request: HttpRequest):
             "data": {
                 "identity": str(request.user),
                 "auth": request.user.is_authenticated,
-            }
+            },
         },
         status=HTTPStatus.OK,
     )
@@ -412,7 +425,7 @@ def unlock_view(request: HttpRequest):
             {
                 "data": {
                     "psk": request.user.protected_symmetric_key,
-                }
+                },
             },
             status=HTTPStatus.OK,
         )

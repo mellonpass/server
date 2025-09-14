@@ -1,5 +1,4 @@
 import logging
-from typing import List
 from uuid import UUID
 
 import strawberry
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 class CipherMutation:
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def create(
-        self, info: strawberry.Info, input: CreateCipherInput
+        self, info: strawberry.Info, input: CreateCipherInput,
     ) -> CipherCreatePayload:
         try:
             cipher = create_cipher(
@@ -49,14 +48,15 @@ class CipherMutation:
 
         except Exception as error:
             # log error with stacktrace do not reveal on API.
-            logger.exception(error)
+            logger.exception("Create cipher failed!", exc_info=error)
+
             return CipherCreateFailed(
-                message="Something went wrong when creating a vault item."
+                message="Something went wrong when creating a vault item.",
             )
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update(
-        self, info: strawberry.Info, input: UpdateCipherInput
+        self, info: strawberry.Info, input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
         try:
             cipher = update_cipher(
@@ -75,14 +75,15 @@ class CipherMutation:
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
         except Exception as error:
-            logger.exception(error)
+            logger.exception("Unable to update a cipher!", exc_info=error)
+
             return CipherUpdateFailed(
-                message="Something went wrong when updating a vault item."
+                message="Something went wrong when updating a vault item.",
             )
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update_to_delete(
-        self, info: strawberry.Info, input: UpdateCipherInput
+        self, info: strawberry.Info, input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
         try:
             owner = info.context.request.user
@@ -98,7 +99,7 @@ class CipherMutation:
                     data=input.data,
                 )
                 cipher = update_cipher_to_delete_state(
-                    owner=owner, uuid=cipher.uuid
+                    owner=owner, uuid=cipher.uuid,
                 )
 
                 return Cipher.from_model(cipher)
@@ -107,14 +108,17 @@ class CipherMutation:
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
         except Exception as error:
-            logger.exception(error)
+            # We don't really delete instantly, cipher will be deleted after
+            # a set period of time via celery task.
+            logger.exception("Unable to delete a cipher!", exc_info=error)
             return CipherUpdateFailed(
-                message="Something went wrong when updating a vault item."
+                message="Something went wrong when updating a vault item.",
             )
+
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def restore_cipher_from_delete(
-        self, info: strawberry.Info, input: UpdateCipherInput
+        self, info: strawberry.Info, input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
         try:
             owner = info.context.request.user
@@ -130,7 +134,7 @@ class CipherMutation:
                     data=input.data,
                 )
                 cipher = restore_cipher_from_delete_state(
-                    owner=owner, uuid=cipher.uuid
+                    owner=owner, uuid=cipher.uuid,
                 )
                 return Cipher.from_model(cipher)
         except CipherModel.DoesNotExist as error:
@@ -138,14 +142,14 @@ class CipherMutation:
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
         except Exception as error:
-            logger.exception(error)
+            logger.exception("Unable to restore cipher from delete.", exc_info=error)
             return CipherUpdateFailed(
-                message="Something went wrong when updating a vault item."
+                message="Something went wrong when updating a vault item.",
             )
 
     @strawberry.mutation(permission_classes=[IsAuthenticated])
     def bulk_delete(
-        self, info: strawberry.Info, ids: List[relay.GlobalID]
+        self, info: strawberry.Info, ids: list[relay.GlobalID],
     ) -> CipherDeletePayload:
         affected_uuids = delete_ciphers_by_owner_and_uuids(
             owner=info.context.request.user,
@@ -155,5 +159,5 @@ class CipherMutation:
             deleted_ids=[
                 relay.GlobalID("Cipher", str(_uuid))
                 for _uuid in affected_uuids
-            ]
+            ],
         )

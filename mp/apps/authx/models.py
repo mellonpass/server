@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import ClassVar
 from uuid import uuid4
 
 from cryptography.hazmat.primitives import hashes
@@ -26,12 +27,11 @@ from mp.crypto import es256_jwt
 
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **fields):
-        """
-        Creates and saves a User with the given email and password.
-        """
+    def create_user(self, email: str | None, password: str | None = None, **fields):
+        """Create and save a User with the given email and password."""
         if not email:
-            raise ValueError("Users must have an email address.")
+            err_msg = "Users must have an email address."
+            raise ValueError(err_msg)
 
         user = self.model(email=self.normalize_email(email), **fields)
 
@@ -39,7 +39,7 @@ class CustomUserManager(BaseUserManager):
         user.save()
         return user
 
-    def create_superuser(self, email, password, **fields):
+    def create_superuser(self, email: str | None, password: str | None, **fields):
         user = self.create_user(email, password=password, **fields)
         user.is_staff = True
         user.is_superuser = True
@@ -70,7 +70,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     protected_symmetric_key = EncryptedTextField(
-        null=False, blank=True, default=""
+        null=False,
+        blank=True,
+        default="",
     )
     password = EncryptedTextField(_("password"), max_length=128)
 
@@ -85,9 +87,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS: ClassVar[list[str]] = []
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.email
 
     def verify_account(self):
@@ -100,7 +102,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
 class RSAOAEPKey(Model):
     protected_key = EncryptedTextField(
-        null=False, blank=False, help_text="Protected private key."
+        null=False,
+        blank=False,
+        help_text="Protected private key.",
     )
     public_key = EncryptedTextField(null=False, blank=False)
     created = DateTimeField(auto_now_add=True)
@@ -114,7 +118,7 @@ class RSAOAEPKey(Model):
         on_delete=PROTECT,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.user.email
 
 
@@ -134,7 +138,7 @@ class EmailVerificationToken(Model):
         on_delete=PROTECT,
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.token_id
 
     @classmethod
@@ -148,7 +152,7 @@ class EmailVerificationToken(Model):
                 "iat": int(timezone.now().timestamp()),
                 "exp": int(cls.get_default_expiry_date().timestamp()),
                 "jti": str(uuid4()),
-            }
+            },
         )
 
     @property

@@ -130,9 +130,9 @@ def test_account_already_verified(client: Client):
     """Test email is verified but user is not done with account setup."""
     token = EmailVerificationToken.generate_token_id()
     _, jwt = verify_jwt(token, verify=False)
-    
+
     assert isinstance(jwt, dict)
-    
+
     token_obj = EmailVerificationTokenFactory(
         token_id=jwt["sub"], user=UserFactory(verified=True, is_active=False)
     )
