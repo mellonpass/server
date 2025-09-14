@@ -43,7 +43,7 @@ class Cipher(relay.Node):
 @strawberry.type
 class CipherConnection(relay.ListConnection[Cipher]):
     @classmethod
-    def resolve_node(cls, node: CipherModel) -> Cipher:
+    def resolve_node(cls, node: CipherModel) -> Cipher:  # type: ignore[override]
         return Cipher.from_model(node)
 
 
