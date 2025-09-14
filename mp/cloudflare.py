@@ -30,7 +30,7 @@ def _non_transient_errors(e: requests.exceptions.RequestException) -> bool:
     requests.exceptions.RequestException,
     max_tries=3,
     raise_on_giveup=False,
-    giveup=_non_transient_errors,
+    giveup=_non_transient_errors,  # type: ignore[arg-type]
 )
 def validate_turnstile(
     action: str,

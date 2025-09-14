@@ -76,6 +76,8 @@ def _turnstile_view_validation(action: str, token: str) -> JsonResponse | None:
             exc_info=error,
         )
 
+    return None
+
 
 @transaction.atomic()
 @ratelimit(key=rl_client_ip, rate="3/m", block=False)
@@ -194,7 +196,7 @@ def _login_view_rate_limit_checker(request: HttpRequest) -> JsonResponse | None:
 @require_POST
 @csrf_exempt
 def login_view(request: HttpRequest):
-    request_issue: JsonResponse
+    request_issue: JsonResponse | None
 
     request_issue = _login_view_rate_limit_checker(request)
 

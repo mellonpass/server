@@ -35,7 +35,7 @@ class CustomUserManager(BaseUserManager):
 
         user = self.model(email=self.normalize_email(email), **fields)
 
-        user.set_password(password)
+        user.set_password(password)  # type: ignore[attr-defined]
         user.save()
         return user
 

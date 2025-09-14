@@ -42,7 +42,7 @@ class Cipher(Model):
     )
 
     data_id = PositiveIntegerField()
-    data: "CipherData" = GenericForeignKey("content_type", "data_id")
+    data: "CipherData" = GenericForeignKey("content_type", "data_id")  # type: ignore[assignment]
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
 
     owner = ForeignKey(
@@ -86,7 +86,7 @@ class CipherModelMixin(Model):
         abstract = True
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.id}"
+        return f"{self.__class__.__name__}:{self.id}"  # type: ignore[attr-defined]
 
     @property
     def cipher(self) -> Cipher | None:
