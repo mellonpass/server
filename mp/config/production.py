@@ -80,7 +80,6 @@ if env("SENTRY_DSN", default=None):
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        # TODO(roelzkie): Resolve S108.
-        "LOCATION": "/tmp/mellonpass_cache",  # noqa: S108
+        "LOCATION": "/tmp/mellonpass_cache",
     },
 }

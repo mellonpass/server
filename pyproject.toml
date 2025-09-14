@@ -116,6 +116,7 @@ ignore = [
     "FIX002",
     "PTH",
     "TD003",
+    "S108",     # TODO: remove this later.
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
