@@ -1,0 +1,42 @@
+name: Setup python environment.
+
+inputs:
+  PYTHON_VERSION:
+    required: true
+  POETRY_VERSION:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+
+    - name: Set environment variables.
+      shell: bash
+      run: |
+        echo "APP_ENVIRONMENT=test" >> $GITHUB_ENV
+        echo "DOMAIN=example.com" >> $GITHUB_ENV
+        echo "DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres" >> $GITHUB_ENV
+        echo "DJANGO_SETTINGS_MODULE=mp.config.test" >> $GITHUB_ENV
+        echo "SECRET_KEY=django-insecure-secret-key" >> $GITHUB_ENV
+        echo "DB_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=" >> $GITHUB_ENV
+        echo "ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem" >> $GITHUB_ENV
+        echo "ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem" >> $GITHUB_ENV
+
+    - name: Install Poetry.
+      shell: bash
+      run: pipx install poetry==${{ inputs.POETRY_VERSION }}
+
+    - name: Setup Python.
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.PYTHON_VERSION }}
+        cache: 'poetry'
+        cache-dependency-path: poetry.lock
+
+    - name: Set Poetry environment.
+      shell: bash
+      run: poetry env use ${{ inputs.PYTHON_VERSION }}
+
+    - name: Install dependencies.
+      shell: bash
+      run: poetry install --no-root

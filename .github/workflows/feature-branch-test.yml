@@ -4,26 +4,13 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  PYTHON_VERSION: "3.11"
+  POETRY_VERSION: "1.8.5"
+
 jobs:
-  setup: &setup-dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up python environment
-        uses: actions/setup-python@v3
-        with:
-          python-version: 3.11.11
-
-      - name: Install dependencies
-        run: |
-          python -m pip install pipx
-          python -m pipx ensurepath
-          python -m pipx install poetry==1.8.5
-          poetry install --no-root
-
   test:
-    <<: *setup-dependencies
+    runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:15-alpine
@@ -40,20 +27,23 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/envsetup
+        with:
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+          POETRY_VERSION: ${{ env.POETRY_VERSION }}
+
       - name: Run tests
-        env:
-          APP_ENVIRONMENT: test
-          DOMAIN: example.com
-          DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
-          DJANGO_SETTINGS_MODULE: mp.config.test
-          SECRET_KEY: django-insecure-secret-key
-          DB_SYMMETRIC_KEY: IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U=
-          ES256_PRIVATE_KEY_PATH: mp/jwt/tests/resources/keys/private_key.pem
-          ES256_PUBLIC_KEY_PATH: mp/jwt/tests/resources/keys/public_key.pem
         run: poetry run pytest .
 
   code-quality:
-    <<: *setup-dependencies
+    runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/envsetup
+        with:
+          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
+          POETRY_VERSION: ${{ env.POETRY_VERSION }}
+
       - name: Run staticcheck
         run: scripts/dev/staticcheck
