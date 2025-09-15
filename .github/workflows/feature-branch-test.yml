@@ -5,8 +5,16 @@ on:
     branches: ["main"]
 
 env:
-  PYTHON_VERSION: "3.11"
-  POETRY_VERSION: "1.8.5"
+  CI_PYTHON_VERSION: "3.11"
+  CI_POETRY_VERSION: "1.8.5"
+  APP_ENVIRONMENT: "test"
+  DOMAIN: "example.com"
+  DATABASE_URL: "postgres://postgres:postgres@localhost:5432/postgres"
+  DJANGO_SETTINGS_MODULE: "mp.config.test"
+  SECRET_KEY: "django-insecure-secret-key"
+  DB_SYMMETRIC_KEY: "IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U="
+  ES256_PRIVATE_KEY_PATH: "mp/jwt/tests/resources/keys/private_key.pem"
+  ES256_PUBLIC_KEY_PATH: "mp/jwt/tests/resources/keys/public_key.pem"
 
 jobs:
   test:
@@ -29,10 +37,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/envsetup
-        with:
-          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
-          POETRY_VERSION: ${{ env.POETRY_VERSION }}
-
       - name: Run tests
         run: poetry run pytest .
 
@@ -41,9 +45,5 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: ./.github/actions/envsetup
-        with:
-          PYTHON_VERSION: ${{ env.PYTHON_VERSION }}
-          POETRY_VERSION: ${{ env.POETRY_VERSION }}
-
       - name: Run staticcheck
         run: scripts/dev/staticcheck
