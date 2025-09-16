@@ -1,6 +1,3 @@
-# 1. Build the test image using current commit hash as tag.
-# 2. Pull test image, run tests, clean up test image.
-# 3. Build stable image.
 name: release
 
 on:
@@ -9,35 +6,16 @@ on:
     tags: ["*"]
 
 jobs:
-  test:
+
+  build_test:
     permissions: write-all
     runs-on: ubuntu-latest
     outputs:
       image_sha: ${{ steps.build_env.outputs.image_sha }}
-    services:
-      registry:
-        image: registry:2
-        ports:
-          - 5000:5000
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_DB: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: postgres
-          POSTGRES_PORT: 5432
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
-
       - uses: actions/checkout@v4
-      - name: Preparing environments
+
+      - name: Preparing git-hash
         id: build_env
         shell: bash
         run: |
@@ -49,33 +27,47 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
 
-      - name: Build and upload test docker image on the local registry
+      - name: Logging in to ghrc.io
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and upload docker image on ghrc.io
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: localhost:5000/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
+          tags: ghcr.io/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          target: production
+          provenance: false
           build-args: |
             POETRY_INSTALL_OPTS=--no-root
             POETRY_VERSION=1.8.5
-          target: production
 
-      - name: Run tests
-        run: |
-          docker run --rm --network=host \
-            -e APP_ENVIRONMENT=test \
-            -e DOMAIN=example.com \
-            -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres \
-            -e DJANGO_SETTINGS_MODULE=mp.config.test \
-            -e SECRET_KEY=django-insecure-secret-key \
-            -e DB_SYMMETRIC_KEY=IFdjlMcWEjpswSDoOhiEhsQXugioBs_Pbg5z1J8G91U= \
-            -e ES256_PRIVATE_KEY_PATH=mp/jwt/tests/resources/keys/private_key.pem \
-            -e ES256_PUBLIC_KEY_PATH=mp/jwt/tests/resources/keys/public_key.pem \
-            localhost:5000/${{ github.repository }}:${{ steps.build_env.outputs.image_sha }} \
-            bash -c pytest .
+  test:
+    needs: build_test
+    uses: ./.github/workflows/test-template.yml
+    with:
+      image-sha: ${{ needs.build_test.outputs.image_sha }}
+      name: Run unittests
+      command: poetry run pytest .
+
+  code-quality:
+    needs: build_test
+    uses: ./.github/workflows/test-template.yml
+    with:
+      image-sha: ${{ needs.build_test.outputs.image_sha }}
+      name: Run staticcheck
+      command: ./scripts/dev/staticcheck
 
   build:
-    needs: test
+    needs: ["test", "code-quality"]
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
