@@ -1,4 +1,4 @@
-name: Feature branch test
+name: PR test
 
 on:
   pull_request:
