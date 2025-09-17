@@ -7,7 +7,7 @@ on:
 
 jobs:
 
-  build_test:
+  build-test:
     permissions: write-all
     runs-on: ubuntu-latest
     outputs:
@@ -51,18 +51,18 @@ jobs:
             POETRY_VERSION=1.8.5
 
   test:
-    needs: build_test
+    needs: build-test
     uses: ./.github/workflows/test-template.yml
     with:
-      image-sha: ${{ needs.build_test.outputs.image_sha }}
+      image-sha: ${{ needs.build-test.outputs.image_sha }}
       name: Run unittests
       command: poetry run pytest .
 
   code-quality:
-    needs: build_test
+    needs: build-test
     uses: ./.github/workflows/test-template.yml
     with:
-      image-sha: ${{ needs.build_test.outputs.image_sha }}
+      image-sha: ${{ needs.build-test.outputs.image_sha }}
       name: Run staticcheck
       command: ./scripts/dev/staticcheck
 
@@ -70,8 +70,17 @@ jobs:
     needs: ["test", "code-quality"]
     permissions: write-all
     runs-on: ubuntu-latest
+    outputs:
+      image_sha: ${{ steps.build_env.outputs.image_sha }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Preparing git-hash
+        id: build_env
+        shell: bash
+        run: |
+          echo "image_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
       - name: Preparing metadata
         uses: docker/metadata-action@v5
         id: metadata
@@ -102,3 +111,17 @@ jobs:
             POETRY_VERSION=1.8.5
           cache-from: type=registry,ref=ghcr.io/${{ github.repository }}-cache:${{ github.ref_name }}
           cache-to: type=registry,ref=ghcr.io/${{ github.repository }}-cache:${{ github.ref_name }},compression=zstd,mode=max
+
+  clean-up:
+      needs: ["build"]
+      name: Clean up test images.
+      runs-on: ubuntu-latest
+      steps:
+        - uses: snok/container-retention-policy@v3.0.0
+          with:
+            account: mellonpass
+            token: ${{ secrets.CI_PAT }}
+            image-names: "server"
+            image-tags: "${{ needs.build.outputs.image_sha }}"  # target test image for this pipeline.
+            cut-off: 0s # no preference.
+            tag-selection: tagged
