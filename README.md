@@ -1,4 +1,4 @@
-# API Server 
+# API Server
 
 MellonPass backend server (GraphQL, docker, and database)
 
@@ -35,7 +35,7 @@ Make sure you have the following installed on your machine:
     ```
 
 - GraphQL server is accessible via `http://localhost:8000/graphql`.
-- Django admin is accessible via `http://localhost:8000/admin`. 
+- Django admin is accessible via `http://localhost:8000/admin`.
     - See `docker-compose.yml` file for a test admin user and test user credentials.
 
 # Development
@@ -56,6 +56,19 @@ To run the tests:
 docker exec -it mellonpass_server poetry run pytest .
 ```
 
+or via tox:
+
+```
+# To run all tests.
+tox
+
+# To run specific tests.
+tox -- mp/apps/authx/tests/test_services.py
+
+# Use -x to stop at first error and --ff to run tests first that failed last time.
+tox -- -x --ff mp/apps/authx/tests
+```
+
 ### Formatting
 
 To format the codebase:
@@ -64,7 +77,7 @@ To format the codebase:
 docker exec -it mellonpass_server poetry run ./scripts/dev/autoformat .
 ```
 
-**Note:** We use black to format code.
+**Note:** We use ruff to format code.
 
 ### Container session
 
@@ -75,6 +88,14 @@ docker exec -it mellonpass_server bash
 ```
 
 Then you can run all bash commands inside the container.
+
+### Pre-commit
+
+Install pre-commit hooks configuration:
+
+```
+pre-commit install
+```
 
 # Contributing
 
