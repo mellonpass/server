@@ -124,4 +124,4 @@ GitHub.sublime-settings
 
 # Developer-specific choice of using docker or local poetry for pre-commit
 # migrations check
-scripts/local_pre_commit/.use_docker
+scripts/pre-commit/.use_docker

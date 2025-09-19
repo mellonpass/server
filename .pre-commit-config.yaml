@@ -25,3 +25,17 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: []
+
+  - repo: local
+    hooks:
+    - id: warn-missing-migrations
+      name: Check Django missing migration files.
+      description: Basically a wrapper for ./scripts/dev/check_missing_migrations
+      entry: scripts/pre-commit/warn_missing_migrations
+      language: script
+      always_run: true
+      fail_fast: true
+      types: [text]
+      verbose: true
+      pass_filenames: false
+      stages: [pre-push, manual]
