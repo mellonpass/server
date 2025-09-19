@@ -1,0 +1,45 @@
+#!/bin/bash
+
+EXIT_OK=0
+EXIT_UNAVAILABLE=127
+
+read -r -d '' USAGE <<__EOF__
+ Check to see if there is a missing migration files to be generated.
+
+ E.g.:
+
+ Usage $0 [OPTIONS]
+
+ Options:
+ -h, --help Show this help and exit.
+
+ Exit with code $EXIT_UNAVAILABLE if requirements are not available, or
+ non-zero code if migrations are missing. otherwise exit code $EXIT_OK.
+__EOF__
+
+
+if [[ "$@" =~ "-h" || "$@" =~ "--help" ]]; then
+    echo "$USAGE"
+    exit $EXIT_OK
+fi
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -uo pipefail
+IFS=$'\n\t'
+
+# Do a check first, to make sure there are no issues. Exit this script in case
+# there are any issues, no need to check for migrations then.
+set -e
+python manage.py check
+set +e
+
+output=$(python manage.py makemigrations --dry-run --check)
+
+res=$?
+
+if [ "$res" -ne "0" ]; then
+    echo "Error: Migration files are missing! Please create them first."
+    echo "$output"
+fi
+
+exit $res

@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# --
+# This script is intended for pre-commit hook for checking Django missing migration files
+# via scripts/dev/check_missing_migrations.
+# To execute the script in a docker mode, add .use_docker file relative to this script.
+
+# http://redsymbol.net/articles/unofficial-bash-strict-mode/
+set -euo pipefail
+IFS=$'\n\t'
+
+MIGRATION_CHECK_SCRIPT="scripts/dev/check_missing_migrations"
+DJANGO_SERVER_CONTAINER_NAME=$(docker ps --format "{{.Names}}\t{{.Ports}}" | awk '/8000/ {print $1}')
+
+function print_migration_script_output {
+    local res="$1"
+    local output="$2"
+
+    if [ "$res" -ne "0" ]; then
+        echo "$output"
+        echo ">>> Error! <<<"
+        echo ">>> Check missing migration failed."
+        echo ">>> You can still force push using the --no-verify flag."
+        exit $res
+    fi
+
+    return 0
+}
+
+if [ -f "$MIGRATION_CHECK_SCRIPT" ]; then
+
+    # Check if the ".use_docker" file exists to determine if we run the script
+    # within docker container.
+    script_dir=$(dirname $(readlink -f "$0"))
+    docker_file="${script_dir}/.use_docker"
+
+    # Allow error to be captured.
+    set +e
+
+    if [ -f $docker_file ]; then
+        output=$(docker compose exec $DJANGO_SERVER_CONTAINER_NAME bash $MIGRATION_CHECK_SCRIPT 2>&1)
+    else
+        output=$($MIGRATION_CHECK_SCRIPT)
+    fi
+    # Set to 1 if an error occurred, otherwise 0.
+    res=$?
+    # We don't want to end the script beyond this point to display the output.
+    set -e
+
+    print_migration_script_output "$res" "$output"
+
+else
+    echo "Error: no \"$MIGRATION_CHECK_SCRIPT\" script found!"
+    exit 1
+fi
+
+exit 0
