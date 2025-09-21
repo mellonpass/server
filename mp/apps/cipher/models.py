@@ -68,7 +68,7 @@ class Cipher(Model):
         )
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.type} - {self.id}"
+        return f"{self.__class__.__name__}:{self.type} - {self.pk}"
 
 
 class CipherModelMixin(Model):
@@ -86,7 +86,7 @@ class CipherModelMixin(Model):
         abstract = True
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}:{self.id}"  # type: ignore[attr-defined]
+        return f"{self.__class__.__name__}:{self.pk}"
 
     @property
     def cipher(self) -> Cipher | None:

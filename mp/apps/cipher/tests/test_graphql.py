@@ -8,10 +8,7 @@ from strawberry import relay
 
 from mp.apps.authx.tests.factories import UserFactory
 from mp.apps.cipher.models import Cipher, CipherType
-from mp.apps.cipher.tests.factories import (
-    CipherDataSecureNoteFactory,
-    CipherFactory,
-)
+from mp.apps.cipher.tests.factories import CipherDataSecureNoteFactory, CipherFactory
 from mp.core.strawberry.test import TestClient
 
 pytestmark = pytest.mark.django_db
@@ -91,9 +88,7 @@ def test_create_cipher_failed(mocker):
     user = UserFactory()
     client = TestClient("/graphql")
 
-    mock_create_cipher = mocker.patch(
-        "mp.apps.cipher.graphql.mutations.create_cipher"
-    )
+    mock_create_cipher = mocker.patch("mp.apps.cipher.graphql.mutations.create_cipher")
     mock_create_cipher.side_effect = Exception("kaboink!")
 
     with client.login(user):
@@ -235,10 +230,7 @@ def test_update_non_existing_cipher():
 
     with client.login(user):
         response = client.query(query, variables=variables)
-        assert (
-            "Resource not found"
-            in response.data["cipher"]["update"]["message"]
-        )
+        assert "Resource not found" in response.data["cipher"]["update"]["message"]
 
 
 def test_update_cipher_to_delete():
@@ -359,3 +351,44 @@ def test_cipher_restore_from_deletion():
 
     cipher_to_delete = Cipher.objects.get(uuid=cipher.uuid)
     assert cipher_to_delete.delete_on is None
+
+
+def test_get_ciphers():
+    user = UserFactory()
+    CipherFactory.create_batch(10, owner=user, type=CipherType.LOGIN)
+
+    query = """
+        query GetGiphers($first: Int!, $after: String) {
+            ciphers(first: $first, after: $after) {
+                edges {
+                    cursor
+                    node {
+                        id
+                        data
+                    }
+                }
+                pageInfo {
+                    endCursor
+                    hasNextPage
+                }
+            }
+        }
+    """
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        response = client.query(query, variables={"first": 10})
+
+        data = response.data["ciphers"]["edges"]
+        page_info = response.data["ciphers"]["pageInfo"]
+
+        # --
+        # Just verify that the query is working with data.
+
+        assert len(data) == user.cipher_set.count()
+        assert "endCursor" in page_info.keys()
+        assert "hasNextPage" in page_info.keys()
+
+        node = data[0]["node"]
+        assert node["id"] is not None
+        assert node["data"] is not None
