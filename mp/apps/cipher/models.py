@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 
 from django.conf import settings
@@ -99,7 +100,12 @@ class CipherData(Model):
         for f in self._meta.concrete_fields:
             if f.name in skip_fields:
                 continue
-            data[f.name] = f.value_from_object(self)
+
+            # Need to conform to GraphQL field casing:
+            # Convert fieldname from snake_case to camelCase.
+            field_name = re.sub(r"_([a-z])", lambda x: x.group(1).upper(), f.name)
+            data[field_name] = f.value_from_object(self)
+
         return data
 
 
