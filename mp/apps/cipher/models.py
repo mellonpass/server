@@ -21,6 +21,7 @@ from mp.core.model.fields import EncryptedTextField
 
 
 class CipherType(TextChoices):
+    CARD = "CARD", _("Card")
     LOGIN = "LOGIN", _("Login")
     SECURE_NOTE = "SECURE_NOTE", _("Secure note")
 
@@ -71,7 +72,7 @@ class Cipher(Model):
         return f"{self.__class__.__name__}:{self.type} - {self.pk}"
 
 
-class CipherModelMixin(Model):
+class CipherData(Model):
     uuid = UUIDField(
         unique=True,
         null=False,
@@ -102,13 +103,19 @@ class CipherModelMixin(Model):
         return data
 
 
-CipherData = CipherModelMixin
-
-
-class CipherDataLogin(CipherModelMixin):
+class CipherDataLogin(CipherData):
     username = EncryptedTextField(null=False, blank=False)
     password = EncryptedTextField(null=False, blank=False)
 
 
-class CipherDataSecureNote(CipherModelMixin):
+class CipherDataSecureNote(CipherData):
     note = EncryptedTextField(null=False, blank=False)
+
+
+class CipherDataCard(CipherData):
+    name = EncryptedTextField(null=False, blank=False)
+    number = EncryptedTextField(null=False, blank=False)
+    brand = EncryptedTextField(null=False, blank=False)
+    exp_month = EncryptedTextField(null=False, blank=False)
+    exp_year = EncryptedTextField(null=False, blank=False)
+    security_code = EncryptedTextField(null=False, blank=False)
