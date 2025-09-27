@@ -8,13 +8,42 @@ from strawberry import relay
 
 from mp.apps.authx.tests.factories import UserFactory
 from mp.apps.cipher.models import Cipher, CipherType
-from mp.apps.cipher.tests.factories import CipherDataSecureNoteFactory, CipherFactory
+from mp.apps.cipher.tests.factories import (
+    CipherDataCardFactory,
+    CipherDataLoginFactory,
+    CipherDataSecureNoteFactory,
+    CipherFactory,
+)
 from mp.core.strawberry.test import TestClient
 
 pytestmark = pytest.mark.django_db
 
 
-def test_create_cipher():
+@pytest.mark.parametrize(
+    "input_data",
+    (
+        {
+            "type": CipherType.CARD,
+            "data": {
+                "name": "encname",
+                "number": "encnumber",
+                "brand": "encbrand",
+                "expMonth": "encexpMonth",
+                "expYear": "encexpYear",
+                "securityCode": "encsecurityCode",
+            },
+        },
+        {
+            "type": CipherType.LOGIN,
+            "data": {"username": "encusername", "password": "encpassword"},
+        },
+        {
+            "type": CipherType.SECURE_NOTE,
+            "data": {"note": "ennote"},
+        },
+    ),
+)
+def test_create_cipher(input_data):
     query = """
         mutation CreateCipher($input: CreateCipherInput!){
             cipher {
@@ -34,16 +63,17 @@ def test_create_cipher():
         }
     """
 
-    cipher_data = {
-        "type": CipherType.LOGIN,
-        "name": "encname",
-        "key": "somekey",
-        "isFavorite": "encfavorite",
-        "status": "encstatus",
-        "data": {"username": "encusername", "password": "encpassword"},
-    }
+    input_data.update(
+        {
+            # Update base data.
+            "name": "encname",
+            "key": "somekey",
+            "isFavorite": "encfavorite",
+            "status": "encstatus",
+        }
+    )
 
-    variables = {"input": cipher_data}
+    variables = {"input": input_data}
 
     user = UserFactory()
     client = TestClient("/graphql")
@@ -53,12 +83,12 @@ def test_create_cipher():
         cipher = response.data["cipher"]["create"]
 
         assert cipher["ownerId"] == str(user.uuid)
-        assert cipher["name"] == cipher_data["name"]
-        assert cipher["type"] == cipher_data["type"]
-        assert cipher["key"] == cipher_data["key"]
-        assert cipher["data"] == cipher_data["data"]
-        assert cipher["isFavorite"] == cipher_data["isFavorite"]
-        assert cipher["status"] == cipher_data["status"]
+        assert cipher["name"] == input_data["name"]
+        assert cipher["type"] == input_data["type"]
+        assert cipher["key"] == input_data["key"]
+        assert cipher["isFavorite"] == input_data["isFavorite"]
+        assert cipher["status"] == input_data["status"]
+        assert cipher["data"] == input_data["data"]
 
 
 def test_create_cipher_failed(mocker):
@@ -99,9 +129,46 @@ def test_create_cipher_failed(mocker):
         )
 
 
-def test_update_login_cipher():
+@pytest.mark.parametrize(
+    "cipher_type, input_data",
+    (
+        (
+            CipherType.CARD,
+            {
+                "data": {
+                    "name": "encname",
+                    "number": "encnumber",
+                    "brand": "encbrand",
+                    "expMonth": "encexpMonth",
+                    "expYear": "encexpYear",
+                    "securityCode": "encsecurityCode",
+                },
+            },
+        ),
+        (
+            CipherType.LOGIN,
+            {
+                "data": {"username": "encusername", "password": "encpassword"},
+            },
+        ),
+        (
+            CipherType.SECURE_NOTE,
+            {
+                "data": {"note": "encnote"},
+            },
+        ),
+    ),
+)
+def test_update_cipher(cipher_type, input_data):
+    CIPHER_DATA_FACTORY_MAPPER = {
+        CipherType.CARD: CipherDataCardFactory,
+        CipherType.LOGIN: CipherDataLoginFactory,
+        CipherType.SECURE_NOTE: CipherDataSecureNoteFactory,
+    }
+
     user = UserFactory()
-    cipher = CipherFactory(owner=user, type=CipherType.LOGIN)
+    cipher_data = CIPHER_DATA_FACTORY_MAPPER[cipher_type]()
+    cipher = CipherFactory(owner=user, type=cipher_type, data=cipher_data)
 
     query = """
         mutation UpdateCipher($input: UpdateCipherInput!){
@@ -121,31 +188,32 @@ def test_update_login_cipher():
         }
     """
 
-    cipher_data = {
-        "id": relay.to_base64("Cipher", str(cipher.uuid)),
-        "name": "encname",
-        "key": "somekey",
-        "isFavorite": "encfavorite",
-        "status": "encstatus",
-        "data": {"username": "encusername", "password": "encpassword"},
-    }
+    input_data.update(
+        {
+            "id": relay.to_base64("Cipher", str(cipher.uuid)),
+            "name": "encname",
+            "key": "somekey",
+            "isFavorite": "encfavorite",
+            "status": "encstatus",
+        }
+    )
 
-    variables = {"input": cipher_data}
+    variables = {"input": input_data}
 
     client = TestClient("/graphql")
 
     with client.login(user):
         response = client.query(query, variables=variables)
-        data = response.data["cipher"]["update"]
+        cipher = response.data["cipher"]["update"]
+
         assert (
-            relay.GlobalID.from_id(data["id"]).node_id
-            == relay.GlobalID.from_id(cipher_data["id"]).node_id
+            relay.GlobalID.from_id(cipher["id"]).node_id
+            == relay.GlobalID.from_id(input_data["id"]).node_id
         )
-        assert data["ownerId"] == str(user.uuid)
-        assert data["key"] == cipher_data["key"]
-        assert data["name"] == cipher_data["name"]
-        assert data["data"]["username"] == cipher_data["data"]["username"]
-        assert data["data"]["password"] == cipher_data["data"]["password"]
+        assert cipher["ownerId"] == str(user.uuid)
+        assert cipher["key"] == input_data["key"]
+        assert cipher["name"] == input_data["name"]
+        assert cipher["data"] == input_data["data"]
 
 
 def test_update_secure_note_cipher():
@@ -388,6 +456,10 @@ def test_get_ciphers():
         assert len(data) == user.cipher_set.count()
         assert "endCursor" in page_info.keys()
         assert "hasNextPage" in page_info.keys()
+
+        node = data[0]["node"]
+        assert node["id"] is not None
+        assert node["data"] is not None
 
         node = data[0]["node"]
         assert node["id"] is not None
