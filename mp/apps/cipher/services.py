@@ -1,3 +1,5 @@
+from abc import ABC, abstractmethod
+from collections.abc import Callable
 from datetime import timedelta
 from typing import TypedDict, cast
 from uuid import UUID
@@ -10,6 +12,8 @@ from django.utils import timezone
 from mp.apps.authx.models import User
 from mp.apps.cipher.models import (
     Cipher,
+    CipherData,
+    CipherDataCard,
     CipherDataLogin,
     CipherDataSecureNote,
     CipherType,
@@ -28,7 +32,50 @@ class CipherSecureNote(TypedDict):
     note: str
 
 
-CipherData = CipherLogin | CipherSecureNote
+CipherDataDict = CipherLogin | CipherSecureNote
+
+
+class CipherDataBuilder(ABC):
+    data: dict
+
+    def __init__(self, data: dict) -> None:
+        self.data = data
+
+    @abstractmethod
+    def build_cipher_data(self) -> CipherData:
+        pass
+
+
+class CipherDataLoginBuilder(CipherDataBuilder):
+    def build_cipher_data(self) -> CipherDataLogin:
+        return CipherDataLogin(
+            username=self.data["username"],
+            password=self.data["password"],
+        )
+
+
+class CipherDataSecureNoteBuilder(CipherDataBuilder):
+    def build_cipher_data(self) -> CipherDataSecureNote:
+        return CipherDataSecureNote(note=self.data["note"])
+
+
+class CipherDataCardBuilder(CipherDataBuilder):
+    def build_cipher_data(self) -> CipherDataCard:
+        return CipherDataCard(
+            name=self.data["name"],
+            number=self.data["number"],
+            brand=self.data["brand"],
+            exp_month=self.data["expMonth"],
+            exp_year=self.data["expYear"],
+            security_code=self.data["securityCode"],
+        )
+
+
+DATA_BUILDER_MAPPER: dict[CipherTypeEnum, Callable[[dict], CipherDataBuilder]] = {
+    CipherTypeEnum.CARD: lambda data: CipherDataCardBuilder(data),
+    CipherTypeEnum.LOGIN: lambda data: CipherDataLoginBuilder(data),
+    CipherTypeEnum.SECURE_NOTE: lambda data: CipherDataSecureNoteBuilder(data),
+}
 
 
 @transaction.atomic
@@ -41,10 +88,18 @@ def create_cipher(
     is_favorite: str,
     data: dict,
 ) -> Cipher:
-    cipher_data = _build_cipher_data(
-        cipher_type=CipherTypeEnum(type),
-        data=data,
-    )
+    cipher_type = CipherTypeEnum(type)
+
+    try:
+        data_builder_factory = DATA_BUILDER_MAPPER[CipherTypeEnum(type)]
+    except KeyError as error:
+        err_msg = f"Invalid CipherType {cipher_type}."
+        raise ServiceValidationError(err_msg) from error
+
+    data_builder = data_builder_factory(data)
+    cipher_data = data_builder.build_cipher_data()
+    cipher_data.save()
+
     return Cipher.objects.create(
         owner=owner,
         status=status,
@@ -56,26 +111,6 @@ def create_cipher(
     )
 
 
-def _build_cipher_data(
-    cipher_type: CipherTypeEnum,
-    data: dict,
-) -> CipherDataLogin | CipherDataSecureNote:
-    cipher_data: CipherDataLogin | CipherDataSecureNote
-    match cipher_type:
-        case CipherTypeEnum.LOGIN:
-            cipher_data = CipherDataLogin(
-                username=data["username"],
-                password=data["password"],
-            )
-        case CipherTypeEnum.SECURE_NOTE:
-            cipher_data = CipherDataSecureNote(note=data["note"])
-        case _:
-            err_msg = f"Invalid CipherType {cipher_type}."
-            raise ServiceValidationError(err_msg)
-    cipher_data.save()
-    return cipher_data
-
-
 @transaction.atomic
 def update_cipher(
     owner: User,
@@ -84,7 +119,7 @@ def update_cipher(
     is_favorite: str,
     name: str,
     status: str,
-    data: CipherData,
+    data: CipherDataDict,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.key = key
