@@ -43,9 +43,9 @@ class Cipher(Model):
         blank=False,
     )
 
-    data_id = PositiveIntegerField()
-    data: "CipherData" = GenericForeignKey("content_type", "data_id")  # type: ignore[assignment]
+    object_id = PositiveIntegerField()
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
+    data: "CipherData" = GenericForeignKey("content_type", "object_id")  # type: ignore[assignment]
 
     owner = ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -63,10 +63,10 @@ class Cipher(Model):
     updated = DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = (Index(fields=["content_type", "data_id"]),)
+        indexes = (Index(fields=["content_type", "object_id"]),)
         unique_together = (
             "content_type",
-            "data_id",
+            "object_id",
         )
 
     def __str__(self) -> str:
