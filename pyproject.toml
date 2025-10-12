@@ -5,7 +5,7 @@ description = "MellonPass Server."
 authors = ["Roel Delos Reyes <badcoder28@gmail.com>"]
 maintainers = ["Roel Delos Reyes <badcoder28@gmail.com>"]
 license = "GPL-3.0"
-keywords = ["password-manager", "api", "server", "cryptography"]
+keywords = ["password-manager", "api", "server", "cryptography", "e2ee"]
 readme = "README.md"
 classifiers = [
     "Environment :: Web Environment",
@@ -13,6 +13,9 @@ classifiers = [
     "License :: GPL-3.0",
     "Operating System :: OS Independent",
     "Web :: MellonPass Web",
+    "Web :: MellonPass Web :: 0.0.0",
+    "Web :: MellonPass Web :: 0.1.0",
+    "Web :: MellonPass Web :: 0.2.0",
     "Web :: MellonPass Web :: 0.3.0",
 ]
 
