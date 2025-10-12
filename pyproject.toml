@@ -1,13 +1,24 @@
 [tool.poetry]
-name = "mellonpass"
-version = "0.2.0"
-description = "API For MellonPass UI."
+name = "mellonpass-server"
+version = "0.3.0"
+description = "MellonPass Server."
 authors = ["Roel Delos Reyes <badcoder28@gmail.com>"]
+maintainers = ["Roel Delos Reyes <badcoder28@gmail.com>"]
+license = "GPL-3.0"
+keywords = ["password-manager", "api", "server", "cryptography"]
 readme = "README.md"
+classifiers = [
+    "Environment :: Web Environment",
+    "Intended Audience :: MellonPass Web",
+    "License :: GPL-3.0",
+    "Operating System :: OS Independent",
+    "Web :: MellonPass Web",
+    "Web :: MellonPass Web :: 0.3.0",
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-django = "4.2"
+django = "^4.2.25"
 strawberry-graphql = "^0.258.0"
 django-environ = "^0.11.2"
 django-extensions = "^3.2.3"
