@@ -52,9 +52,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     curl \
     # Essentials for building python deps
     build-essential \
-    # Dependency for psycopg2 
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
+    # Dependency for psycopg2
+    libpq-dev
 
 # Download and install poetry based on the POETRY_VERSION and POETRY_HOME envs.
 RUN curl -sSL https://install.python-poetry.org | python -
@@ -74,10 +73,8 @@ WORKDIR ${APP_DIR}
 
 # Install system dependencies required for psycopg2 and other common packages
 RUN apt-get update && apt-get install --no-install-recommends -y \
-    # Essentials for building python deps
-    build-essential \
-    # Dependency for psycopg2 
-    libpq-dev \
+    # postgres dependency.
+    libpq5 \
     # Remove irrelevat files
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/*
@@ -96,8 +93,13 @@ RUN poetry install ${POETRY_INSTALL_OPTS}
 COPY deploy/common/start_huey_consumer /start_huey_consumer
 RUN chmod +x /start_huey_consumer
 
+COPY deploy/common/entrypoint /entrypoint
+RUN chmod +x /entrypoint
+
 # Copy all files.
 COPY . .
+
+ENTRYPOINT [ "/entrypoint" ]
 
 # FINAL LOCAL BUILD STAGE
 # ---------------------------------------------------------------------------

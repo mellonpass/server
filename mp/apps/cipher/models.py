@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 
 from django.conf import settings
@@ -21,6 +22,7 @@ from mp.core.model.fields import EncryptedTextField
 
 
 class CipherType(TextChoices):
+    CARD = "CARD", _("Card")
     LOGIN = "LOGIN", _("Login")
     SECURE_NOTE = "SECURE_NOTE", _("Secure note")
 
@@ -41,9 +43,9 @@ class Cipher(Model):
         blank=False,
     )
 
-    data_id = PositiveIntegerField()
-    data: "CipherData" = GenericForeignKey("content_type", "data_id")  # type: ignore[assignment]
+    object_id = PositiveIntegerField()
     content_type = ForeignKey(ContentType, on_delete=CASCADE)
+    data: "CipherData" = GenericForeignKey("content_type", "object_id")  # type: ignore[assignment]
 
     owner = ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -61,17 +63,17 @@ class Cipher(Model):
     updated = DateTimeField(auto_now=True)
 
     class Meta:
-        indexes = (Index(fields=["content_type", "data_id"]),)
+        indexes = (Index(fields=["content_type", "object_id"]),)
         unique_together = (
             "content_type",
-            "data_id",
+            "object_id",
         )
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}:{self.type} - {self.pk}"
 
 
-class CipherModelMixin(Model):
+class CipherData(Model):
     uuid = UUIDField(
         unique=True,
         null=False,
@@ -98,17 +100,28 @@ class CipherModelMixin(Model):
         for f in self._meta.concrete_fields:
             if f.name in skip_fields:
                 continue
-            data[f.name] = f.value_from_object(self)
+
+            # Need to conform to GraphQL field casing:
+            # Convert fieldname from snake_case to camelCase.
+            field_name = re.sub(r"_([a-z])", lambda x: x.group(1).upper(), f.name)
+            data[field_name] = f.value_from_object(self)
+
         return data
 
 
-CipherData = CipherModelMixin
-
-
-class CipherDataLogin(CipherModelMixin):
+class CipherDataLogin(CipherData):
     username = EncryptedTextField(null=False, blank=False)
     password = EncryptedTextField(null=False, blank=False)
 
 
-class CipherDataSecureNote(CipherModelMixin):
+class CipherDataSecureNote(CipherData):
     note = EncryptedTextField(null=False, blank=False)
+
+
+class CipherDataCard(CipherData):
+    name = EncryptedTextField(null=False, blank=False)
+    number = EncryptedTextField(null=False, blank=False)
+    brand = EncryptedTextField(null=False, blank=False)
+    exp_month = EncryptedTextField(null=False, blank=False)
+    exp_year = EncryptedTextField(null=False, blank=False)
+    security_code = EncryptedTextField(null=False, blank=False)

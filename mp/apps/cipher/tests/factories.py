@@ -13,6 +13,7 @@ from faker import Faker as _Faker
 from mp.apps.authx.tests.factories import UserFactory
 from mp.apps.cipher.models import (
     Cipher,
+    CipherDataCard,
     CipherDataLogin,
     CipherDataSecureNote,
     CipherType,
@@ -38,6 +39,35 @@ class CipherDataSecureNoteFactory(DjangoModelFactory):
 
     @factory.lazy_attribute
     def note(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+
+class CipherDataCardFactory(DjangoModelFactory):
+    class Meta:
+        model = CipherDataCard
+
+    @factory.lazy_attribute
+    def name(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def number(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def brand(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def exp_month(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def exp_year(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def security_code(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
 
 
