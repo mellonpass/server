@@ -12,10 +12,10 @@ from django.utils import timezone
 from mp.apps.authx.models import User
 from mp.apps.cipher.models import (
     Cipher,
+    CipherCardData,
     CipherData,
-    CipherDataCard,
-    CipherDataLogin,
-    CipherDataSecureNote,
+    CipherLoginData,
+    CipherSecureNoteData,
     CipherType,
 )
 from mp.core.exceptions import ServiceValidationError
@@ -26,10 +26,14 @@ CipherTypeEnum = CipherType
 
 
 class CipherDataBuilder(ABC, Generic[CD]):
+    name: str
     data: dict
+    notes: str | None
 
-    def __init__(self, data: dict) -> None:
+    def __init__(self, name: str, data: dict, notes: str | None = None) -> None:
+        self.name = name
         self.data = data
+        self.notes = notes
 
     @abstractmethod
     def build_cipher_data(self) -> CD:
@@ -46,35 +50,45 @@ class CipherDataBuilder(ABC, Generic[CD]):
         """
 
 
-class CipherDataLoginBuilder(CipherDataBuilder[CipherDataLogin]):
-    def build_cipher_data(self) -> CipherDataLogin:
-        return CipherDataLogin(
+class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
+    def build_cipher_data(self) -> CipherLoginData:
+        return CipherLoginData(
+            name=self.name,
+            notes=self.notes,
             username=self.data["username"],
             password=self.data["password"],
         )
 
-    def set_cipher_data(self, cipher_data: CipherDataLogin) -> CipherDataLogin:
+    def set_cipher_data(self, cipher_data: CipherLoginData) -> CipherLoginData:
+        cipher_data.name = self.name
+        cipher_data.notes = self.notes
         cipher_data.username = self.data["username"]
         cipher_data.password = self.data["password"]
         return cipher_data
 
 
-class CipherDataSecureNoteBuilder(CipherDataBuilder[CipherDataSecureNote]):
-    def build_cipher_data(self) -> CipherDataSecureNote:
-        return CipherDataSecureNote(note=self.data["note"])
+class CipherSecureNoteDataBuilder(CipherDataBuilder[CipherSecureNoteData]):
+    def build_cipher_data(self) -> CipherSecureNoteData:
+        return CipherSecureNoteData(
+            name=self.name,
+            notes=self.notes,
+        )
 
     def set_cipher_data(
         self,
-        cipher_data: CipherDataSecureNote,
-    ) -> CipherDataSecureNote:
-        cipher_data.note = self.data["note"]
+        cipher_data: CipherSecureNoteData,
+    ) -> CipherSecureNoteData:
+        cipher_data.name = self.name
+        cipher_data.notes = self.notes
         return cipher_data
 
 
-class CipherDataCardBuilder(CipherDataBuilder[CipherDataCard]):
-    def build_cipher_data(self) -> CipherDataCard:
-        return CipherDataCard(
-            name=self.data["name"],
+class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
+    def build_cipher_data(self) -> CipherCardData:
+        return CipherCardData(
+            name=self.name,
+            notes=self.notes,
+            cardholder_name=self.data["cardholderName"],
             number=self.data["number"],
             brand=self.data["brand"],
             exp_month=self.data["expMonth"],
@@ -82,8 +96,10 @@ class CipherDataCardBuilder(CipherDataBuilder[CipherDataCard]):
             security_code=self.data["securityCode"],
         )
 
-    def set_cipher_data(self, cipher_data: CipherDataCard) -> CipherDataCard:
-        cipher_data.name = self.data["name"]
+    def set_cipher_data(self, cipher_data: CipherCardData) -> CipherCardData:
+        cipher_data.name = self.name
+        cipher_data.notes = self.notes
+        cipher_data.cardholder_name = self.data["cardholderName"]
         cipher_data.number = self.data["number"]
         cipher_data.brand = self.data["brand"]
         cipher_data.exp_month = self.data["expMonth"]
@@ -92,10 +108,25 @@ class CipherDataCardBuilder(CipherDataBuilder[CipherDataCard]):
         return cipher_data
 
 
-DATA_BUILDER_MAPPER: dict[CipherTypeEnum, Callable[[dict], CipherDataBuilder]] = {
-    CipherTypeEnum.CARD: lambda data: CipherDataCardBuilder(data),
-    CipherTypeEnum.LOGIN: lambda data: CipherDataLoginBuilder(data),
-    CipherTypeEnum.SECURE_NOTE: lambda data: CipherDataSecureNoteBuilder(data),
+DATA_BUILDER_MAPPER: dict[
+    CipherTypeEnum,
+    Callable[[str, dict, str | None], CipherDataBuilder],
+] = {
+    CipherTypeEnum.CARD: lambda name, data, notes: CipherCardDataBuilder(
+        name,
+        data,
+        notes,
+    ),
+    CipherTypeEnum.LOGIN: lambda name, data, notes: CipherLoginDataBuilder(
+        name,
+        data,
+        notes,
+    ),
+    CipherTypeEnum.SECURE_NOTE: lambda name, data, notes: CipherSecureNoteDataBuilder(
+        name,
+        data,
+        notes,
+    ),
 }
 
 
@@ -108,6 +139,7 @@ def create_cipher(
     status: str,
     is_favorite: str,
     data: dict,
+    notes: str | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
 
@@ -117,7 +149,7 @@ def create_cipher(
         err_msg = f"Invalid CipherType {cipher_type}."
         raise ServiceValidationError(err_msg) from error
 
-    data_builder = data_builder_factory(data)
+    data_builder = data_builder_factory(name, data, notes)
     cipher_data = data_builder.build_cipher_data()
     cipher_data.save()
 
@@ -126,7 +158,6 @@ def create_cipher(
         status=status,
         is_favorite=is_favorite,
         type=type,
-        name=name,
         key=key,
         data=cipher_data,
     )
@@ -141,16 +172,16 @@ def update_cipher(
     name: str,
     status: str,
     data: dict,
+    notes: str | None = None,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.key = key
-    cipher.name = name
     cipher.is_favorite = is_favorite
     cipher.status = status
     cipher.save()
 
     data_builder_factory = DATA_BUILDER_MAPPER[CipherTypeEnum(cipher.type)]
-    data_builder = data_builder_factory(data)
+    data_builder = data_builder_factory(name, data, notes)
     cipher_data = data_builder.set_cipher_data(cipher.data)
     cipher_data.save()
 

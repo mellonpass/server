@@ -7,7 +7,7 @@ from django.utils import timezone
 from strawberry import relay
 
 from mp.apps.authx.tests.factories import UserFactory
-from mp.apps.cipher.models import Cipher, CipherType
+from mp.apps.cipher.models import Cipher, CipherType, SecureNoteType
 from mp.apps.cipher.tests.factories import (
     CipherDataCardFactory,
     CipherDataLoginFactory,
@@ -25,7 +25,7 @@ pytestmark = pytest.mark.django_db
         {
             "type": CipherType.CARD,
             "data": {
-                "name": "encname",
+                "cardholderName": "enccardholdername",
                 "number": "encnumber",
                 "brand": "encbrand",
                 "expMonth": "encexpMonth",
@@ -39,7 +39,7 @@ pytestmark = pytest.mark.django_db
         },
         {
             "type": CipherType.SECURE_NOTE,
-            "data": {"note": "ennote"},
+            "data": {"type": SecureNoteType.GENERIC},
         },
     ),
 )
@@ -54,6 +54,7 @@ def test_create_cipher(input_data):
                         key
                         type
                         name
+                        notes
                         isFavorite
                         status
                         data
@@ -67,6 +68,7 @@ def test_create_cipher(input_data):
         {
             # Update base data.
             "name": "encname",
+            "notes": "encnotes",
             "key": "somekey",
             "isFavorite": "encfavorite",
             "status": "encstatus",
@@ -84,6 +86,7 @@ def test_create_cipher(input_data):
 
         assert cipher["ownerId"] == str(user.uuid)
         assert cipher["name"] == input_data["name"]
+        assert cipher["notes"] == input_data["notes"]
         assert cipher["type"] == input_data["type"]
         assert cipher["key"] == input_data["key"]
         assert cipher["isFavorite"] == input_data["isFavorite"]
@@ -107,6 +110,7 @@ def test_create_cipher_failed(mocker):
     cipher_data = {
         "type": CipherType.LOGIN,
         "name": "encname",
+        "notes": "encnotes",
         "key": "somekey",
         "isFavorite": "encfavorite",
         "status": "encstatus",
@@ -136,7 +140,7 @@ def test_create_cipher_failed(mocker):
             CipherType.CARD,
             {
                 "data": {
-                    "name": "encname",
+                    "cardholderName": "enccardholdername",
                     "number": "encnumber",
                     "brand": "encbrand",
                     "expMonth": "encexpMonth",
@@ -154,7 +158,7 @@ def test_create_cipher_failed(mocker):
         (
             CipherType.SECURE_NOTE,
             {
-                "data": {"note": "encnote"},
+                "data": {"type": SecureNoteType.GENERIC},
             },
         ),
     ),
@@ -180,6 +184,7 @@ def test_update_cipher(cipher_type, input_data):
                         key
                         type
                         name
+                        notes
                         isFavorite
                         data
                     }
@@ -192,6 +197,7 @@ def test_update_cipher(cipher_type, input_data):
         {
             "id": relay.to_base64("Cipher", str(cipher.uuid)),
             "name": "encname",
+            "notes": "encnotes",
             "key": "somekey",
             "isFavorite": "encfavorite",
             "status": "encstatus",
@@ -213,6 +219,7 @@ def test_update_cipher(cipher_type, input_data):
         assert cipher["ownerId"] == str(user.uuid)
         assert cipher["key"] == input_data["key"]
         assert cipher["name"] == input_data["name"]
+        assert cipher["notes"] == input_data["notes"]
         assert cipher["data"] == input_data["data"]
 
 
@@ -235,6 +242,7 @@ def test_update_secure_note_cipher():
                         key
                         type
                         name
+                        notes
                         data
                     }
                 }
@@ -245,10 +253,11 @@ def test_update_secure_note_cipher():
     cipher_data = {
         "id": relay.to_base64("Cipher", str(cipher.uuid)),
         "name": "encname",
+        "notes": "encnotes",
         "isFavorite": "encfavorite",
         "status": "encstatus",
         "key": "somekey",
-        "data": {"note": "encnote"},
+        "data": {"type": SecureNoteType.GENERIC},
     }
 
     variables = {"input": cipher_data}
@@ -265,7 +274,8 @@ def test_update_secure_note_cipher():
         assert data["ownerId"] == str(user.uuid)
         assert data["key"] == cipher_data["key"]
         assert data["name"] == cipher_data["name"]
-        assert data["data"]["note"] == cipher_data["data"]["note"]
+        assert data["notes"] == cipher_data["notes"]
+        assert data["data"] == cipher_data["data"]
 
 
 def test_update_non_existing_cipher():
@@ -286,10 +296,11 @@ def test_update_non_existing_cipher():
     cipher_data = {
         "id": relay.to_base64("Cipher", str(uuid4())),
         "name": "encname",
+        "notes": "encnotes",
         "key": "somekey",
         "isFavorite": "encfavorite",
         "status": "encstatus",
-        "data": {"note": "encnote"},
+        "data": {"type": SecureNoteType.GENERIC},
     }
 
     variables = {"input": cipher_data}
@@ -322,6 +333,7 @@ def test_update_cipher_to_delete():
                         name
                         status
                         data
+                        notes
                     }
                 }
             }
@@ -331,10 +343,11 @@ def test_update_cipher_to_delete():
     cipher_data = {
         "id": relay.to_base64("Cipher", str(cipher.uuid)),
         "name": "encname",
+        "notes": "encnotes",
         "key": "somekey",
         "isFavorite": "encfavorite",
         "status": "encstatus",
-        "data": {"note": "encnote"},
+        "data": {"type": SecureNoteType.GENERIC},
     }
 
     variables = {"input": cipher_data}
@@ -351,9 +364,10 @@ def test_update_cipher_to_delete():
         assert data["ownerId"] == str(user.uuid)
         assert data["key"] == cipher_data["key"]
         assert data["name"] == cipher_data["name"]
+        assert data["notes"] == cipher_data["notes"]
         assert data["status"] == cipher_data["status"]
         assert data["isFavorite"] == cipher_data["isFavorite"]
-        assert data["data"]["note"] == cipher_data["data"]["note"]
+        assert data["data"] == cipher_data["data"]
 
     cipher_to_delete = Cipher.objects.get(uuid=cipher.uuid)
     assert cipher_to_delete.delete_on is not None
@@ -384,6 +398,7 @@ def test_cipher_restore_from_deletion():
                         name
                         status
                         data
+                        notes
                     }
                 }
             }
@@ -393,10 +408,11 @@ def test_cipher_restore_from_deletion():
     cipher_data = {
         "id": relay.to_base64("Cipher", str(cipher.uuid)),
         "name": "encname",
+        "notes": "encnotes",
         "key": "somekey",
         "isFavorite": "encfavorite",
         "status": "encstatus",
-        "data": {"note": "encnote"},
+        "data": {"type": SecureNoteType.GENERIC},
     }
 
     variables = {"input": cipher_data}
@@ -413,9 +429,10 @@ def test_cipher_restore_from_deletion():
         assert data["ownerId"] == str(user.uuid)
         assert data["key"] == cipher_data["key"]
         assert data["name"] == cipher_data["name"]
+        assert data["notes"] == cipher_data["notes"]
         assert data["status"] == cipher_data["status"]
         assert data["isFavorite"] == cipher_data["isFavorite"]
-        assert data["data"]["note"] == cipher_data["data"]["note"]
+        assert data["data"] == cipher_data["data"]
 
     cipher_to_delete = Cipher.objects.get(uuid=cipher.uuid)
     assert cipher_to_delete.delete_on is None

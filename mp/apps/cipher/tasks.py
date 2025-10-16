@@ -15,5 +15,6 @@ def delete_ciphers_task():
     with transaction.atomic():
         qs = Cipher.objects.filter(delete_on__lte=timezone.now())
         for c in qs:
+            c.data.delete()
             c.delete()
             logger.info("Cipher %s has been deleted.", c.uuid)
