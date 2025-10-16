@@ -23,7 +23,7 @@ class Cipher(relay.Node):
     data: JSON
     created: datetime
     updated: datetime
-    notes: str | None = None
+    notes: str
 
     @classmethod
     def from_model(cls, model: CipherModel) -> "Cipher":
@@ -89,7 +89,7 @@ class CreateCipherInput:
     isFavorite: str  # noqa: N815 FIXME.
     status: str
     name: str
-    notes: str | None = None
+    notes: str
 
 
 @strawberry.input
@@ -100,4 +100,4 @@ class UpdateCipherInput:
     status: str
     name: str
     data: JSON
-    notes: str | None = None
+    notes: str
