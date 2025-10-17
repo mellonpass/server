@@ -17,6 +17,7 @@ from mp.apps.cipher.models import (
     CipherLoginData,
     CipherSecureNoteData,
     CipherType,
+    SecureNoteType,
 )
 from mp.core.exceptions import ServiceValidationError
 
@@ -26,91 +27,94 @@ CipherTypeEnum = CipherType
 
 
 class CipherDataBuilder(ABC, Generic[CD]):
+    _cipher_data: CD
+
     name: str
-    data: dict
     notes: str | None
+    data: dict | None
 
-    def __init__(self, name: str, data: dict, notes: str | None = None) -> None:
+    def __init__(
+        self,
+        name: str,
+        data: dict | None = None,
+        notes: str | None = None,
+    ) -> None:
         self.name = name
-        self.data = data
         self.notes = notes
+        self.data = data
+
+    @property
+    @abstractmethod
+    def cipher_data_class(self) -> type[CD]:
+        """Return the CipherData subclass associated with this builder."""
 
     @abstractmethod
-    def build_cipher_data(self) -> CD:
-        """Build instance of CipherData from dictionary input.
+    def build_cipher_data(self, cipher_data: CD | None = None) -> CD:
+        """Build instance of CipherData by setting a default values.
 
-        Useful for creation of cipher.
+        Default values are set from name and notes attributes if no cipher_data
+        is provided.
         """
+        if cipher_data is not None:
+            cipher_data.name = self.name
+            cipher_data.notes = self.notes
+            self._cipher_data = cipher_data
+        else:
+            self._cipher_data = self.cipher_data_class(
+                name=self.name,
+                notes=self.notes,
+            )
 
-    @abstractmethod
-    def set_cipher_data(self, cipher_data: CD) -> CD:
-        """Set the CipherData values from dictionary input.
-
-        Useful for updating cipher.
-        """
+        return self._cipher_data
 
 
 class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
-    def build_cipher_data(self) -> CipherLoginData:
-        return CipherLoginData(
-            name=self.name,
-            notes=self.notes,
-            username=self.data["username"],
-            password=self.data["password"],
-        )
+    cipher_data_class = CipherLoginData
 
-    def set_cipher_data(self, cipher_data: CipherLoginData) -> CipherLoginData:
-        cipher_data.name = self.name
-        cipher_data.notes = self.notes
-        cipher_data.username = self.data["username"]
-        cipher_data.password = self.data["password"]
-        return cipher_data
+    def build_cipher_data(
+        self,
+        cipher_data: CipherLoginData | None = None,
+    ) -> CipherLoginData:
+        super().build_cipher_data(cipher_data)
+
+        self._cipher_data.username = self.data["username"]
+        self._cipher_data.password = self.data["password"]
+        return self._cipher_data
 
 
 class CipherSecureNoteDataBuilder(CipherDataBuilder[CipherSecureNoteData]):
-    def build_cipher_data(self) -> CipherSecureNoteData:
-        return CipherSecureNoteData(
-            name=self.name,
-            notes=self.notes,
-        )
+    cipher_data_class = CipherSecureNoteData
 
-    def set_cipher_data(
+    def build_cipher_data(
         self,
-        cipher_data: CipherSecureNoteData,
+        cipher_data: CipherSecureNoteData | None = None,
     ) -> CipherSecureNoteData:
-        cipher_data.name = self.name
-        cipher_data.notes = self.notes
-        return cipher_data
+        super().build_cipher_data(cipher_data)
+        self._cipher_data.type = SecureNoteType.GENERIC
+        return self._cipher_data
 
 
 class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
-    def build_cipher_data(self) -> CipherCardData:
-        return CipherCardData(
-            name=self.name,
-            notes=self.notes,
-            cardholder_name=self.data["cardholderName"],
-            number=self.data["number"],
-            brand=self.data["brand"],
-            exp_month=self.data["expMonth"],
-            exp_year=self.data["expYear"],
-            security_code=self.data["securityCode"],
-        )
+    cipher_data_class = CipherCardData
 
-    def set_cipher_data(self, cipher_data: CipherCardData) -> CipherCardData:
-        cipher_data.name = self.name
-        cipher_data.notes = self.notes
-        cipher_data.cardholder_name = self.data["cardholderName"]
-        cipher_data.number = self.data["number"]
-        cipher_data.brand = self.data["brand"]
-        cipher_data.exp_month = self.data["expMonth"]
-        cipher_data.exp_year = self.data["expYear"]
-        cipher_data.security_code = self.data["securityCode"]
-        return cipher_data
+    def build_cipher_data(
+        self,
+        cipher_data: CipherCardData | None = None,
+    ) -> CipherCardData:
+        super().build_cipher_data(cipher_data)
+
+        self._cipher_data.cardholder_name = self.data["cardholderName"]
+        self._cipher_data.number = self.data["number"]
+        self._cipher_data.brand = self.data["brand"]
+        self._cipher_data.exp_month = self.data["expMonth"]
+        self._cipher_data.exp_year = self.data["expYear"]
+        self._cipher_data.security_code = self.data["securityCode"]
+        return self._cipher_data
 
 
 DATA_BUILDER_MAPPER: dict[
     CipherTypeEnum,
-    Callable[[str, dict, str | None], CipherDataBuilder],
+    Callable[[str, dict | None, str | None], CipherDataBuilder],
 ] = {
     CipherTypeEnum.CARD: lambda name, data, notes: CipherCardDataBuilder(
         name,
@@ -138,7 +142,7 @@ def create_cipher(
     key: str,
     status: str,
     is_favorite: str,
-    data: dict,
+    data: dict | None = None,
     notes: str | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
@@ -171,7 +175,7 @@ def update_cipher(
     is_favorite: str,
     name: str,
     status: str,
-    data: dict,
+    data: dict | None = None,
     notes: str | None = None,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
@@ -182,7 +186,7 @@ def update_cipher(
 
     data_builder_factory = DATA_BUILDER_MAPPER[CipherTypeEnum(cipher.type)]
     data_builder = data_builder_factory(name, data, notes)
-    cipher_data = data_builder.set_cipher_data(cipher.data)
+    cipher_data = data_builder.build_cipher_data(cipher.data)
     cipher_data.save()
 
     return cipher

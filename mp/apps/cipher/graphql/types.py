@@ -85,11 +85,11 @@ CipherUpdatePayload = Annotated[
 class CreateCipherInput:
     type: CipherTypeEnum
     key: str
-    data: JSON
     isFavorite: str  # noqa: N815 FIXME.
     status: str
     name: str
     notes: str
+    data: JSON | None
 
 
 @strawberry.input
@@ -99,5 +99,5 @@ class UpdateCipherInput:
     is_favorite: str
     status: str
     name: str
-    data: JSON
     notes: str
+    data: JSON | None
