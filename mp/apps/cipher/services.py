@@ -77,6 +77,10 @@ class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
     ) -> CipherLoginData:
         super().build_cipher_data(cipher_data)
 
+        if self.data is None:
+            msg = "Login cipher data is required."
+            raise ServiceValidationError(msg)
+
         self._cipher_data.username = self.data["username"]
         self._cipher_data.password = self.data["password"]
         return self._cipher_data
@@ -102,6 +106,10 @@ class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
         cipher_data: CipherCardData | None = None,
     ) -> CipherCardData:
         super().build_cipher_data(cipher_data)
+
+        if self.data is None:
+            msg = "Card cipher data is required."
+            raise ServiceValidationError(msg)
 
         self._cipher_data.cardholder_name = self.data["cardholderName"]
         self._cipher_data.number = self.data["number"]
