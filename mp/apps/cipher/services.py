@@ -12,11 +12,12 @@ from django.utils import timezone
 from mp.apps.authx.models import User
 from mp.apps.cipher.models import (
     Cipher,
+    CipherCardData,
     CipherData,
-    CipherDataCard,
-    CipherDataLogin,
-    CipherDataSecureNote,
+    CipherLoginData,
+    CipherSecureNoteData,
     CipherType,
+    SecureNoteType,
 )
 from mp.core.exceptions import ServiceValidationError
 
@@ -26,76 +27,118 @@ CipherTypeEnum = CipherType
 
 
 class CipherDataBuilder(ABC, Generic[CD]):
-    data: dict
+    _cipher_data: CD
 
-    def __init__(self, data: dict) -> None:
+    name: str
+    notes: str | None
+    data: dict | None
+
+    def __init__(
+        self,
+        name: str,
+        data: dict | None = None,
+        notes: str | None = None,
+    ) -> None:
+        self.name = name
+        self.notes = notes
         self.data = data
 
+    @property
     @abstractmethod
-    def build_cipher_data(self) -> CD:
-        """Build instance of CipherData from dictionary input.
-
-        Useful for creation of cipher.
-        """
+    def cipher_data_class(self) -> type[CD]:
+        """Return the CipherData subclass associated with this builder."""
 
     @abstractmethod
-    def set_cipher_data(self, cipher_data: CD) -> CD:
-        """Set the CipherData values from dictionary input.
+    def build_cipher_data(self, cipher_data: CD | None = None) -> CD:
+        """Build instance of CipherData by setting a default values.
 
-        Useful for updating cipher.
+        Default values are set from name and notes attributes if no cipher_data
+        is provided.
         """
+        if cipher_data is not None:
+            cipher_data.name = self.name
+            cipher_data.notes = self.notes
+            self._cipher_data = cipher_data
+        else:
+            self._cipher_data = self.cipher_data_class(
+                name=self.name,
+                notes=self.notes,
+            )
+
+        return self._cipher_data
 
 
-class CipherDataLoginBuilder(CipherDataBuilder[CipherDataLogin]):
-    def build_cipher_data(self) -> CipherDataLogin:
-        return CipherDataLogin(
-            username=self.data["username"],
-            password=self.data["password"],
-        )
+class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
+    cipher_data_class = CipherLoginData
 
-    def set_cipher_data(self, cipher_data: CipherDataLogin) -> CipherDataLogin:
-        cipher_data.username = self.data["username"]
-        cipher_data.password = self.data["password"]
-        return cipher_data
-
-
-class CipherDataSecureNoteBuilder(CipherDataBuilder[CipherDataSecureNote]):
-    def build_cipher_data(self) -> CipherDataSecureNote:
-        return CipherDataSecureNote(note=self.data["note"])
-
-    def set_cipher_data(
+    def build_cipher_data(
         self,
-        cipher_data: CipherDataSecureNote,
-    ) -> CipherDataSecureNote:
-        cipher_data.note = self.data["note"]
-        return cipher_data
+        cipher_data: CipherLoginData | None = None,
+    ) -> CipherLoginData:
+        super().build_cipher_data(cipher_data)
+
+        if self.data is None:
+            msg = "Login cipher data is required."
+            raise ServiceValidationError(msg)
+
+        self._cipher_data.username = self.data["username"]
+        self._cipher_data.password = self.data["password"]
+        return self._cipher_data
 
 
-class CipherDataCardBuilder(CipherDataBuilder[CipherDataCard]):
-    def build_cipher_data(self) -> CipherDataCard:
-        return CipherDataCard(
-            name=self.data["name"],
-            number=self.data["number"],
-            brand=self.data["brand"],
-            exp_month=self.data["expMonth"],
-            exp_year=self.data["expYear"],
-            security_code=self.data["securityCode"],
-        )
+class CipherSecureNoteDataBuilder(CipherDataBuilder[CipherSecureNoteData]):
+    cipher_data_class = CipherSecureNoteData
 
-    def set_cipher_data(self, cipher_data: CipherDataCard) -> CipherDataCard:
-        cipher_data.name = self.data["name"]
-        cipher_data.number = self.data["number"]
-        cipher_data.brand = self.data["brand"]
-        cipher_data.exp_month = self.data["expMonth"]
-        cipher_data.exp_year = self.data["expYear"]
-        cipher_data.security_code = self.data["securityCode"]
-        return cipher_data
+    def build_cipher_data(
+        self,
+        cipher_data: CipherSecureNoteData | None = None,
+    ) -> CipherSecureNoteData:
+        super().build_cipher_data(cipher_data)
+        self._cipher_data.type = SecureNoteType.GENERIC
+        return self._cipher_data
 
 
-DATA_BUILDER_MAPPER: dict[CipherTypeEnum, Callable[[dict], CipherDataBuilder]] = {
-    CipherTypeEnum.CARD: lambda data: CipherDataCardBuilder(data),
-    CipherTypeEnum.LOGIN: lambda data: CipherDataLoginBuilder(data),
-    CipherTypeEnum.SECURE_NOTE: lambda data: CipherDataSecureNoteBuilder(data),
+class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
+    cipher_data_class = CipherCardData
+
+    def build_cipher_data(
+        self,
+        cipher_data: CipherCardData | None = None,
+    ) -> CipherCardData:
+        super().build_cipher_data(cipher_data)
+
+        if self.data is None:
+            msg = "Card cipher data is required."
+            raise ServiceValidationError(msg)
+
+        self._cipher_data.cardholder_name = self.data["cardholderName"]
+        self._cipher_data.number = self.data["number"]
+        self._cipher_data.brand = self.data["brand"]
+        self._cipher_data.exp_month = self.data["expMonth"]
+        self._cipher_data.exp_year = self.data["expYear"]
+        self._cipher_data.security_code = self.data["securityCode"]
+        return self._cipher_data
+
+
+DATA_BUILDER_MAPPER: dict[
+    CipherTypeEnum,
+    Callable[[str, dict | None, str | None], CipherDataBuilder],
+] = {
+    CipherTypeEnum.CARD: lambda name, data, notes: CipherCardDataBuilder(
+        name,
+        data,
+        notes,
+    ),
+    CipherTypeEnum.LOGIN: lambda name, data, notes: CipherLoginDataBuilder(
+        name,
+        data,
+        notes,
+    ),
+    CipherTypeEnum.SECURE_NOTE: lambda name, data, notes: CipherSecureNoteDataBuilder(
+        name,
+        data,
+        notes,
+    ),
 }
 
 
@@ -107,7 +150,8 @@ def create_cipher(
     key: str,
     status: str,
     is_favorite: str,
-    data: dict,
+    data: dict | None = None,
+    notes: str | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
 
@@ -117,7 +161,7 @@ def create_cipher(
         err_msg = f"Invalid CipherType {cipher_type}."
         raise ServiceValidationError(err_msg) from error
 
-    data_builder = data_builder_factory(data)
+    data_builder = data_builder_factory(name, data, notes)
     cipher_data = data_builder.build_cipher_data()
     cipher_data.save()
 
@@ -126,7 +170,6 @@ def create_cipher(
         status=status,
         is_favorite=is_favorite,
         type=type,
-        name=name,
         key=key,
         data=cipher_data,
     )
@@ -140,18 +183,18 @@ def update_cipher(
     is_favorite: str,
     name: str,
     status: str,
-    data: dict,
+    data: dict | None = None,
+    notes: str | None = None,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.key = key
-    cipher.name = name
     cipher.is_favorite = is_favorite
     cipher.status = status
     cipher.save()
 
     data_builder_factory = DATA_BUILDER_MAPPER[CipherTypeEnum(cipher.type)]
-    data_builder = data_builder_factory(data)
-    cipher_data = data_builder.set_cipher_data(cipher.data)
+    data_builder = data_builder_factory(name, data, notes)
+    cipher_data = data_builder.build_cipher_data(cipher.data)
     cipher_data.save()
 
     return cipher

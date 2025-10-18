@@ -3,13 +3,11 @@ from uuid import UUID
 
 import strawberry
 from django.db import transaction
-from strawberry import relay
 
 from mp.apps.cipher.graphql.types import (
     Cipher,
     CipherCreateFailed,
     CipherCreatePayload,
-    CipherDeletePayload,
     CipherUpdateFailed,
     CipherUpdatePayload,
     CreateCipherInput,
@@ -18,7 +16,6 @@ from mp.apps.cipher.graphql.types import (
 from mp.apps.cipher.models import Cipher as CipherModel
 from mp.apps.cipher.services import (
     create_cipher,
-    delete_ciphers_by_owner_and_uuids,
     restore_cipher_from_delete_state,
     update_cipher,
     update_cipher_to_delete_state,
@@ -45,6 +42,7 @@ class CipherMutation:
                 status=input.status,
                 is_favorite=input.isFavorite,
                 data=input.data,
+                notes=input.notes,
             )
             return Cipher.from_model(cipher)
 
@@ -71,6 +69,7 @@ class CipherMutation:
                 name=input.name,
                 status=input.status,
                 data=input.data,
+                notes=input.notes,
             )
             return Cipher.from_model(cipher)
 
@@ -103,6 +102,7 @@ class CipherMutation:
                     name=input.name,
                     status=input.status,
                     data=input.data,
+                    notes=input.notes,
                 )
                 cipher = update_cipher_to_delete_state(
                     owner=owner,
@@ -140,6 +140,7 @@ class CipherMutation:
                     name=input.name,
                     status=input.status,
                     data=input.data,
+                    notes=input.notes,
                 )
                 cipher = restore_cipher_from_delete_state(
                     owner=owner,
@@ -155,19 +156,3 @@ class CipherMutation:
             return CipherUpdateFailed(
                 message="Something went wrong when updating a vault item.",
             )
-
-    @strawberry.mutation(permission_classes=[IsAuthenticated])
-    def bulk_delete(
-        self,
-        info: strawberry.Info,
-        ids: list[relay.GlobalID],
-    ) -> CipherDeletePayload:
-        affected_uuids = delete_ciphers_by_owner_and_uuids(
-            owner=info.context.request.user,
-            uuids=[UUID(_id.node_id) for _id in ids],
-        )
-        return CipherDeletePayload(
-            deleted_ids=[
-                relay.GlobalID("Cipher", str(_uuid)) for _uuid in affected_uuids
-            ],
-        )

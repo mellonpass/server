@@ -72,7 +72,7 @@ def test_setup_view_unverified(client: Client):
     assert response.status_code == HTTPStatus.BAD_REQUEST
     assert (
         response.json()["error"]
-        == f"User's email {user.email} is not verified."
+        == f"Invalid service process: User's email {user.email} is not verified."
     )
 
 
@@ -105,7 +105,7 @@ def test_setup_view_active_user(client: Client):
     )
 
     assert response.status_code == HTTPStatus.BAD_REQUEST
-    assert response.json()["error"] == "Unable to setup up user account."
+    assert response.json()["error"] == "Invalid service process: Unable to setup up user account."
 
 
 def test_setup_view_hint_max_length_error(client: Client):

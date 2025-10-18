@@ -23,6 +23,7 @@ class Cipher(relay.Node):
     data: JSON
     created: datetime
     updated: datetime
+    notes: str
 
     @classmethod
     def from_model(cls, model: CipherModel) -> "Cipher":
@@ -30,10 +31,11 @@ class Cipher(relay.Node):
             uuid=cast("strawberry.ID", model.uuid),
             owner_id=cast("strawberry.ID", model.owner.uuid),
             type=CipherTypeEnum(model.type),
-            name=model.name,
             key=model.key,
             is_favorite=model.is_favorite,
             status=model.status,
+            name=model.data.name,
+            notes=model.data.notes,
             data=model.data.to_json(),
             created=model.created,
             updated=model.updated,
@@ -83,10 +85,11 @@ CipherUpdatePayload = Annotated[
 class CreateCipherInput:
     type: CipherTypeEnum
     key: str
-    name: str
-    data: JSON
     isFavorite: str  # noqa: N815 FIXME.
     status: str
+    name: str
+    notes: str
+    data: JSON | None
 
 
 @strawberry.input
@@ -96,4 +99,5 @@ class UpdateCipherInput:
     is_favorite: str
     status: str
     name: str
-    data: JSON
+    notes: str
+    data: JSON | None

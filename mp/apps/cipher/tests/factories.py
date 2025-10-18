@@ -13,16 +13,24 @@ from faker import Faker as _Faker
 from mp.apps.authx.tests.factories import UserFactory
 from mp.apps.cipher.models import (
     Cipher,
-    CipherDataCard,
-    CipherDataLogin,
-    CipherDataSecureNote,
+    CipherCardData,
+    CipherLoginData,
+    CipherSecureNoteData,
     CipherType,
 )
 
 
 class CipherDataLoginFactory(DjangoModelFactory):
     class Meta:
-        model = CipherDataLogin
+        model = CipherLoginData
+
+    @factory.lazy_attribute
+    def name(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def notes(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
 
     @factory.lazy_attribute
     def username(self):
@@ -35,19 +43,31 @@ class CipherDataLoginFactory(DjangoModelFactory):
 
 class CipherDataSecureNoteFactory(DjangoModelFactory):
     class Meta:
-        model = CipherDataSecureNote
+        model = CipherSecureNoteData
 
     @factory.lazy_attribute
-    def note(self):
+    def name(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def notes(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
 
 
 class CipherDataCardFactory(DjangoModelFactory):
     class Meta:
-        model = CipherDataCard
+        model = CipherCardData
 
     @factory.lazy_attribute
     def name(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def notes(self):
+        return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+    @factory.lazy_attribute
+    def cardholder_name(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
 
     @factory.lazy_attribute
@@ -87,11 +107,6 @@ class CipherFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def uuid(self):
         return uuid4()
-
-    @factory.lazy_attribute
-    def name(self):
-        fake = _Faker()
-        return base64.b64encode(fake.name().encode("utf-8")).decode("utf-8")
 
     @factory.lazy_attribute
     def key(self):

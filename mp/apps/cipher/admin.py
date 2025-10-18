@@ -2,9 +2,9 @@ from django.contrib import admin
 
 from mp.apps.cipher.models import (
     Cipher,
-    CipherDataCard,
-    CipherDataLogin,
-    CipherDataSecureNote,
+    CipherCardData,
+    CipherLoginData,
+    CipherSecureNoteData,
 )
 
 
@@ -13,7 +13,7 @@ class CipherAdmin(admin.ModelAdmin):
     readonly_fields = ("uuid",)
 
 
-admin.site.register(CipherDataCard)
-admin.site.register(CipherDataLogin)
-admin.site.register(CipherDataSecureNote)
+admin.site.register(CipherCardData)
+admin.site.register(CipherLoginData)
+admin.site.register(CipherSecureNoteData)
 admin.site.register(Cipher, CipherAdmin)
