@@ -1,23 +1,12 @@
 [tool.poetry]
 name = "mellonpass-server"
-version = "0.3.0"
+version = "1.0.0"
 description = "MellonPass Server."
 authors = ["Roel Delos Reyes <badcoder28@gmail.com>"]
 maintainers = ["Roel Delos Reyes <badcoder28@gmail.com>"]
 license = "GPL-3.0"
 keywords = ["password-manager", "api", "server", "cryptography", "e2ee"]
 readme = "README.md"
-classifiers = [
-    "Environment :: Web Environment",
-    "Intended Audience :: MellonPass Web",
-    "License :: GPL-3.0",
-    "Operating System :: OS Independent",
-    "Web :: MellonPass Web",
-    "Web :: MellonPass Web :: 0.0.0",
-    "Web :: MellonPass Web :: 0.1.0",
-    "Web :: MellonPass Web :: 0.2.0",
-    "Web :: MellonPass Web :: 0.3.0",
-]
 
 [tool.poetry.dependencies]
 python = "^3.11"
