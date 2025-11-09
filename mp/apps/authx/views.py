@@ -56,21 +56,15 @@ def _turnstile_view_validation(action: str, token: str | None) -> JsonResponse |
             status=HTTPStatus.BAD_REQUEST,
         )
 
-    turnstile_response = validate_turnstile(action=action, token=token)
+    if _ := validate_turnstile(action=action, token=token):
+        return None
 
-    error_msg = None
-    if turnstile_response is False:
-        error_msg = "Verification failed."
-
-    if error_msg:
-        return JsonResponse(
-            {
-                "error": error_msg,
-            },
-            status=HTTPStatus.BAD_REQUEST,
-        )
-
-    return None
+    return JsonResponse(
+        {
+            "error": "Verification failed.",
+        },
+        status=HTTPStatus.BAD_REQUEST,
+    )
 
 
 @transaction.atomic()
