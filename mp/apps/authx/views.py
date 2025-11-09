@@ -43,40 +43,28 @@ def rl_email(group, request: HttpRequest):  # noqa: ARG001, ANN001
     return auth_data["email"]
 
 
-def _turnstile_view_validation(action: str, token: str) -> JsonResponse | None:
-    try:
-        turnstile_response = validate_turnstile(action=action, token=token)
+def _turnstile_view_validation(action: str, token: str | None) -> JsonResponse | None:
+    if not settings.CF_ENABLE_TURNSTILE_INTEGRATION:
+        logger.warning("Cloudflare turnstile integration is disabled in settings.")
+        return None
 
-        # CF turnstile is disabled if it returns boolean False value.
-        if turnstile_response is False:
-            return None
-
-        error_msg = None
-        if (
-            isinstance(turnstile_response, dict)
-            and turnstile_response["success"] is False
-        ):
-            error_msg = "Verification failed."
-
-        if turnstile_response is None:
-            error_msg = "Err: Something went wrong. Contact the administrator."
-
-        if error_msg:
-            return JsonResponse(
-                {
-                    "error": error_msg,
-                },
-                status=HTTPStatus.BAD_REQUEST,
-            )
-
-    except KeyError as error:
-        # CF integration is optional.
-        logger.warning(
-            "Cloudflare turnstile is not fully enabled. Check the error logs.",
-            exc_info=error,
+    if token is None:
+        return JsonResponse(
+            {
+                "error": "Turnstile token is required.",
+            },
+            status=HTTPStatus.BAD_REQUEST,
         )
 
-    return None
+    if _ := validate_turnstile(action=action, token=token):
+        return None
+
+    return JsonResponse(
+        {
+            "error": "Verification failed.",
+        },
+        status=HTTPStatus.BAD_REQUEST,
+    )
 
 
 @transaction.atomic()
@@ -118,20 +106,18 @@ def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001,
 
         # --
         # CF Integration (optional).
-        cftoken_key = "cf_turnstile_token"
-        turnstile_token = account_data.get(
-            cftoken_key,
-            None,
-        ) and account_data.pop(cftoken_key)
-        turnstile_response = _turnstile_view_validation(
+        if turnstile_response := _turnstile_view_validation(
             action="signup",
-            token=turnstile_token,
-        )
-        if turnstile_response:
+            token=account_data.get("cf_turnstile_token"),
+        ):
             return turnstile_response
+
         # --
 
-        user, created = create_account(**account_data)
+        user, created = create_account(
+            email=account_data["email"],
+            name=account_data["name"],
+        )
 
         if not user.is_active:
             # HTTP_ORIGIN does not exists on pytest.
@@ -235,19 +221,19 @@ def login_view(request: HttpRequest):
 
     # --
     # CF Integration (optional).
-    cftoken_key = "cf_turnstile_token"
-    turnstile_token = auth_data.get(cftoken_key, None) and auth_data.pop(
-        cftoken_key,
-    )
-    turnstile_response = _turnstile_view_validation(
+    if turnstile_response := _turnstile_view_validation(
         action="login",
-        token=turnstile_token,
-    )
-    if turnstile_response:
+        token=auth_data.get("cf_turnstile_token"),
+    ):
         return turnstile_response
+
     # --
 
-    user, is_success = login_user(**auth_data, request=request)
+    user, is_success = login_user(
+        email=auth_data["email"],
+        login_hash=auth_data["login_hash"],
+        request=request,
+    )
 
     if user is not None and is_success:
         return JsonResponse(

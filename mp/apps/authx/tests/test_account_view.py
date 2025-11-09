@@ -14,14 +14,16 @@ pytestmark = pytest.mark.django_db
 rf = RequestFactory()
 
 
-@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=False)
-def test_account_create(
-    mocker, client: Client, django_capture_on_commit_callbacks
-):
-    mock_send_account_verification_link_task = mocker.patch(
-        "mp.apps.authx.views.send_account_verification_link_task"
-    )
+@pytest.fixture
+def mock_send_account_verification_link_task(mocker):
+    return mocker.patch("mp.apps.authx.views.send_account_verification_link_task")
 
+
+def test_account_create(
+    mock_send_account_verification_link_task,
+    client: Client,
+    django_capture_on_commit_callbacks,
+):
     url = reverse("accounts:create")
 
     with django_capture_on_commit_callbacks(execute=True):
@@ -62,16 +64,12 @@ def test_account_create(
     assert mock_send_account_verification_link_task.call_count == 2
 
 
-@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=False)
 def test_account_create_active_user(
-    mocker, client: Client, django_capture_on_commit_callbacks
+    mock_send_account_verification_link_task,
+    client: Client,
+    django_capture_on_commit_callbacks,
 ):
     user = UserFactory(is_active=True)
-
-    mock_send_account_verification_link_task = mocker.patch(
-        "mp.apps.authx.views.send_account_verification_link_task"
-    )
-
     url = reverse("accounts:create")
 
     with django_capture_on_commit_callbacks(execute=True):
@@ -122,9 +120,7 @@ def test_account_create_invalid_input(client: Client):
     assert error["name"][0] == "Missing data for required field."
 
 
-@override_settings(
-    RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
+@override_settings(RATELIMIT_ENABLE=True)
 def test_account_create_ratelimit_exceeded(client: Client):
     # clear ratelimit cache to avoid undesired result.
     cache.clear()
@@ -133,14 +129,11 @@ def test_account_create_ratelimit_exceeded(client: Client):
         "name": "john doe",
     }
     list_of_input_attack = [
-        {"email": f"johndoe{i}@example.com", **base_input_data}
-        for i in range(4)
+        {"email": f"johndoe{i}@example.com", **base_input_data} for i in range(4)
     ]
 
     url = reverse("accounts:create")
-    client_post = partial(
-        client.post, path=url, content_type="application/json"
-    )
+    client_post = partial(client.post, path=url, content_type="application/json")
 
     # OK
     response_1 = client_post(data=list_of_input_attack[0])
@@ -158,3 +151,53 @@ def test_account_create_ratelimit_exceeded(client: Client):
 
     # request no. 4 did not push through.
     assert User.objects.count() == 3
+
+
+@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=True)
+@pytest.mark.usefixtures("mock_send_account_verification_link_task")
+def test_account_create_with_turnstile(
+    mocker, client: Client, django_capture_on_commit_callbacks
+):
+    url = reverse("accounts:create")
+
+    mocker.patch("mp.apps.authx.views.validate_turnstile", return_value=True)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(
+            url,
+            content_type="application/json",
+            data={
+                "email": "test@example.com",
+                "name": "john doe",
+                "cf_turnstile_token": "XXXX.DUMMY.TOKEN.XXXX",  # simulating turnstile token
+            },
+        )
+
+    assert response.status_code == HTTPStatus.CREATED
+    data = response.json()["data"]
+    assert data["email"] == "test@example.com"
+    assert data["name"] == "john doe"
+
+
+@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=True)
+@pytest.mark.usefixtures("mock_send_account_verification_link_task")
+def test_account_create_with_turnstile_failed(
+    mocker, client: Client, django_capture_on_commit_callbacks
+):
+    url = reverse("accounts:create")
+
+    mocker.patch("mp.apps.authx.views.validate_turnstile", return_value=False)
+
+    with django_capture_on_commit_callbacks(execute=True):
+        response = client.post(
+            url,
+            content_type="application/json",
+            data={
+                "email": "test@example.com",
+                "name": "john doe",
+                "cf_turnstile_token": "XXXX.DUMMY.TOKEN.XXXX",  # simulating turnstile token
+            },
+        )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["error"] == "Verification failed."

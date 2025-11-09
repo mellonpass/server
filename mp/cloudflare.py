@@ -36,11 +36,18 @@ def validate_turnstile(
     action: str,
     token: str,
     remoteip: str | None = None,
-) -> dict | int | None:
-    if not settings.CF_ENABLE_TURNSTILE_INTEGRATION:
-        logger.warning("Cloudflare turnstile is currently disabled.")
-        return EXIT_CF_UNAVAILABLE
+) -> bool:
+    """Validate Cloudflare Turnstile token.
 
+    :: params:
+        action (str): The action name associated with the token.
+        token (str): The Turnstile token to validate.
+        remoteip (Optional): The user's IP address.
+    :: returns:
+        bool: The validation response from Cloudflare Turnstile.
+    :: raises:
+        requests.exceptions.RequestException: If the request to Cloudflare fails.
+    """
     data = {
         "secret": settings.CF_TURNSTILE_SECRET_KEY,
         "response": token,
@@ -56,4 +63,4 @@ def validate_turnstile(
         timeout=10,
     )
     response.raise_for_status()
-    return response.json()
+    return response.json()["success"]

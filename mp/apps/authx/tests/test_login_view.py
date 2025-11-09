@@ -13,9 +13,6 @@ from mp.apps.authx.tests.conftest import TEST_USER_LOGIN_HASH
 pytestmark = pytest.mark.django_db
 
 
-@override_settings(
-    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
 def test_login_view(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
@@ -29,7 +26,6 @@ def test_login_view(client: Client, user: User):
     assert data["psk"]
 
 
-@override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_invalid_content_type(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
@@ -41,9 +37,6 @@ def test_login_view_invalid_content_type(client: Client, user: User):
     assert response.json()["error"] == "Invalid request content-type."
 
 
-@override_settings(
-    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
 def test_login_view_user_already_authenticated(client: Client, user: User):
     url = reverse("accounts:login")
 
@@ -65,7 +58,6 @@ def test_login_view_user_already_authenticated(client: Client, user: User):
     )
 
 
-@override_settings(RATELIMIT_ENABLE=False)
 def test_login_view_invalid_input(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
@@ -84,9 +76,6 @@ def test_login_view_invalid_input(client: Client, user: User):
     assert error["password"][0] == "Unknown field."
 
 
-@override_settings(
-    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
 def test_login_view_invalid_login_hash(client: Client, user: User):
     url = reverse("accounts:login")
     response = client.post(
@@ -101,9 +90,6 @@ def test_login_view_invalid_login_hash(client: Client, user: User):
     )
 
 
-@override_settings(
-    RATELIMIT_ENABLE=False, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
 def test_login_view_invalid_email(client: Client):
     url = reverse("accounts:login")
     response = client.post(
@@ -118,9 +104,7 @@ def test_login_view_invalid_email(client: Client):
     )
 
 
-@override_settings(
-    RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
+@override_settings(RATELIMIT_ENABLE=True)
 @pytest.mark.parametrize(
     "wrong_emails",
     [
@@ -156,9 +140,7 @@ def test_login_view_failed_attempt_same_password(client: Client, wrong_emails):
     assert response.json()["error"] == "Blocked, try again later."
 
 
-@override_settings(
-    RATELIMIT_ENABLE=True, CF_ENABLE_TURNSTILE_INTEGRATION=False
-)
+@override_settings(RATELIMIT_ENABLE=True)
 @pytest.mark.parametrize(
     "wrong_login_hash",
     [
@@ -194,3 +176,46 @@ def test_login_view_failed_attempt_same_email(
     )
 
     assert response.json()["error"] == "Blocked, try again later."
+
+
+@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=True)
+def test_login_view_with_turnstile(mocker, client: Client, user: User):
+    mocker.patch(
+        "mp.apps.authx.views.validate_turnstile", return_value=True
+    )
+
+    url = reverse("accounts:login")
+    response = client.post(
+        path=url,
+        content_type="application/json",
+        data={
+            "email": user.email,
+            "login_hash": TEST_USER_LOGIN_HASH,
+            "cf_turnstile_token": "XXXX.DUMMY.TOKEN.XXXX",
+        },
+    )
+    assert response.status_code == HTTPStatus.ACCEPTED
+
+    data = response.json()["data"]
+    assert data["psk"]
+
+
+@override_settings(CF_ENABLE_TURNSTILE_INTEGRATION=True)
+def test_login_view_with_turnstile_failed(mocker, client: Client, user: User):
+    mocker.patch(
+        "mp.apps.authx.views.validate_turnstile", return_value=False
+    )
+
+    url = reverse("accounts:login")
+    response = client.post(
+        path=url,
+        content_type="application/json",
+        data={
+            "email": user.email,
+            "login_hash": TEST_USER_LOGIN_HASH,
+            "cf_turnstile_token": "XXXX.DUMMY.BADTOKEN.XXXX",
+        },
+    )
+
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["error"] == "Verification failed."
