@@ -118,11 +118,7 @@ def account_create_view(request: HttpRequest, *args, **kwargs):  # noqa: ARG001,
 
         # --
         # CF Integration (optional).
-        cftoken_key = "cf_turnstile_token"
-        turnstile_token = account_data.get(
-            cftoken_key,
-            None,
-        ) and account_data.pop(cftoken_key)
+        turnstile_token = account_data.pop("cf_turnstile_token")
         turnstile_response = _turnstile_view_validation(
             action="signup",
             token=turnstile_token,
@@ -235,10 +231,7 @@ def login_view(request: HttpRequest):
 
     # --
     # CF Integration (optional).
-    cftoken_key = "cf_turnstile_token"
-    turnstile_token = auth_data.get(cftoken_key, None) and auth_data.pop(
-        cftoken_key,
-    )
+    turnstile_token = auth_data.pop("cf_turnstile_token")
     turnstile_response = _turnstile_view_validation(
         action="login",
         token=turnstile_token,
