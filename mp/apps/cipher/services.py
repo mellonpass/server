@@ -83,6 +83,7 @@ class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
 
         self._cipher_data.username = self.data["username"]
         self._cipher_data.password = self.data["password"]
+        self._cipher_data.authenticator_key = self.data["authenticatorKey"]
         return self._cipher_data
 
 

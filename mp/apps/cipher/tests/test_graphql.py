@@ -35,7 +35,11 @@ pytestmark = pytest.mark.django_db
         },
         {
             "type": CipherType.LOGIN,
-            "data": {"username": "encusername", "password": "encpassword"},
+            "data": {
+                "username": "encusername",
+                "password": "encpassword",
+                "authenticatorKey": "encauthenticatorKey",
+            },
         },
         {
             "type": CipherType.SECURE_NOTE,
@@ -114,7 +118,11 @@ def test_create_cipher_failed(mocker):
         "key": "somekey",
         "isFavorite": "encfavorite",
         "status": "encstatus",
-        "data": {"username": "encusername", "password": "encpassword"},
+        "data": {
+            "username": "encusername",
+            "password": "encpassword",
+            "authenticatorKey": "encauthenticatorKey",
+        },
     }
 
     variables = {"input": cipher_data}
@@ -152,7 +160,11 @@ def test_create_cipher_failed(mocker):
         (
             CipherType.LOGIN,
             {
-                "data": {"username": "encusername", "password": "encpassword"},
+                "data": {
+                    "username": "encusername",
+                    "password": "encpassword",
+                    "authenticatorKey": "encauthenticatorKey",
+                },
             },
         ),
         (
