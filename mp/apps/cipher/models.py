@@ -111,6 +111,7 @@ class CipherData(Model):
 class CipherLoginData(CipherData):
     username = EncryptedTextField(null=False, blank=False)
     password = EncryptedTextField(null=False, blank=False)
+    authenticator_key = EncryptedTextField(null=True, blank=True)
 
 
 class CipherSecureNoteData(CipherData):
