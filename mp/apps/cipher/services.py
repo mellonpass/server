@@ -1,7 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable
 from datetime import timedelta
-from typing import Generic, TypeVar
 from uuid import UUID
 
 from django.conf import settings
@@ -21,125 +19,74 @@ from mp.apps.cipher.models import (
 )
 from mp.core.exceptions import ServiceValidationError
 
-CD = TypeVar("CD", bound=CipherData)
-
 CipherTypeEnum = CipherType
 
 
-class CipherDataBuilder(ABC, Generic[CD]):
-    _cipher_data: CD
-
-    name: str
-    notes: str | None
-    data: dict | None
-
-    def __init__(
-        self,
-        name: str,
-        data: dict | None = None,
-        notes: str | None = None,
-    ) -> None:
-        self.name = name
-        self.notes = notes
-        self.data = data
-
-    @property
+class CipherDataBuilder(ABC):
     @abstractmethod
-    def cipher_data_class(self) -> type[CD]:
-        """Return the CipherData subclass associated with this builder."""
+    def build_cipher_data(self, data: dict) -> CipherData:
+        """Build the cipher data (CipherData) based on the provided data dict.
 
-    @abstractmethod
-    def build_cipher_data(self, cipher_data: CD | None = None) -> CD:
-        """Build instance of CipherData by setting a default values.
-
-        Default values are set from name and notes attributes if no cipher_data
-        is provided.
+        The cipher data type depends on the implementation of the builder. Higher
+        level call should provide the name and notes fields.
         """
-        if cipher_data is not None:
-            cipher_data.name = self.name
-            cipher_data.notes = self.notes
-            self._cipher_data = cipher_data
-        else:
-            self._cipher_data = self.cipher_data_class(
-                name=self.name,
-                notes=self.notes,
-            )
 
-        return self._cipher_data
+    def set_cipher_data(
+        self,
+        cipher_data: CipherData,
+        new_data: dict,
+    ) -> CipherData:
+        """Set the cipher data fields based on the new data dict."""
+        for key, value in new_data.items():
+            # Covert camelCase (GraphQL field format) into
+            # snake_case (Model field formal).
+            _key = "".join("_" + c.lower() if c.isupper() else c for c in key)
+            setattr(cipher_data, _key, value)
+
+        return cipher_data
 
 
-class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
-    cipher_data_class = CipherLoginData
-
+class CipherLoginDataBuilder(CipherDataBuilder):
     def build_cipher_data(
         self,
-        cipher_data: CipherLoginData | None = None,
+        data: dict,
     ) -> CipherLoginData:
-        super().build_cipher_data(cipher_data)
-
-        if self.data is None:
-            msg = "Login cipher data is required."
-            raise ServiceValidationError(msg)
-
-        self._cipher_data.username = self.data["username"]
-        self._cipher_data.password = self.data["password"]
-        self._cipher_data.authenticator_key = self.data["authenticatorKey"]
-        return self._cipher_data
+        return CipherLoginData(
+            username=data["username"],
+            password=data["password"],
+            authenticator_key=data["authenticatorKey"],
+        )
 
 
-class CipherSecureNoteDataBuilder(CipherDataBuilder[CipherSecureNoteData]):
-    cipher_data_class = CipherSecureNoteData
-
+class CipherSecureNoteDataBuilder(CipherDataBuilder):
     def build_cipher_data(
         self,
-        cipher_data: CipherSecureNoteData | None = None,
+        data: dict,
     ) -> CipherSecureNoteData:
-        super().build_cipher_data(cipher_data)
-        self._cipher_data.type = SecureNoteType.GENERIC
-        return self._cipher_data
+        return CipherSecureNoteData(
+            type=SecureNoteType[data["type"]],
+        )
 
 
-class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
-    cipher_data_class = CipherCardData
-
+class CipherCardDataBuilder(CipherDataBuilder):
     def build_cipher_data(
         self,
-        cipher_data: CipherCardData | None = None,
+        data: dict,
     ) -> CipherCardData:
-        super().build_cipher_data(cipher_data)
-
-        if self.data is None:
-            msg = "Card cipher data is required."
-            raise ServiceValidationError(msg)
-
-        self._cipher_data.cardholder_name = self.data["cardholderName"]
-        self._cipher_data.number = self.data["number"]
-        self._cipher_data.brand = self.data["brand"]
-        self._cipher_data.exp_month = self.data["expMonth"]
-        self._cipher_data.exp_year = self.data["expYear"]
-        self._cipher_data.security_code = self.data["securityCode"]
-        return self._cipher_data
+        return CipherCardData(
+            cardholder_name=data["cardholderName"],
+            number=data["number"],
+            brand=data["brand"],
+            exp_month=data["expMonth"],
+            exp_year=data["expYear"],
+            security_code=data["securityCode"],
+        )
 
 
-DATA_BUILDER_MAPPER: dict[
-    CipherTypeEnum,
-    Callable[[str, dict | None, str | None], CipherDataBuilder],
-] = {
-    CipherTypeEnum.CARD: lambda name, data, notes: CipherCardDataBuilder(
-        name,
-        data,
-        notes,
-    ),
-    CipherTypeEnum.LOGIN: lambda name, data, notes: CipherLoginDataBuilder(
-        name,
-        data,
-        notes,
-    ),
-    CipherTypeEnum.SECURE_NOTE: lambda name, data, notes: CipherSecureNoteDataBuilder(
-        name,
-        data,
-        notes,
-    ),
+DATA_BUILDER_FACTORY: dict[CipherTypeEnum, CipherDataBuilder] = {
+    CipherTypeEnum.CARD: CipherCardDataBuilder(),
+    CipherTypeEnum.LOGIN: CipherLoginDataBuilder(),
+    CipherTypeEnum.SECURE_NOTE: CipherSecureNoteDataBuilder(),
 }
 
 
@@ -151,19 +98,20 @@ def create_cipher(
     key: str,
     status: str,
     is_favorite: str,
-    data: dict | None = None,
+    data: dict,
     notes: str | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
 
     try:
-        data_builder_factory = DATA_BUILDER_MAPPER[CipherTypeEnum(type)]
+        data_builder = DATA_BUILDER_FACTORY[CipherTypeEnum(type)]
     except KeyError as error:
         err_msg = f"Invalid CipherType {cipher_type}."
         raise ServiceValidationError(err_msg) from error
 
-    data_builder = data_builder_factory(name, data, notes)
-    cipher_data = data_builder.build_cipher_data()
+    cipher_data: CipherData = data_builder.build_cipher_data(data)
+    cipher_data.name = name
+    cipher_data.notes = notes
     cipher_data.save()
 
     return Cipher.objects.create(
@@ -184,18 +132,19 @@ def update_cipher(
     is_favorite: str,
     name: str,
     status: str,
-    data: dict | None = None,
+    data: dict,
     notes: str | None = None,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
     cipher.key = key
     cipher.is_favorite = is_favorite
     cipher.status = status
+    cipher.data.name = name
+    cipher.data.notes = notes
     cipher.save()
 
-    data_builder_factory = DATA_BUILDER_MAPPER[CipherTypeEnum(cipher.type)]
-    data_builder = data_builder_factory(name, data, notes)
-    cipher_data = data_builder.build_cipher_data(cipher.data)
+    data_builder = DATA_BUILDER_FACTORY[CipherTypeEnum(cipher.type)]
+    cipher_data = data_builder.set_cipher_data(cipher.data, data)
     cipher_data.save()
 
     return cipher
