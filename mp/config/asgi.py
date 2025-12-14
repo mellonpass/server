@@ -10,6 +10,6 @@ import os
 
 from django.core.asgi import get_asgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mp.config.base")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "mp.config.local")
 
 application = get_asgi_application()
