@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from typing import Generic, TypeVar
 from uuid import UUID
 
 from django.conf import settings
@@ -21,10 +22,21 @@ from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
 
+T = TypeVar("T", bound=CipherData)
 
-class CipherDataBuilder(ABC):
+
+class DataBuilderMissingDataError(Exception):
+    def __init__(self, builder: object) -> None:
+        object_name = builder.__class__.__name__
+
+        super().__init__(
+            f"{object_name}'s data cannot be None for building cipher data.",
+        )
+
+
+class CipherDataBuilder(ABC, Generic[T]):
     @abstractmethod
-    def build_cipher_data(self, data: dict) -> CipherData:
+    def build_cipher_data(self, data: dict | None = None) -> T:
         """Build the cipher data (CipherData) based on the provided data dict.
 
         The cipher data type depends on the implementation of the builder. Higher
@@ -33,9 +45,9 @@ class CipherDataBuilder(ABC):
 
     def set_cipher_data(
         self,
-        cipher_data: CipherData,
+        cipher_data: T,
         new_data: dict,
-    ) -> CipherData:
+    ) -> T:
         """Set the cipher data fields based on the new data dict."""
         for key, value in new_data.items():
             # Covert camelCase (GraphQL field format) into
@@ -46,11 +58,11 @@ class CipherDataBuilder(ABC):
         return cipher_data
 
 
-class CipherLoginDataBuilder(CipherDataBuilder):
-    def build_cipher_data(
-        self,
-        data: dict,
-    ) -> CipherLoginData:
+class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
+    def build_cipher_data(self, data: dict | None = None) -> CipherLoginData:
+        if data is None:
+            raise DataBuilderMissingDataError(self)
+
         return CipherLoginData(
             username=data["username"],
             password=data["password"],
@@ -58,21 +70,19 @@ class CipherLoginDataBuilder(CipherDataBuilder):
         )
 
 
-class CipherSecureNoteDataBuilder(CipherDataBuilder):
-    def build_cipher_data(
-        self,
-        data: dict,
-    ) -> CipherSecureNoteData:
-        return CipherSecureNoteData(
-            type=SecureNoteType[data["type"]],
-        )
+class CipherSecureNoteDataBuilder(CipherDataBuilder[CipherSecureNoteData]):
+    def build_cipher_data(self, data: dict | None = None) -> CipherSecureNoteData:
+        return CipherSecureNoteData(type=SecureNoteType.GENERIC)
 
 
-class CipherCardDataBuilder(CipherDataBuilder):
+class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
     def build_cipher_data(
         self,
-        data: dict,
+        data: dict | None = None,
     ) -> CipherCardData:
+        if data is None:
+            raise DataBuilderMissingDataError(self)
+
         return CipherCardData(
             cardholder_name=data["cardholderName"],
             number=data["number"],
@@ -144,7 +154,7 @@ def update_cipher(
     cipher.save()
 
     data_builder = DATA_BUILDER_FACTORY[CipherTypeEnum(cipher.type)]
-    cipher_data = data_builder.set_cipher_data(cipher.data, data)
+    cipher_data = data_builder.set_cipher_data(cipher.data, new_data=data)
     cipher_data.save()
 
     return cipher
