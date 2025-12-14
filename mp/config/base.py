@@ -248,24 +248,6 @@ CSRF_HEADER_NAME = "CSRF_COOKIE"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 NO_REPLY_EMAIL = f"no-reply@{DOMAIN}"
 
-# App data
-# ------------------------------------------------------------
-# This is only for development purpose, users don't need to provide
-# it on production.
-# TODO(roelzkie): Move this settings on local.py.
-TEST_USER_EMAIL = env("TEST_USER_EMAIL", default=None)
-TEST_USER_LOGIN_HASH = env("TEST_USER_LOGIN_HASH", default=None)
-TEST_USER_PROTECTED_SYMMETRIC_KEY = env(
-    "TEST_USER_PROTECTED_SYMMETRIC_KEY",
-    default=None,
-)
-TEST_USER_RSA_PROTECTED_PRIVATE_KEY = env(
-    "TEST_USER_RSA_PROTECTED_PRIVATE_KEY",
-    default=None,
-)
-TEST_USER_RSA_PUBLIC_KEY = env("TEST_USER_RSA_PUBLIC_KEY", default=None)
-
-
 # CIPHER DELETE DAYS PERIOD
 # ------------------------------------------------------------
 CIPHER_DELETE_DAYS_PERIOD = 30
