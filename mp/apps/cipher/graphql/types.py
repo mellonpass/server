@@ -89,7 +89,7 @@ class CreateCipherInput:
     status: str
     name: str
     notes: str
-    data: JSON
+    data: JSON | None
 
 
 @strawberry.input
@@ -100,4 +100,4 @@ class UpdateCipherInput:
     status: str
     name: str
     notes: str
-    data: JSON
+    data: JSON | None
