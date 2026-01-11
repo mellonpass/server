@@ -141,6 +141,40 @@ def test_create_cipher_failed(mocker):
         )
 
 
+def test_create_cipher_secure_note_nullable_data():
+    query = """
+        mutation CreateCipher($input: CreateCipherInput!){
+            cipher {
+                create(input: $input) {
+                    ... on Cipher {
+                        data
+                    }
+                }
+            }
+        }
+    """
+
+    input_data = {
+        "type": CipherType.SECURE_NOTE,
+        "name": "encname",
+        "notes": "encnotes",
+        "key": "somekey",
+        "isFavorite": "encfavorite",
+        "status": "encstatus",
+        "data": None,
+    }
+
+    variables = {"input": input_data}
+
+    user = UserFactory()
+    client = TestClient("/graphql")
+
+    with client.login(user):
+        response = client.query(query, variables=variables)
+        cipher = response.data["cipher"]["create"]
+        assert cipher["data"] == { "type": SecureNoteType.GENERIC.value }
+
+
 @pytest.mark.parametrize(
     "cipher_type, input_data",
     (

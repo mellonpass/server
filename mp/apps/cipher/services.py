@@ -46,9 +46,12 @@ class CipherDataBuilder(ABC, Generic[T]):
     def set_cipher_data(
         self,
         cipher_data: T,
-        new_data: dict,
+        new_data: dict | None = None,
     ) -> T:
         """Set the cipher data fields based on the new data dict."""
+        if new_data is None:
+            return cipher_data
+
         for key, value in new_data.items():
             # Covert camelCase (GraphQL field format) into
             # snake_case (Model field formal).
@@ -108,7 +111,7 @@ def create_cipher(
     key: str,
     status: str,
     is_favorite: str,
-    data: dict,
+    data: dict | None = None,
     notes: str | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
@@ -142,7 +145,7 @@ def update_cipher(
     is_favorite: str,
     name: str,
     status: str,
-    data: dict,
+    data: dict | None = None,
     notes: str | None = None,
 ) -> Cipher:
     cipher = Cipher.objects.get(owner=owner, uuid=uuid)
