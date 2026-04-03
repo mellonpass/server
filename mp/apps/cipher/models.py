@@ -25,6 +25,7 @@ class CipherType(TextChoices):
     CARD = "CARD", _("Card")
     LOGIN = "LOGIN", _("Login")
     SECURE_NOTE = "SECURE_NOTE", _("Secure note")
+    DATABASE = "DATABASE", _("Database")
 
 
 class SecureNoteType(TextChoices):
@@ -131,3 +132,14 @@ class CipherCardData(CipherData):
     exp_month = EncryptedTextField(null=False, blank=False)
     exp_year = EncryptedTextField(null=False, blank=False)
     security_code = EncryptedTextField(null=False, blank=False)
+
+
+class CipherDatabaseData(CipherData):
+    engine = EncryptedTextField(null=False, blank=False)
+    connection_type = EncryptedTextField(null=False, blank=False)
+    url = EncryptedTextField(null=True, blank=True)
+    host = EncryptedTextField(null=True, blank=True)
+    port = EncryptedTextField(null=True, blank=True)
+    database = EncryptedTextField(null=True, blank=True)
+    username = EncryptedTextField(null=True, blank=True)
+    password = EncryptedTextField(null=True, blank=True)

@@ -14,3 +14,10 @@ TEST_USER_RSA_PROTECTED_PRIVATE_KEY = env(
     default=None,
 )
 TEST_USER_RSA_PUBLIC_KEY = env("TEST_USER_RSA_PUBLIC_KEY", default=None)
+
+# Local development CSRF trusted origins.
+CSRF_TRUSTED_ORIGINS += [
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+]
