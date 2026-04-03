@@ -13,6 +13,7 @@ from mp.apps.cipher.models import (
     Cipher,
     CipherCardData,
     CipherData,
+    CipherDatabaseData,
     CipherLoginData,
     CipherSecureNoteData,
     CipherType,
@@ -96,10 +97,28 @@ class CipherCardDataBuilder(CipherDataBuilder[CipherCardData]):
         )
 
 
+class CipherDatabaseDataBuilder(CipherDataBuilder[CipherDatabaseData]):
+    def build_cipher_data(self, data: dict | None = None) -> CipherDatabaseData:
+        if data is None:
+            raise DataBuilderMissingDataError(self)
+
+        return CipherDatabaseData(
+            engine=data["engine"],
+            connection_type=data["connectionType"],
+            url=data.get("url"),
+            host=data.get("host"),
+            port=data.get("port"),
+            database=data.get("database"),
+            username=data.get("username"),
+            password=data.get("password"),
+        )
+
+
 DATA_BUILDER_FACTORY: dict[CipherTypeEnum, CipherDataBuilder] = {
     CipherTypeEnum.CARD: CipherCardDataBuilder(),
     CipherTypeEnum.LOGIN: CipherLoginDataBuilder(),
     CipherTypeEnum.SECURE_NOTE: CipherSecureNoteDataBuilder(),
+    CipherTypeEnum.DATABASE: CipherDatabaseDataBuilder(),
 }
 
 

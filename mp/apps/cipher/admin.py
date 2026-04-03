@@ -3,6 +3,7 @@ from django.contrib import admin
 from mp.apps.cipher.models import (
     Cipher,
     CipherCardData,
+    CipherDatabaseData,
     CipherLoginData,
     CipherSecureNoteData,
 )
@@ -14,6 +15,7 @@ class CipherAdmin(admin.ModelAdmin):
 
 
 admin.site.register(CipherCardData)
+admin.site.register(CipherDatabaseData)
 admin.site.register(CipherLoginData)
 admin.site.register(CipherSecureNoteData)
 admin.site.register(Cipher, CipherAdmin)
