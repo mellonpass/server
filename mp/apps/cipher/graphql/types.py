@@ -21,6 +21,7 @@ class Cipher(relay.Node):
     is_favorite: str
     status: str
     data: JSON
+    delete_on: datetime | None
     created: datetime
     updated: datetime
     notes: str
@@ -37,6 +38,7 @@ class Cipher(relay.Node):
             name=model.data.name,
             notes=model.data.notes,
             data=model.data.to_json(),
+            delete_on=model.delete_on,
             created=model.created,
             updated=model.updated,
         )

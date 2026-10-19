@@ -39,6 +39,7 @@ pytestmark = pytest.mark.django_db
                 "username": "encusername",
                 "password": "encpassword",
                 "authenticatorKey": "encauthenticatorKey",
+                "url": "encurl",
             },
         },
         {
@@ -198,6 +199,7 @@ def test_create_cipher_secure_note_nullable_data():
                     "username": "encusername",
                     "password": "encpassword",
                     "authenticatorKey": "encauthenticatorKey",
+                    "url": "encurl",
                 },
             },
         ),

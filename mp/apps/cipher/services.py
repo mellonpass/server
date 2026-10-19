@@ -70,7 +70,8 @@ class CipherLoginDataBuilder(CipherDataBuilder[CipherLoginData]):
         return CipherLoginData(
             username=data["username"],
             password=data["password"],
-            authenticator_key=data["authenticatorKey"],
+            authenticator_key=data.get("authenticatorKey"),
+            url=data.get("url"),
         )
 
 
