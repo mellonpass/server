@@ -24,6 +24,8 @@ def test_login_view(client: Client, user: User):
 
     data = response.json()["data"]
     assert data["psk"]
+    assert data["rsa_protected_key"] == user.asymmetric_key.protected_key
+    assert data["rsa_public_key"] == user.asymmetric_key.public_key
 
 
 def test_login_view_invalid_content_type(client: Client, user: User):

@@ -7,9 +7,24 @@ from django.contrib.auth import get_user_model
 from factory import Faker, SubFactory
 from factory.django import DjangoModelFactory
 
-from mp.apps.authx.models import EmailVerificationToken
+from mp.apps.authx.models import EmailVerificationToken, RSAOAEPKey
 
 User = get_user_model()
+
+
+class RSAOAEPKeyFactory(DjangoModelFactory):
+    class Meta:
+        model = RSAOAEPKey
+
+    user = SubFactory("mp.apps.authx.tests.factories.UserFactory")
+
+    @factory.lazy_attribute  # type: ignore
+    def protected_key(self):
+        return base64.b64encode(os.urandom(64)).decode("utf-8")
+
+    @factory.lazy_attribute  # type: ignore
+    def public_key(self):
+        return base64.b64encode(os.urandom(64)).decode("utf-8")
 
 
 class UserFactory(DjangoModelFactory):

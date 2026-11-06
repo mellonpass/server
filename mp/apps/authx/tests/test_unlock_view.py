@@ -24,7 +24,7 @@ def login_user(settings, client: Client, user: User):
 
 
 @pytest.mark.usefixtures("login_user")
-def test_unlock_view(client: Client):
+def test_unlock_view(client: Client, user: User):
     url = reverse("accounts:unlock")
     response = client.post(
         path=url,
@@ -35,3 +35,5 @@ def test_unlock_view(client: Client):
 
     data = response.json()["data"]
     assert data["psk"]
+    assert data["rsa_protected_key"] == user.asymmetric_key.protected_key
+    assert data["rsa_public_key"] == user.asymmetric_key.public_key
