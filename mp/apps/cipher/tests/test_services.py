@@ -4,18 +4,86 @@ import pytest
 from django.conf import settings
 from django.utils import timezone
 
-from mp.apps.cipher.models import SecureNoteType
+from mp.apps.authx.tests.factories import UserFactory
+from mp.apps.cipher.models import Cipher, CipherType, SecureNoteType
 from mp.apps.cipher.services import (
     CipherCardDataBuilder,
     CipherLoginDataBuilder,
     CipherSecureNoteDataBuilder,
     DataBuilderMissingDataError,
+    create_cipher,
     restore_cipher_from_delete_state,
     update_cipher_to_delete_state,
 )
 from mp.apps.cipher.tests.factories import CipherFactory
+from mp.apps.organizations.tests.factories import OrganizationFactory
 
 pytestmark = pytest.mark.django_db
+
+
+def test_create_cipher_personal():
+    user = UserFactory()
+    cipher = create_cipher(
+        owner=user,
+        type=CipherType.LOGIN,
+        name="Personal Login",
+        key="test-key",
+        status="ACTIVE",
+        is_favorite="false",
+        data={"username": "user1", "password": "pass1"},
+    )
+    assert cipher.organization is None
+    assert cipher.owner == user
+
+
+def test_create_cipher_with_organization():
+    user = UserFactory()
+    org = OrganizationFactory()
+    cipher = create_cipher(
+        owner=user,
+        type=CipherType.LOGIN,
+        name="Org Login",
+        key="test-key",
+        status="ACTIVE",
+        is_favorite="false",
+        data={"username": "orguser", "password": "orgpassword"},
+        organization=org,
+    )
+    assert cipher.organization == org
+    assert cipher.owner == user
+
+
+def test_organization_cipher_cascade_deletion():
+    user = UserFactory()
+    org = OrganizationFactory()
+
+    org_cipher = create_cipher(
+        owner=user,
+        type=CipherType.LOGIN,
+        name="Org Login",
+        key="test-key",
+        status="ACTIVE",
+        is_favorite="false",
+        data={"username": "orguser", "password": "orgpassword"},
+        organization=org,
+    )
+    personal_cipher = create_cipher(
+        owner=user,
+        type=CipherType.LOGIN,
+        name="Personal Login",
+        key="test-key",
+        status="ACTIVE",
+        is_favorite="false",
+        data={"username": "user1", "password": "pass1"},
+    )
+
+    org_cipher_id = org_cipher.id
+    personal_cipher_id = personal_cipher.id
+
+    org.delete()
+
+    assert not Cipher.objects.filter(id=org_cipher_id).exists()
+    assert Cipher.objects.filter(id=personal_cipher_id).exists()
 
 
 def test_update_cipher_to_delete_state():

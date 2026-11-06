@@ -19,6 +19,7 @@ from mp.apps.cipher.models import (
     CipherType,
     SecureNoteType,
 )
+from mp.apps.organizations.models import Organization
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
@@ -133,6 +134,7 @@ def create_cipher(
     is_favorite: str,
     data: dict | None = None,
     notes: str | None = None,
+    organization: Organization | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
 
@@ -149,6 +151,7 @@ def create_cipher(
 
     return Cipher.objects.create(
         owner=owner,
+        organization=organization,
         status=status,
         is_favorite=is_favorite,
         type=type,

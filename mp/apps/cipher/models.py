@@ -57,6 +57,13 @@ class Cipher(Model):
         blank=False,
         on_delete=RESTRICT,
     )
+    organization = ForeignKey(
+        "organizations.Organization",
+        null=True,
+        blank=True,
+        on_delete=CASCADE,
+        related_name="ciphers",
+    )
 
     delete_on = DateTimeField(
         null=True,
