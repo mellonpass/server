@@ -4,6 +4,7 @@ from http import HTTPStatus
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.http import Http404, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -23,6 +24,7 @@ from mp.apps.authx.serializers import (
 from mp.apps.authx.services import (
     check_existing_email,
     create_account,
+    get_user_rsa_keys,
     login_user,
     logout_user,
     setup_account,
@@ -237,13 +239,7 @@ def login_view(request: HttpRequest):
     )
 
     if user is not None and is_success:
-        try:
-            asymmetric_key = user.asymmetric_key
-            rsa_protected_key = asymmetric_key.protected_key
-            rsa_public_key = asymmetric_key.public_key
-        except RSAOAEPKey.DoesNotExist:
-            rsa_protected_key = None
-            rsa_public_key = None
+        rsa_protected_key, rsa_public_key = get_user_rsa_keys(user)
 
         return JsonResponse(
             {
@@ -395,18 +391,14 @@ def setup_view(request: HttpRequest):
 
 
 @require_GET
-@csrf_exempt
 def whoami_view(request: HttpRequest):
     payload = {
         "identity": str(request.user),
         "auth": request.user.is_authenticated,
     }
     if request.user.is_authenticated:
-        try:
-            asymmetric_key = request.user.asymmetric_key
-            payload["rsa_public_key"] = asymmetric_key.public_key
-        except RSAOAEPKey.DoesNotExist:
-            payload["rsa_public_key"] = None
+        _, rsa_public_key = get_user_rsa_keys(request.user)
+        payload["rsa_public_key"] = rsa_public_key
 
     return JsonResponse(
         {
@@ -440,13 +432,7 @@ def unlock_view(request: HttpRequest):
         )
 
     if request.user.check_password(data["login_hash"]):
-        try:
-            asymmetric_key = request.user.asymmetric_key
-            rsa_protected_key = asymmetric_key.protected_key
-            rsa_public_key = asymmetric_key.public_key
-        except RSAOAEPKey.DoesNotExist:
-            rsa_protected_key = None
-            rsa_public_key = None
+        rsa_protected_key, rsa_public_key = get_user_rsa_keys(request.user)
 
         return JsonResponse(
             {
@@ -468,7 +454,6 @@ def unlock_view(request: HttpRequest):
 
 
 @require_GET
-@csrf_exempt
 def public_key_view(request: HttpRequest):
     """Retrieve the RSA public key of an active user.
 
@@ -497,7 +482,7 @@ def public_key_view(request: HttpRequest):
         filter_kwargs["uuid"] = user_uuid
 
     try:
-        user = user_model.objects.get(**filter_kwargs)
+        user = user_model.objects.select_related("asymmetric_key").get(**filter_kwargs)
         rsa_key = user.asymmetric_key
         return JsonResponse(
             {
@@ -509,7 +494,7 @@ def public_key_view(request: HttpRequest):
             },
             status=HTTPStatus.OK,
         )
-    except (user_model.DoesNotExist, RSAOAEPKey.DoesNotExist):
+    except (user_model.DoesNotExist, RSAOAEPKey.DoesNotExist, DjangoValidationError):
         return JsonResponse(
             {"error": "Public key not found."},
             status=HTTPStatus.NOT_FOUND,

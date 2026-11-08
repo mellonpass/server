@@ -36,6 +36,22 @@ def test_whoami_authenticated(client: Client, user: User):
     assert data["rsa_public_key"] == user.asymmetric_key.public_key
 
 
+def test_whoami_authenticated_without_key(client: Client, user_without_key: User):
+    login_url = reverse("accounts:login")
+    client.post(
+        path=login_url,
+        content_type="application/json",
+        data={"email": user_without_key.email, "login_hash": TEST_USER_LOGIN_HASH},
+    )
+
+    url = reverse("accounts:whoami")
+    response = client.get(url)
+    assert response.status_code == HTTPStatus.OK
+    data = response.json()["data"]
+    assert data["auth"] is True
+    assert data["rsa_public_key"] is None
+
+
 def test_public_key_view_unauthenticated(client: Client):
     url = reverse("accounts:public-key")
     response = client.get(url, {"email": "test@example.com"})
@@ -123,3 +139,36 @@ def test_public_key_view_user_without_key(client: Client, user: User):
     url = reverse("accounts:public-key")
     response = client.get(url, {"email": str(target_user.email)})
     assert response.status_code == HTTPStatus.NOT_FOUND
+
+
+def test_public_key_view_malformed_uuid(client: Client, user: User):
+    login_url = reverse("accounts:login")
+    client.post(
+        path=login_url,
+        content_type="application/json",
+        data={"email": user.email, "login_hash": TEST_USER_LOGIN_HASH},
+    )
+
+    url = reverse("accounts:public-key")
+    response = client.get(url, {"uuid": "not-a-valid-uuid"})
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {"error": "Public key not found."}
+
+
+def test_public_key_view_inactive_user(client: Client, user: User):
+    login_url = reverse("accounts:login")
+    client.post(
+        path=login_url,
+        content_type="application/json",
+        data={"email": user.email, "login_hash": TEST_USER_LOGIN_HASH},
+    )
+
+    inactive_user: User = UserFactory(is_active=False)  # type: ignore[assignment]
+    RSAOAEPKeyFactory(user=inactive_user)
+
+    url = reverse("accounts:public-key")
+    response_email = client.get(url, {"email": str(inactive_user.email)})
+    assert response_email.status_code == HTTPStatus.NOT_FOUND
+
+    response_uuid = client.get(url, {"uuid": str(inactive_user.uuid)})
+    assert response_uuid.status_code == HTTPStatus.NOT_FOUND

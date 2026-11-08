@@ -41,6 +41,15 @@ def check_existing_email(email: str) -> bool:
     return UserModel.objects.filter(email=email).exists()
 
 
+def get_user_rsa_keys(user: User) -> tuple[str | None, str | None]:
+    try:
+        asymmetric_key = user.asymmetric_key
+    except RSAOAEPKey.DoesNotExist:
+        return None, None
+    else:
+        return asymmetric_key.protected_key, asymmetric_key.public_key
+
+
 def setup_account(
     email: str,
     login_hash: str,
