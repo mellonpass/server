@@ -392,11 +392,21 @@ def setup_view(request: HttpRequest):
 
 @require_GET
 def whoami_view(request: HttpRequest):
+    """Return session state and identity for the current user.
+
+    Exposes the user's RSA public key (when authenticated) so client apps
+    can verify organization readiness, display key fingerprints in settings,
+    and validate organization invitations on boot without requiring the vault
+    to be unlocked first.
+    (Note: rsa_protected_key is withheld until explicit vault unlock).
+    """
     payload = {
         "identity": str(request.user),
         "auth": request.user.is_authenticated,
     }
     if request.user.is_authenticated:
+        # Expose non-sensitive public key for pre-flight checks (e.g. legacy
+        # key migration, org invite validation) before the vault is unlocked.
         _, rsa_public_key = get_user_rsa_keys(request.user)
         payload["rsa_public_key"] = rsa_public_key
 
