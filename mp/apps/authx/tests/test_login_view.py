@@ -24,6 +24,23 @@ def test_login_view(client: Client, user: User):
 
     data = response.json()["data"]
     assert data["psk"]
+    assert data["rsa_protected_key"] == user.asymmetric_key.protected_key
+    assert data["rsa_public_key"] == user.asymmetric_key.public_key
+
+
+def test_login_view_without_rsa_key(client: Client, user_without_key: User):
+    url = reverse("accounts:login")
+    response = client.post(
+        path=url,
+        content_type="application/json",
+        data={"email": user_without_key.email, "login_hash": TEST_USER_LOGIN_HASH},
+    )
+    assert response.status_code == HTTPStatus.ACCEPTED
+
+    data = response.json()["data"]
+    assert data["psk"]
+    assert data["rsa_protected_key"] is None
+    assert data["rsa_public_key"] is None
 
 
 def test_login_view_invalid_content_type(client: Client, user: User):

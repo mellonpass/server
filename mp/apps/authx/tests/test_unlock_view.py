@@ -24,7 +24,7 @@ def login_user(settings, client: Client, user: User):
 
 
 @pytest.mark.usefixtures("login_user")
-def test_unlock_view(client: Client):
+def test_unlock_view(client: Client, user: User):
     url = reverse("accounts:unlock")
     response = client.post(
         path=url,
@@ -35,3 +35,34 @@ def test_unlock_view(client: Client):
 
     data = response.json()["data"]
     assert data["psk"]
+    assert data["rsa_protected_key"] == user.asymmetric_key.protected_key
+    assert data["rsa_public_key"] == user.asymmetric_key.public_key
+
+
+def test_unlock_view_without_rsa_key(
+    settings,
+    client: Client,
+    user_without_key: User,
+):
+    settings.CF_ENABLE_TURNSTILE_INTEGRATION = False
+
+    login_url = reverse("accounts:login")
+    login_response = client.post(
+        path=login_url,
+        content_type="application/json",
+        data={"email": user_without_key.email, "login_hash": TEST_USER_LOGIN_HASH},
+    )
+    assert login_response.status_code == HTTPStatus.ACCEPTED
+
+    url = reverse("accounts:unlock")
+    response = client.post(
+        path=url,
+        content_type="application/json",
+        data={"login_hash": TEST_USER_LOGIN_HASH},
+    )
+    assert response.status_code == HTTPStatus.OK
+
+    data = response.json()["data"]
+    assert data["psk"]
+    assert data["rsa_protected_key"] is None
+    assert data["rsa_public_key"] is None
