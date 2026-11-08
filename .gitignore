@@ -125,3 +125,7 @@ GitHub.sublime-settings
 # Developer-specific choice of using docker or local poetry for pre-commit
 # migrations check
 scripts/pre-commit/.use_docker
+
+# Gemini code reviews
+.gemini/code-review
+.gemini/code-reviews

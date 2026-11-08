@@ -1,0 +1,5 @@
+# Ignore review artifacts from git
+code-review
+code-review/
+code-reviews
+code-reviews/
