@@ -1,7 +1,9 @@
+from collections.abc import Iterable
 from uuid import uuid4
 
 from django.conf import settings
 from django.db import models
+from django.db.models.base import ModelBase
 from django.utils.translation import gettext_lazy as _
 
 from mp.core.model.fields import EncryptedTextField
@@ -73,7 +75,43 @@ class OrganizationMember(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ("organization", "email")
+        constraints = (
+            models.UniqueConstraint(
+                fields=["organization", "email"],
+                name="unique_organization_email",
+            ),
+            models.UniqueConstraint(
+                fields=["organization", "user"],
+                condition=models.Q(user__isnull=False),
+                name="unique_organization_user",
+            ),
+        )
 
     def __str__(self) -> str:
         return f"{self.organization.name} - {self.email} ({self.role})"
+
+    def save(
+        self,
+        *,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
+        if self.email:
+            self.email = self.email.strip().lower()
+        if self.invite_token is not None:
+            self.invite_token = self.invite_token.strip() or None
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
+
+    def clean(self) -> None:
+        super().clean()
+        if self.email:
+            self.email = self.email.strip().lower()
+        if self.invite_token is not None:
+            self.invite_token = self.invite_token.strip() or None

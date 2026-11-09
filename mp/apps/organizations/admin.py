@@ -14,6 +14,7 @@ class OrganizationMemberInline(admin.TabularInline):
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ("name", "uuid", "created", "updated")
     search_fields = ("name", "uuid")
+    readonly_fields = ("uuid", "created", "updated")
     inlines = (OrganizationMemberInline,)
 
 
@@ -29,4 +30,10 @@ class OrganizationMemberAdmin(admin.ModelAdmin):
     )
     list_filter = ("role", "status", "created")
     search_fields = ("email", "organization__name", "uuid")
-    readonly_fields = ("uuid", "created", "updated")
+    readonly_fields = (
+        "uuid",
+        "invite_token",
+        "protected_symmetric_key",
+        "created",
+        "updated",
+    )
