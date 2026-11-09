@@ -83,6 +83,10 @@ class Cipher(Model):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}:{self.type} - {self.pk}"
 
+    @property
+    def is_organization(self) -> bool:
+        return self.organization_id is not None
+
 
 class CipherData(Model):
     uuid = UUIDField(

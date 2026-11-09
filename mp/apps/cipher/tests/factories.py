@@ -1,4 +1,4 @@
-# mypy: disable-error-code="arg-type,var-annotated"
+# mypy: disable-error-code="arg-type,var-annotated,assignment"
 import base64
 import os
 from uuid import uuid4
@@ -103,6 +103,7 @@ class CipherFactory(DjangoModelFactory):
 
     owner = SubFactory(UserFactory)
     data = SubFactory(CipherDataLoginFactory)
+    organization = None
 
     @factory.lazy_attribute
     def uuid(self):
@@ -119,3 +120,9 @@ class CipherFactory(DjangoModelFactory):
     @factory.lazy_attribute
     def status(self):
         return base64.b64encode(os.urandom(32)).decode("utf-8")
+
+
+class OrganizationCipherFactory(CipherFactory):
+    organization = SubFactory(
+        "mp.apps.organizations.tests.factories.OrganizationFactory",
+    )

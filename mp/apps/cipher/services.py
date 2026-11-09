@@ -226,3 +226,20 @@ def get_ciphers_by_owner_and_uuids(
 
 def get_all_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
     return Cipher.objects.filter(owner=owner)
+
+
+def get_personal_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
+    return Cipher.objects.filter(owner=owner, organization__isnull=True)
+
+
+def get_ciphers_by_organization(
+    organization: Organization,
+) -> QuerySet[Cipher]:
+    return Cipher.objects.filter(organization=organization)
+
+
+def get_cipher_by_organization_and_uuid(
+    organization: Organization,
+    uuid: UUID,
+) -> Cipher:
+    return Cipher.objects.get(organization=organization, uuid=uuid)
