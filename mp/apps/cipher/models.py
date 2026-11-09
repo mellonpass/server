@@ -57,6 +57,13 @@ class Cipher(Model):
         blank=False,
         on_delete=RESTRICT,
     )
+    organization = ForeignKey(
+        "organizations.Organization",
+        null=True,
+        blank=True,
+        on_delete=CASCADE,
+        related_name="ciphers",
+    )
 
     delete_on = DateTimeField(
         null=True,
@@ -75,6 +82,10 @@ class Cipher(Model):
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}:{self.type} - {self.pk}"
+
+    @property
+    def is_organization(self) -> bool:
+        return self.organization_id is not None
 
 
 class CipherData(Model):

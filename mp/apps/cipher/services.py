@@ -19,6 +19,7 @@ from mp.apps.cipher.models import (
     CipherType,
     SecureNoteType,
 )
+from mp.apps.organizations.models import Organization
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
@@ -133,6 +134,7 @@ def create_cipher(
     is_favorite: str,
     data: dict | None = None,
     notes: str | None = None,
+    organization: Organization | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
 
@@ -149,6 +151,7 @@ def create_cipher(
 
     return Cipher.objects.create(
         owner=owner,
+        organization=organization,
         status=status,
         is_favorite=is_favorite,
         type=type,
@@ -223,3 +226,20 @@ def get_ciphers_by_owner_and_uuids(
 
 def get_all_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
     return Cipher.objects.filter(owner=owner)
+
+
+def get_personal_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
+    return Cipher.objects.filter(owner=owner, organization__isnull=True)
+
+
+def get_ciphers_by_organization(
+    organization: Organization,
+) -> QuerySet[Cipher]:
+    return Cipher.objects.filter(organization=organization)
+
+
+def get_cipher_by_organization_and_uuid(
+    organization: Organization,
+    uuid: UUID,
+) -> Cipher:
+    return Cipher.objects.get(organization=organization, uuid=uuid)
