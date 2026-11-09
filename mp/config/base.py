@@ -60,7 +60,11 @@ THIRD_PARTY_APPS = [
     "huey.contrib.djhuey",
 ]
 
-LOCAL_APPS = ["mp.apps.authx", "mp.apps.cipher"]
+LOCAL_APPS = [
+    "mp.apps.authx",
+    "mp.apps.cipher",
+    "mp.apps.organizations",
+]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
