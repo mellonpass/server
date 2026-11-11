@@ -20,6 +20,8 @@ from mp.apps.cipher.services import (
     update_cipher,
     update_cipher_to_delete_state,
 )
+from mp.apps.organizations.models import Organization as OrganizationModel
+from mp.apps.organizations.services import get_organization_by_user_and_uuid
 from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
@@ -33,9 +35,24 @@ class CipherMutation:
         info: strawberry.Info,
         input: CreateCipherInput,
     ) -> CipherCreatePayload:
+        user = info.context.request.user
+        org = None
+        if input.organization_id:
+            try:
+                org_uuid = UUID(input.organization_id.node_id)
+                org = get_organization_by_user_and_uuid(
+                    user=user,
+                    organization_uuid=org_uuid,
+                )
+            except (OrganizationModel.DoesNotExist, ValueError):
+                return CipherCreateFailed(
+                    message="Organization not found or access denied.",
+                )
+
         try:
             cipher = create_cipher(
-                owner=info.context.request.user,
+                owner=user,
+                organization=org,
                 type=input.type.value,
                 name=input.name,
                 key=input.key,

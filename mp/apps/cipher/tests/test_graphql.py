@@ -1,5 +1,5 @@
 from datetime import timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from django.conf import settings
@@ -13,6 +13,11 @@ from mp.apps.cipher.tests.factories import (
     CipherDataLoginFactory,
     CipherDataSecureNoteFactory,
     CipherFactory,
+    OrganizationCipherFactory,
+)
+from mp.apps.organizations.tests.factories import (
+    OrganizationFactory,
+    OrganizationMemberFactory,
 )
 from mp.core.strawberry.test import TestClient
 
@@ -77,7 +82,7 @@ def test_create_cipher(input_data):
             "key": "somekey",
             "isFavorite": "encfavorite",
             "status": "encstatus",
-        }
+        },
     )
 
     variables = {"input": input_data}
@@ -137,8 +142,8 @@ def test_create_cipher_failed(mocker):
     with client.login(user):
         response = client.query(query, variables=variables)
         assert (
-            "Something went wrong when creating a vault item."
-            == response.data["cipher"]["create"]["message"]
+            response.data["cipher"]["create"]["message"]
+            == "Something went wrong when creating a vault item."
         )
 
 
@@ -173,7 +178,7 @@ def test_create_cipher_secure_note_nullable_data():
     with client.login(user):
         response = client.query(query, variables=variables)
         cipher = response.data["cipher"]["create"]
-        assert cipher["data"] == { "type": SecureNoteType.GENERIC.value }
+        assert cipher["data"] == {"type": SecureNoteType.GENERIC.value}
 
 
 @pytest.mark.parametrize(
@@ -249,7 +254,7 @@ def test_update_cipher(cipher_type, input_data):
             "key": "somekey",
             "isFavorite": "encfavorite",
             "status": "encstatus",
-        }
+        },
     )
 
     variables = {"input": input_data}
@@ -420,7 +425,7 @@ def test_update_cipher_to_delete():
     cipher_to_delete = Cipher.objects.get(uuid=cipher.uuid)
     assert cipher_to_delete.delete_on is not None
     assert cipher_to_delete.delete_on <= timezone.now() + timedelta(
-        days=settings.CIPHER_DELETE_DAYS_PERIOD
+        days=settings.CIPHER_DELETE_DAYS_PERIOD,
     )
 
 
@@ -526,6 +531,199 @@ def test_get_ciphers():
         assert node["id"] is not None
         assert node["data"] is not None
 
-        node = data[0]["node"]
-        assert node["id"] is not None
-        assert node["data"] is not None
+
+def test_create_cipher_with_organization_success():
+    user = UserFactory()
+    org = OrganizationFactory(name="Engineering Org")
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+
+    org_global_id = relay.to_base64("Organization", str(org.uuid))
+    query = """
+        mutation CreateCipher($input: CreateCipherInput!){
+            cipher {
+                create(input: $input) {
+                    ... on Cipher {
+                        id
+                        name
+                        organizationId
+                        organization {
+                            id
+                            name
+                        }
+                    }
+                    ... on CipherCreateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+    input_data = {
+        "type": CipherType.LOGIN,
+        "name": "Org Database Creds",
+        "notes": "shared notes",
+        "key": "encrypted-ck-with-osk",
+        "isFavorite": "false",
+        "status": "ACTIVE",
+        "data": {
+            "username": "admin",
+            "password": "secretpassword",
+        },
+        "organizationId": org_global_id,
+    }
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        response = client.query(query, variables={"input": input_data})
+        assert response.errors is None
+        data = response.data["cipher"]["create"]
+        assert data["name"] == "Org Database Creds"
+        assert data["organizationId"] == str(org.uuid)
+        assert data["organization"]["name"] == "Engineering Org"
+
+        cipher_uuid = UUID(relay.GlobalID.from_id(data["id"]).node_id)
+        cipher = Cipher.objects.get(uuid=cipher_uuid)
+        assert cipher.organization == org
+        assert cipher.data.name == "Org Database Creds"
+
+
+def test_create_cipher_with_organization_unauthorized():
+    user = UserFactory()
+    unrelated_org = OrganizationFactory()
+    org_global_id = relay.to_base64("Organization", str(unrelated_org.uuid))
+
+    query = """
+        mutation CreateCipher($input: CreateCipherInput!){
+            cipher {
+                create(input: $input) {
+                    ... on CipherCreateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+    input_data = {
+        "type": CipherType.LOGIN,
+        "name": "Intruder Item",
+        "notes": "",
+        "key": "somekey",
+        "isFavorite": "false",
+        "status": "ACTIVE",
+        "data": {"username": "u", "password": "p"},
+        "organizationId": org_global_id,
+    }
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        response = client.query(query, variables={"input": input_data})
+        assert response.errors is None
+        data = response.data["cipher"]["create"]
+        assert "Organization not found or access denied" in data["message"]
+
+
+def test_get_ciphers_with_organization_filter():
+    user = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+
+    # 3 personal ciphers
+    CipherFactory.create_batch(3, owner=user, type=CipherType.LOGIN, organization=None)
+    # 2 org ciphers
+    OrganizationCipherFactory.create_batch(
+        2, owner=user, organization=org, type=CipherType.LOGIN
+    )
+
+    query = """
+        query GetCiphers($first: Int!, $organizationId: GlobalID) {
+            ciphers(first: $first, organizationId: $organizationId) {
+                edges {
+                    node {
+                        id
+                        name
+                        organizationId
+                    }
+                }
+            }
+        }
+    """
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        # 1. Query personal vault (organizationId omitted) -> returns 3 personal items
+        personal_resp = client.query(query, variables={"first": 10})
+        personal_edges = personal_resp.data["ciphers"]["edges"]
+        assert len(personal_edges) == 3
+        assert all(edge["node"]["organizationId"] is None for edge in personal_edges)
+
+        # 2. Query organization vault -> returns 2 org items
+        org_id = relay.to_base64("Organization", str(org.uuid))
+        org_resp = client.query(
+            query, variables={"first": 10, "organizationId": org_id}
+        )
+        org_edges = org_resp.data["ciphers"]["edges"]
+        assert len(org_edges) == 2
+        assert all(
+            edge["node"]["organizationId"] == str(org.uuid) for edge in org_edges
+        )
+
+
+def test_get_ciphers_with_organization_unauthorized():
+    user = UserFactory()
+    secret_org = OrganizationFactory()
+    OrganizationCipherFactory.create_batch(
+        3, organization=secret_org, type=CipherType.LOGIN
+    )
+
+    query = """
+        query GetCiphers($first: Int!, $organizationId: GlobalID) {
+            ciphers(first: $first, organizationId: $organizationId) {
+                edges {
+                    node {
+                        id
+                    }
+                }
+            }
+        }
+    """
+    client = TestClient("/graphql")
+    secret_org_id = relay.to_base64("Organization", str(secret_org.uuid))
+
+    with client.login(user):
+        response = client.query(
+            query, variables={"first": 10, "organizationId": secret_org_id}
+        )
+        assert response.errors is None
+        assert response.data["ciphers"]["edges"] == []
+
+
+def test_get_cipher_detail_organization_member_access():
+    creator = UserFactory()
+    other_member = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(organization=org, user=creator)
+    OrganizationMemberFactory.create_confirmed(organization=org, user=other_member)
+
+    org_cipher = OrganizationCipherFactory(
+        owner=creator,
+        organization=org,
+        type=CipherType.LOGIN,
+    )
+
+    query = """
+        query GetCipher($id: GlobalID!) {
+            cipher(id: $id) {
+                id
+                organizationId
+            }
+        }
+    """
+    cipher_global_id = relay.to_base64("Cipher", str(org_cipher.uuid))
+    client = TestClient("/graphql")
+
+    with client.login(other_member):
+        response = client.query(query, variables={"id": cipher_global_id})
+        assert response.errors is None
+        data = response.data["cipher"]
+        assert data is not None
+        assert data["organizationId"] == str(org.uuid)
