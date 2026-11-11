@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import cast
+from typing import Annotated, cast
 from uuid import UUID
 
 import strawberry
@@ -133,3 +133,66 @@ class OrganizationConnection(relay.ListConnection[Organization]):
         **_kwargs,
     ) -> Organization:
         return Organization.from_model(node)
+
+
+# Mutation Error & Payload Types
+
+
+@strawberry.type
+class OrganizationMutateFailed:
+    message: str
+
+
+@strawberry.input
+class CreateOrganizationInput:
+    name: str
+    key: str
+
+
+@strawberry.input
+class InviteUserInput:
+    organization_id: relay.GlobalID
+    email: str
+    role: OrganizationMemberRoleEnum = OrganizationMemberRoleEnum.MEMBER
+
+
+@strawberry.input
+class AcceptOrganizationInviteInput:
+    invite_token: str
+
+
+@strawberry.input
+class ConfirmMemberInput:
+    member_id: relay.GlobalID
+    protected_symmetric_key: str
+
+
+@strawberry.input
+class RevokeMemberInput:
+    member_id: relay.GlobalID
+
+
+CreateOrganizationPayload = Annotated[
+    Organization | OrganizationMutateFailed,
+    strawberry.union("CreateOrganizationPayload"),
+]
+
+InviteUserPayload = Annotated[
+    OrganizationMember | OrganizationMutateFailed,
+    strawberry.union("InviteUserPayload"),
+]
+
+AcceptInvitePayload = Annotated[
+    OrganizationMember | OrganizationMutateFailed,
+    strawberry.union("AcceptInvitePayload"),
+]
+
+ConfirmMemberPayload = Annotated[
+    OrganizationMember | OrganizationMutateFailed,
+    strawberry.union("ConfirmMemberPayload"),
+]
+
+RevokeMemberPayload = Annotated[
+    OrganizationMember | OrganizationMutateFailed,
+    strawberry.union("RevokeMemberPayload"),
+]

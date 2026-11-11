@@ -24,7 +24,10 @@ def _get_extensions() -> list[Any]:
 
 Mutation = merge_types(
     "Mutation",
-    (cipher_schema.Mutation,),
+    (
+        cipher_schema.Mutation,
+        organization_schema.Mutation,
+    ),
 )
 
 Query = merge_types(
