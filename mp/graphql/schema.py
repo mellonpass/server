@@ -7,6 +7,7 @@ from strawberry.extensions import AddValidationRules, QueryDepthLimiter
 from strawberry.tools import merge_types
 
 from mp.apps.cipher.graphql import schema as cipher_schema
+from mp.apps.organizations.graphql import schema as organization_schema
 
 
 def _get_extensions() -> list[Any]:
@@ -26,7 +27,13 @@ Mutation = merge_types(
     (cipher_schema.Mutation,),
 )
 
-Query = merge_types("Query", (cipher_schema.CipherQuery,))
+Query = merge_types(
+    "Query",
+    (
+        cipher_schema.CipherQuery,
+        organization_schema.OrganizationQuery,
+    ),
+)
 
 schema = strawberry.Schema(
     query=Query,
