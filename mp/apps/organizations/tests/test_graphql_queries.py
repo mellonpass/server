@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from strawberry import relay
 
@@ -286,5 +288,285 @@ def test_query_organizations_unauthenticated():
         }
     """
     response = client.query(query, assert_no_errors=False)
+    assert response.errors is not None
+    assert "User is not authenticated" in response.errors[0]["message"]
+
+
+def test_query_organization_detail_not_found():
+    user = UserFactory()
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganization($id: GlobalID!) {
+            organization(id: $id) {
+                id
+                name
+            }
+        }
+    """
+    global_id = relay.to_base64("Organization", str(uuid4()))
+
+    with client.login(user):
+        response = client.query(query, variables={"id": global_id})
+        assert response.errors is None
+        assert response.data["organization"] is None
+
+
+def test_query_organization_detail_invalid_relay_type():
+    user = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=user,
+        role=OrganizationMemberRole.OWNER,
+    )
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganization($id: GlobalID!) {
+            organization(id: $id) {
+                id
+                name
+            }
+        }
+    """
+    # GlobalID with mismatched type name
+    invalid_global_id = relay.to_base64("Cipher", str(org.uuid))
+
+    with client.login(user):
+        response = client.query(query, variables={"id": invalid_global_id})
+        assert response.errors is None
+        assert response.data["organization"] is None
+
+
+def test_query_pending_members_as_admin():
+    admin = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=admin,
+        role=OrganizationMemberRole.ADMIN,
+    )
+
+    invitee = UserFactory()
+    OrganizationMemberFactory(
+        organization=org,
+        user=invitee,
+        email=invitee.email,
+        status=OrganizationMemberStatus.ACCEPTED,
+        role=OrganizationMemberRole.MEMBER,
+    )
+
+    client = TestClient("/graphql")
+    query = """
+        query GetPendingMembers($organizationId: GlobalID!) {
+            pendingMembers(organizationId: $organizationId) {
+                id
+                email
+                status
+            }
+        }
+    """
+    org_global_id = relay.to_base64("Organization", str(org.uuid))
+
+    with client.login(admin):
+        response = client.query(query, variables={"organizationId": org_global_id})
+        assert response.errors is None
+        members = response.data["pendingMembers"]
+        assert len(members) == 1
+        assert members[0]["email"] == invitee.email
+
+
+def test_query_pending_members_invalid_relay_type():
+    owner = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+
+    client = TestClient("/graphql")
+    query = """
+        query GetPendingMembers($organizationId: GlobalID!) {
+            pendingMembers(organizationId: $organizationId) {
+                id
+            }
+        }
+    """
+    invalid_id = relay.to_base64("Cipher", str(org.uuid))
+
+    with client.login(owner):
+        response = client.query(query, variables={"organizationId": invalid_id})
+        assert response.errors is None
+        assert response.data["pendingMembers"] == []
+
+
+def test_query_organization_members_as_outsider_forbidden():
+    outsider = UserFactory()
+    org = OrganizationFactory()
+    member = UserFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=member,
+        role=OrganizationMemberRole.MEMBER,
+    )
+
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganizationMembers($organizationId: GlobalID!) {
+            organizationMembers(organizationId: $organizationId) {
+                id
+            }
+        }
+    """
+    org_global_id = relay.to_base64("Organization", str(org.uuid))
+
+    with client.login(outsider):
+        response = client.query(query, variables={"organizationId": org_global_id})
+        assert response.errors is None
+        assert response.data["organizationMembers"] == []
+
+
+def test_query_organization_members_invalid_relay_type():
+    user = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=user,
+        role=OrganizationMemberRole.MEMBER,
+    )
+
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganizationMembers($organizationId: GlobalID!) {
+            organizationMembers(organizationId: $organizationId) {
+                id
+            }
+        }
+    """
+    invalid_id = relay.to_base64("Cipher", str(org.uuid))
+
+    with client.login(user):
+        response = client.query(query, variables={"organizationId": invalid_id})
+        assert response.errors is None
+        assert response.data["organizationMembers"] == []
+
+
+def test_query_organization_members_does_not_leak_other_keys():
+    user1 = UserFactory()
+    user2 = UserFactory()
+    org = OrganizationFactory()
+
+    m1 = OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=user1,
+        role=OrganizationMemberRole.MEMBER,
+    )
+    m2 = OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=user2,
+        role=OrganizationMemberRole.MEMBER,
+    )
+
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganizationMembers($organizationId: GlobalID!) {
+            organizationMembers(organizationId: $organizationId) {
+                email
+                protectedSymmetricKey
+            }
+        }
+    """
+    org_global_id = relay.to_base64("Organization", str(org.uuid))
+
+    with client.login(user1):
+        response = client.query(query, variables={"organizationId": org_global_id})
+        assert response.errors is None
+        members = response.data["organizationMembers"]
+        assert len(members) == 2
+
+        user1_result = next(m for m in members if m["email"] == user1.email)
+        user2_result = next(m for m in members if m["email"] == user2.email)
+
+        # User1 can see their own key
+        assert user1_result["protectedSymmetricKey"] == m1.protected_symmetric_key
+        # User1 CANNOT see User2's key (returns None for defense-in-depth)
+        assert user2_result["protectedSymmetricKey"] is None
+
+
+def test_query_organization_user_name_projection():
+    owner = UserFactory(name="Alice Smith")
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganizationMembers($organizationId: GlobalID!) {
+            organizationMembers(organizationId: $organizationId) {
+                user {
+                    id
+                    email
+                    name
+                }
+            }
+        }
+    """
+    org_global_id = relay.to_base64("Organization", str(org.uuid))
+
+    with client.login(owner):
+        response = client.query(query, variables={"organizationId": org_global_id})
+        assert response.errors is None
+        members = response.data["organizationMembers"]
+        assert len(members) == 1
+        assert members[0]["user"]["name"] == "Alice Smith"
+
+
+def test_query_organization_unauthenticated():
+    org = OrganizationFactory()
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganization($id: GlobalID!) {
+            organization(id: $id) {
+                id
+            }
+        }
+    """
+    global_id = relay.to_base64("Organization", str(org.uuid))
+    response = client.query(query, variables={"id": global_id}, assert_no_errors=False)
+    assert response.errors is not None
+    assert "User is not authenticated" in response.errors[0]["message"]
+
+
+def test_query_pending_members_unauthenticated():
+    org = OrganizationFactory()
+    client = TestClient("/graphql")
+    query = """
+        query GetPendingMembers($organizationId: GlobalID!) {
+            pendingMembers(organizationId: $organizationId) {
+                id
+            }
+        }
+    """
+    global_id = relay.to_base64("Organization", str(org.uuid))
+    response = client.query(query, variables={"organizationId": global_id}, assert_no_errors=False)
+    assert response.errors is not None
+    assert "User is not authenticated" in response.errors[0]["message"]
+
+
+def test_query_organization_members_unauthenticated():
+    org = OrganizationFactory()
+    client = TestClient("/graphql")
+    query = """
+        query GetOrganizationMembers($organizationId: GlobalID!) {
+            organizationMembers(organizationId: $organizationId) {
+                id
+            }
+        }
+    """
+    global_id = relay.to_base64("Organization", str(org.uuid))
+    response = client.query(query, variables={"organizationId": global_id}, assert_no_errors=False)
     assert response.errors is not None
     assert "User is not authenticated" in response.errors[0]["message"]

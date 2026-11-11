@@ -29,13 +29,19 @@ class OrganizationQuery:
         info: strawberry.Info,
         id: relay.GlobalID,
     ) -> Organization | None:
+        if id.type_name != "Organization":
+            return None
         try:
             org = get_organization_by_user_and_uuid(
                 user=info.context.request.user,
                 organization_uuid=UUID(id.node_id),
             )
             return Organization.from_model(org)
-        except (OrganizationModel.DoesNotExist, ValueError) as err:
+        except (
+            ServiceValidationError,
+            OrganizationModel.DoesNotExist,
+            ValueError,
+        ) as err:
             logger.warning(
                 "Organization resource not found for %s",
                 id.node_id,
@@ -58,6 +64,8 @@ class OrganizationQuery:
         info: strawberry.Info,
         organization_id: relay.GlobalID,
     ) -> list[OrganizationMember]:
+        if organization_id.type_name != "Organization":
+            return []
         user = info.context.request.user
         try:
             members = get_pending_members(
@@ -83,6 +91,8 @@ class OrganizationQuery:
         info: strawberry.Info,
         organization_id: relay.GlobalID,
     ) -> list[OrganizationMember]:
+        if organization_id.type_name != "Organization":
+            return []
         user = info.context.request.user
         try:
             members = get_organization_members(

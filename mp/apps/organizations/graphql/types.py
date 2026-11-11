@@ -30,6 +30,7 @@ OrganizationMemberStatusEnum = strawberry.enum(
 class OrganizationUser:
     id: strawberry.ID
     email: str
+    name: str | None = None
     public_key: str | None = None
 
 
@@ -39,14 +40,23 @@ class OrganizationMember(relay.Node):
     email: str
     role: OrganizationMemberRoleEnum
     status: OrganizationMemberStatusEnum
-    protected_symmetric_key: str | None
     user: OrganizationUser | None
     created: datetime
     updated: datetime
+    _protected_symmetric_key: strawberry.Private[str | None] = None
 
     @strawberry.field
     def public_key(self) -> str | None:
         return self.user.public_key if self.user else None
+
+    @strawberry.field
+    def protected_symmetric_key(self, info: strawberry.Info) -> str | None:
+        user = info.context.request.user
+        if not user or not user.is_authenticated:
+            return None
+        if self.user and str(self.user.id) == str(user.uuid):
+            return self._protected_symmetric_key
+        return None
 
     @classmethod
     def from_model(cls, model: OrganizationMemberModel) -> "OrganizationMember":
@@ -58,6 +68,7 @@ class OrganizationMember(relay.Node):
             org_user = OrganizationUser(
                 id=cast("strawberry.ID", model.user.uuid),
                 email=model.user.email,
+                name=model.user.name or None,
                 public_key=pub_key,
             )
 
@@ -66,10 +77,10 @@ class OrganizationMember(relay.Node):
             email=model.email,
             role=OrganizationMemberRoleEnum(model.role),
             status=OrganizationMemberStatusEnum(model.status),
-            protected_symmetric_key=model.protected_symmetric_key,
             user=org_user,
             created=model.created,
             updated=model.updated,
+            _protected_symmetric_key=model.protected_symmetric_key,
         )
 
 
@@ -89,10 +100,14 @@ class Organization(relay.Node):
         if not user or not user.is_authenticated:
             return None
 
-        member = OrganizationMemberModel.objects.filter(
-            organization__uuid=UUID(str(self.uuid)),
-            user=user,
-        ).first()
+        member = (
+            OrganizationMemberModel.objects.filter(
+                organization__uuid=UUID(str(self.uuid)),
+                user=user,
+            )
+            .select_related("user", "user__asymmetric_key")
+            .first()
+        )
         if member:
             return OrganizationMember.from_model(member)
         return None
@@ -109,6 +124,8 @@ class Organization(relay.Node):
 
 @strawberry.type
 class OrganizationConnection(relay.ListConnection[Organization]):
+    """Relay connection type for Organization list pagination compatibility."""
+
     @classmethod
     def resolve_node(
         cls,
