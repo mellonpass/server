@@ -117,6 +117,26 @@ def test_invite_user_by_admin_success():
     assert member.status == OrganizationMemberStatus.INVITED
 
 
+def test_invite_user_by_admin_role_owner_forbidden():
+    admin = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=admin,
+        role=OrganizationMemberRole.ADMIN,
+    )
+
+    with pytest.raises(
+        ServiceValidationError, match="Admins cannot invite members with the OWNER role"
+    ):
+        invite_user(
+            inviter=admin,
+            organization_uuid=org.uuid,
+            email="newowner@example.com",
+            role=OrganizationMemberRole.OWNER,
+        )
+
+
 def test_invite_user_by_regular_member_forbidden():
     regular_user = UserFactory()
     org = OrganizationFactory()
@@ -288,6 +308,37 @@ def test_accept_invite_already_member_under_another_record():
         accept_invite(user=user, invite_token="second-invite-token")
 
 
+def test_accept_invite_already_member_under_revoked_record():
+    user = UserFactory(email="previous@example.com")
+    org = OrganizationFactory()
+    OrganizationMemberFactory(
+        organization=org,
+        user=user,
+        email="previous@example.com",
+        status=OrganizationMemberStatus.REVOKED,
+    )
+
+    new_invite = OrganizationMember.objects.create(
+        organization=org,
+        email="newalias@example.com",
+        status=OrganizationMemberStatus.INVITED,
+        invite_token="token-for-new-alias",
+    )
+    user.email = "newalias@example.com"
+    user.save()
+
+    with pytest.raises(
+        ServiceValidationError, match="already a member of this organization"
+    ):
+        accept_invite(user=user, invite_token="token-for-new-alias")
+
+
+def test_accept_invite_empty_token():
+    user = UserFactory()
+    with pytest.raises(ServiceValidationError, match="Invitation token cannot be empty"):
+        accept_invite(user=user, invite_token="   ")
+
+
 def test_confirm_member_by_owner_success():
     owner = UserFactory()
     invitee = UserFactory()
@@ -343,6 +394,120 @@ def test_confirm_member_by_admin_success():
     )
 
     assert confirmed.status == OrganizationMemberStatus.CONFIRMED
+
+
+def test_confirm_member_by_admin_role_owner_forbidden():
+    admin = UserFactory()
+    invitee = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=admin,
+        role=OrganizationMemberRole.ADMIN,
+    )
+
+    member = OrganizationMemberFactory(
+        organization=org,
+        user=invitee,
+        email=invitee.email,
+        role=OrganizationMemberRole.OWNER,
+        status=OrganizationMemberStatus.ACCEPTED,
+    )
+
+    key = base64.b64encode(os.urandom(64)).decode("utf-8")
+    with pytest.raises(
+        ServiceValidationError, match="Admins cannot confirm an organization owner"
+    ):
+        confirm_member(
+            confirmer=admin,
+            member_uuid=member.uuid,
+            protected_symmetric_key=key,
+        )
+
+
+def test_confirm_member_by_owner_role_owner_success():
+    owner = UserFactory()
+    invitee = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+
+    member = OrganizationMemberFactory(
+        organization=org,
+        user=invitee,
+        email=invitee.email,
+        role=OrganizationMemberRole.OWNER,
+        status=OrganizationMemberStatus.ACCEPTED,
+    )
+
+    key = base64.b64encode(os.urandom(64)).decode("utf-8")
+    confirmed = confirm_member(
+        confirmer=owner,
+        member_uuid=member.uuid,
+        protected_symmetric_key=key,
+    )
+    assert confirmed.status == OrganizationMemberStatus.CONFIRMED
+    assert confirmed.role == OrganizationMemberRole.OWNER
+
+
+def test_confirm_member_empty_key():
+    owner = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+    member = OrganizationMemberFactory(
+        organization=org,
+        status=OrganizationMemberStatus.ACCEPTED,
+    )
+    with pytest.raises(ServiceValidationError, match="Protected symmetric key cannot be empty"):
+        confirm_member(
+            confirmer=owner,
+            member_uuid=member.uuid,
+            protected_symmetric_key="   ",
+        )
+
+
+def test_confirm_member_missing_user():
+    owner = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+    member = OrganizationMemberFactory(
+        organization=org,
+        user=None,
+        status=OrganizationMemberStatus.ACCEPTED,
+    )
+    with pytest.raises(ServiceValidationError, match="Member must have an associated user"):
+        confirm_member(
+            confirmer=owner,
+            member_uuid=member.uuid,
+            protected_symmetric_key="valid-key",
+        )
+
+
+def test_confirm_member_not_found():
+    owner = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+    with pytest.raises(ServiceValidationError, match="Organization member not found"):
+        confirm_member(
+            confirmer=owner,
+            member_uuid=uuid4(),
+            protected_symmetric_key="valid-key",
+        )
 
 
 def test_confirm_member_by_regular_member_forbidden():
@@ -415,6 +580,8 @@ def test_revoke_member_by_owner_success():
 
     assert revoked.pk == target_member.pk
     assert revoked.status == OrganizationMemberStatus.REVOKED
+    assert revoked.protected_symmetric_key is None
+    assert revoked.invite_token is None
 
 
 def test_revoke_member_last_owner_forbidden():
@@ -491,6 +658,18 @@ def test_revoke_member_by_regular_member_forbidden():
         revoke_member(revoker=regular_user, member_uuid=target_member.uuid)
 
 
+def test_revoke_member_not_found():
+    owner = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=owner,
+        role=OrganizationMemberRole.OWNER,
+    )
+    with pytest.raises(ServiceValidationError, match="Organization member not found"):
+        revoke_member(revoker=owner, member_uuid=uuid4())
+
+
 def test_get_user_organizations():
     user = UserFactory()
     org_confirmed_1 = OrganizationFactory()
@@ -533,7 +712,7 @@ def test_get_organization_by_user_and_uuid():
     assert fetched == org
 
     unrelated_org = OrganizationFactory()
-    with pytest.raises(Organization.DoesNotExist):
+    with pytest.raises(ServiceValidationError, match="Organization does not exist"):
         get_organization_by_user_and_uuid(
             user=user, organization_uuid=unrelated_org.uuid
         )
@@ -639,3 +818,25 @@ def test_is_org_admin_or_owner_helper():
     assert is_org_admin_or_owner(admin, org) is True
     assert is_org_admin_or_owner(regular, org) is False
     assert is_org_admin_or_owner(outsider, org) is False
+
+
+def test_invite_user_org_not_found():
+    owner = UserFactory()
+    with pytest.raises(ServiceValidationError, match="Organization does not exist"):
+        invite_user(
+            inviter=owner,
+            organization_uuid=uuid4(),
+            email="someone@example.com",
+        )
+
+
+def test_get_pending_members_org_not_found():
+    user = UserFactory()
+    with pytest.raises(ServiceValidationError, match="Organization does not exist"):
+        get_pending_members(requester=user, organization_uuid=uuid4())
+
+
+def test_get_organization_members_org_not_found():
+    user = UserFactory()
+    with pytest.raises(ServiceValidationError, match="Organization does not exist"):
+        get_organization_members(requester=user, organization_uuid=uuid4())

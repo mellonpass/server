@@ -103,6 +103,14 @@ def invite_user(
         err_msg = f"Invalid member role '{role}'."
         raise ServiceValidationError(err_msg)
 
+    inviter_membership = get_confirmed_membership(inviter, organization)
+    if (
+        inviter_membership.role == OrganizationMemberRole.ADMIN
+        and role == OrganizationMemberRole.OWNER
+    ):
+        err_msg = "Admins cannot invite members with the OWNER role."
+        raise ServiceValidationError(err_msg)
+
     cleaned_email = email.strip().lower() if email else ""
     if not cleaned_email:
         err_msg = "Invitation email cannot be empty."
@@ -164,10 +172,14 @@ def accept_invite(
         err_msg = "Invitation token cannot be empty."
         raise ServiceValidationError(err_msg)
 
-    member = OrganizationMember.objects.filter(
-        invite_token=cleaned_token,
-        status=OrganizationMemberStatus.INVITED,
-    ).first()
+    member = (
+        OrganizationMember.objects.select_for_update()
+        .filter(
+            invite_token=cleaned_token,
+            status=OrganizationMemberStatus.INVITED,
+        )
+        .first()
+    )
 
     if not member:
         err_msg = "Invalid or expired invitation token."
@@ -181,10 +193,6 @@ def accept_invite(
         OrganizationMember.objects.filter(
             organization=member.organization,
             user=user,
-            status__in=(
-                OrganizationMemberStatus.ACCEPTED,
-                OrganizationMemberStatus.CONFIRMED,
-            ),
         )
         .exclude(pk=member.pk)
         .exists()
@@ -230,6 +238,14 @@ def confirm_member(
         err_msg = "Only organization owners or admins can confirm members."
         raise ServiceValidationError(err_msg)
 
+    confirmer_membership = get_confirmed_membership(confirmer, member.organization)
+    if (
+        confirmer_membership.role == OrganizationMemberRole.ADMIN
+        and member.role == OrganizationMemberRole.OWNER
+    ):
+        err_msg = "Admins cannot confirm an organization owner."
+        raise ServiceValidationError(err_msg)
+
     if member.status != OrganizationMemberStatus.ACCEPTED:
         err_msg = (
             f"Cannot confirm member with status '{member.status}'. "
@@ -266,6 +282,9 @@ def revoke_member(
         err_msg = "Organization member not found."
         raise ServiceValidationError(err_msg) from err
 
+    # Lock organization to prevent concurrent race conditions on last owner revocation
+    Organization.objects.select_for_update().get(pk=member.organization_id)
+
     revoker_membership = get_confirmed_membership(revoker, member.organization)
     if revoker_membership.role not in ADMIN_ROLES:
         err_msg = "Only organization owners or admins can revoke members."
@@ -293,6 +312,7 @@ def revoke_member(
 
     member.status = OrganizationMemberStatus.REVOKED
     member.invite_token = None
+    member.protected_symmetric_key = None
     member.save()
 
     return member
@@ -311,11 +331,15 @@ def get_organization_by_user_and_uuid(
     organization_uuid: UUID,
 ) -> Organization:
     """Return the organization if the user is a CONFIRMED member."""
-    return Organization.objects.get(
-        uuid=organization_uuid,
-        members__user=user,
-        members__status=OrganizationMemberStatus.CONFIRMED,
-    )
+    try:
+        return Organization.objects.get(
+            uuid=organization_uuid,
+            members__user=user,
+            members__status=OrganizationMemberStatus.CONFIRMED,
+        )
+    except Organization.DoesNotExist as err:
+        err_msg = "Organization does not exist."
+        raise ServiceValidationError(err_msg) from err
 
 
 def get_pending_members(
