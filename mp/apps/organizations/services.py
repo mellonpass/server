@@ -389,6 +389,6 @@ def get_organization_members(
     return (
         OrganizationMember.objects.filter(organization=organization)
         .exclude(status=OrganizationMemberStatus.REVOKED)
-        .select_related("user")
+        .select_related("user", "user__asymmetric_key")
         .order_by("created")
     )
