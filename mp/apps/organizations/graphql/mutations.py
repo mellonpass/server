@@ -40,11 +40,12 @@ class OrganizationMutation:
         input: CreateOrganizationInput,
     ) -> CreateOrganizationPayload:
         user = info.context.request.user
+        key = input.protected_symmetric_key or input.key or ""
         try:
             org = create_organization(
                 owner=user,
                 name=input.name,
-                protected_symmetric_key=input.key,
+                protected_symmetric_key=key,
             )
             return Organization.from_model(org)
         except ServiceValidationError as err:
@@ -63,15 +64,25 @@ class OrganizationMutation:
         input: InviteUserInput,
     ) -> InviteUserPayload:
         user = info.context.request.user
+        if input.organization_id.type_name != "Organization":
+            return OrganizationMutateFailed(message="Invalid organization ID.")
+
+        try:
+            organization_uuid = UUID(input.organization_id.node_id)
+        except ValueError:
+            return OrganizationMutateFailed(
+                message="Invalid organization ID format.",
+            )
+
         try:
             member = invite_user(
                 inviter=user,
-                organization_uuid=UUID(input.organization_id.node_id),
+                organization_uuid=organization_uuid,
                 email=input.email,
                 role=input.role.value,
             )
             return OrganizationMember.from_model(member)
-        except (ServiceValidationError, ValueError) as err:
+        except ServiceValidationError as err:
             logger.warning("Invite user validation error: %s", err)
             return OrganizationMutateFailed(message=str(err))
         except Exception as err:
@@ -109,14 +120,22 @@ class OrganizationMutation:
         input: ConfirmMemberInput,
     ) -> ConfirmMemberPayload:
         user = info.context.request.user
+        if input.member_id.type_name != "OrganizationMember":
+            return OrganizationMutateFailed(message="Invalid member ID.")
+
+        try:
+            member_uuid = UUID(input.member_id.node_id)
+        except ValueError:
+            return OrganizationMutateFailed(message="Invalid member ID format.")
+
         try:
             member = confirm_member(
                 confirmer=user,
-                member_uuid=UUID(input.member_id.node_id),
+                member_uuid=member_uuid,
                 protected_symmetric_key=input.protected_symmetric_key,
             )
             return OrganizationMember.from_model(member)
-        except (ServiceValidationError, ValueError) as err:
+        except ServiceValidationError as err:
             logger.warning("Confirm member validation error: %s", err)
             return OrganizationMutateFailed(message=str(err))
         except Exception as err:
@@ -132,13 +151,21 @@ class OrganizationMutation:
         input: RevokeMemberInput,
     ) -> RevokeMemberPayload:
         user = info.context.request.user
+        if input.member_id.type_name != "OrganizationMember":
+            return OrganizationMutateFailed(message="Invalid member ID.")
+
+        try:
+            member_uuid = UUID(input.member_id.node_id)
+        except ValueError:
+            return OrganizationMutateFailed(message="Invalid member ID format.")
+
         try:
             member = revoke_member(
                 revoker=user,
-                member_uuid=UUID(input.member_id.node_id),
+                member_uuid=member_uuid,
             )
             return OrganizationMember.from_model(member)
-        except (ServiceValidationError, ValueError) as err:
+        except ServiceValidationError as err:
             logger.warning("Revoke member validation error: %s", err)
             return OrganizationMutateFailed(message=str(err))
         except Exception as err:

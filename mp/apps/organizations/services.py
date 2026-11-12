@@ -229,6 +229,7 @@ def confirm_member(
         member = OrganizationMember.objects.select_related(
             "organization",
             "user",
+            "user__asymmetric_key",
         ).get(uuid=member_uuid)
     except OrganizationMember.DoesNotExist as err:
         err_msg = "Organization member not found."
@@ -277,6 +278,7 @@ def revoke_member(
         member = OrganizationMember.objects.select_related(
             "organization",
             "user",
+            "user__asymmetric_key",
         ).get(uuid=member_uuid)
     except OrganizationMember.DoesNotExist as err:
         err_msg = "Organization member not found."
