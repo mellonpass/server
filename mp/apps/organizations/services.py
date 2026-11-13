@@ -15,6 +15,8 @@ from mp.apps.organizations.models import (
 )
 from mp.core.exceptions import ServiceValidationError
 
+MAX_ORGANIZATION_NAME_LENGTH = 150
+
 ADMIN_ROLES = (
     OrganizationMemberRole.OWNER,
     OrganizationMemberRole.ADMIN,
@@ -57,6 +59,12 @@ def create_organization(
     cleaned_name = name.strip() if name else ""
     if not cleaned_name:
         err_msg = "Organization name cannot be empty."
+        raise ServiceValidationError(err_msg)
+    if len(cleaned_name) > MAX_ORGANIZATION_NAME_LENGTH:
+        err_msg = (
+            "Organization name cannot exceed "
+            f"{MAX_ORGANIZATION_NAME_LENGTH} characters."
+        )
         raise ServiceValidationError(err_msg)
 
     cleaned_key = protected_symmetric_key.strip() if protected_symmetric_key else ""
@@ -229,6 +237,7 @@ def confirm_member(
         member = OrganizationMember.objects.select_related(
             "organization",
             "user",
+            "user__asymmetric_key",
         ).get(uuid=member_uuid)
     except OrganizationMember.DoesNotExist as err:
         err_msg = "Organization member not found."
@@ -277,6 +286,7 @@ def revoke_member(
         member = OrganizationMember.objects.select_related(
             "organization",
             "user",
+            "user__asymmetric_key",
         ).get(uuid=member_uuid)
     except OrganizationMember.DoesNotExist as err:
         err_msg = "Organization member not found."
