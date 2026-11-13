@@ -49,7 +49,7 @@ def test_create_organization_mutation_success():
     variables = {
         "input": {
             "name": "Acme Ventures",
-            "key": key,
+            "protectedSymmetricKey": key,
         }
     }
 
@@ -87,7 +87,7 @@ def test_create_organization_mutation_validation_failure():
     variables = {
         "input": {
             "name": "   ",
-            "key": "some-key",
+            "protectedSymmetricKey": "some-key",
         }
     }
 
@@ -473,31 +473,21 @@ def test_organization_mutations_unauthenticated():
             }
         }
     """
-    variables = {"input": {"name": "Test", "key": "key"}}
+    variables = {"input": {"name": "Test", "protectedSymmetricKey": "key"}}
     response = client.query(query, variables=variables, assert_no_errors=False)
     assert response.errors is not None
     assert "User is not authenticated" in response.errors[0]["message"]
 
 
-def test_create_organization_mutation_with_protected_symmetric_key_field():
+def test_create_organization_mutation_name_too_long():
     user = UserFactory()
     client = TestClient("/graphql")
-    key = base64.b64encode(os.urandom(64)).decode("utf-8")
 
     query = """
         mutation CreateOrg($input: CreateOrganizationInput!) {
             organization {
                 create(input: $input) {
                     __typename
-                    ... on Organization {
-                        id
-                        name
-                        currentUserMembership {
-                            role
-                            status
-                            protectedSymmetricKey
-                        }
-                    }
                     ... on OrganizationMutateFailed {
                         message
                     }
@@ -507,8 +497,8 @@ def test_create_organization_mutation_with_protected_symmetric_key_field():
     """
     variables = {
         "input": {
-            "name": "Beta Labs",
-            "protectedSymmetricKey": key,
+            "name": "A" * 151,
+            "protectedSymmetricKey": "some-key",
         }
     }
 
@@ -516,12 +506,8 @@ def test_create_organization_mutation_with_protected_symmetric_key_field():
         response = client.query(query, variables=variables)
         assert response.errors is None
         payload = response.data["organization"]["create"]
-        assert payload["__typename"] == "Organization"
-        assert payload["name"] == "Beta Labs"
-        membership = payload["currentUserMembership"]
-        assert membership["role"] == "OWNER"
-        assert membership["status"] == "CONFIRMED"
-        assert membership["protectedSymmetricKey"] == key
+        assert payload["__typename"] == "OrganizationMutateFailed"
+        assert "cannot exceed 150 characters" in payload["message"]
 
 
 def test_invite_user_mutation_invalid_global_id_type():

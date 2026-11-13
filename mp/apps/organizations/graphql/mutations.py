@@ -2,6 +2,7 @@ import logging
 from uuid import UUID
 
 import strawberry
+from strawberry import relay
 
 from mp.apps.organizations.graphql.types import (
     AcceptInvitePayload,
@@ -31,6 +32,20 @@ from mp.core.graphql.permissions import IsAuthenticated
 logger = logging.getLogger(__name__)
 
 
+def _parse_global_id(
+    global_id: relay.GlobalID,
+    expected_type: str,
+    label: str,
+) -> UUID | OrganizationMutateFailed:
+    """Validate Relay GlobalID type name and parse its node_id as a UUID."""
+    if global_id.type_name != expected_type:
+        return OrganizationMutateFailed(message=f"Invalid {label} ID.")
+    try:
+        return UUID(global_id.node_id)
+    except ValueError:
+        return OrganizationMutateFailed(message=f"Invalid {label} ID format.")
+
+
 @strawberry.type
 class OrganizationMutation:
     @strawberry.mutation(permission_classes=[IsAuthenticated])
@@ -40,12 +55,11 @@ class OrganizationMutation:
         input: CreateOrganizationInput,
     ) -> CreateOrganizationPayload:
         user = info.context.request.user
-        key = input.protected_symmetric_key or input.key or ""
         try:
             org = create_organization(
                 owner=user,
                 name=input.name,
-                protected_symmetric_key=key,
+                protected_symmetric_key=input.protected_symmetric_key,
             )
             return Organization.from_model(org)
         except ServiceValidationError as err:
@@ -64,15 +78,13 @@ class OrganizationMutation:
         input: InviteUserInput,
     ) -> InviteUserPayload:
         user = info.context.request.user
-        if input.organization_id.type_name != "Organization":
-            return OrganizationMutateFailed(message="Invalid organization ID.")
-
-        try:
-            organization_uuid = UUID(input.organization_id.node_id)
-        except ValueError:
-            return OrganizationMutateFailed(
-                message="Invalid organization ID format.",
-            )
+        organization_uuid = _parse_global_id(
+            input.organization_id,
+            "Organization",
+            "organization",
+        )
+        if isinstance(organization_uuid, OrganizationMutateFailed):
+            return organization_uuid
 
         try:
             member = invite_user(
@@ -120,13 +132,13 @@ class OrganizationMutation:
         input: ConfirmMemberInput,
     ) -> ConfirmMemberPayload:
         user = info.context.request.user
-        if input.member_id.type_name != "OrganizationMember":
-            return OrganizationMutateFailed(message="Invalid member ID.")
-
-        try:
-            member_uuid = UUID(input.member_id.node_id)
-        except ValueError:
-            return OrganizationMutateFailed(message="Invalid member ID format.")
+        member_uuid = _parse_global_id(
+            input.member_id,
+            "OrganizationMember",
+            "member",
+        )
+        if isinstance(member_uuid, OrganizationMutateFailed):
+            return member_uuid
 
         try:
             member = confirm_member(
@@ -151,13 +163,13 @@ class OrganizationMutation:
         input: RevokeMemberInput,
     ) -> RevokeMemberPayload:
         user = info.context.request.user
-        if input.member_id.type_name != "OrganizationMember":
-            return OrganizationMutateFailed(message="Invalid member ID.")
-
-        try:
-            member_uuid = UUID(input.member_id.node_id)
-        except ValueError:
-            return OrganizationMutateFailed(message="Invalid member ID format.")
+        member_uuid = _parse_global_id(
+            input.member_id,
+            "OrganizationMember",
+            "member",
+        )
+        if isinstance(member_uuid, OrganizationMutateFailed):
+            return member_uuid
 
         try:
             member = revoke_member(

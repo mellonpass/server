@@ -146,8 +146,7 @@ class OrganizationMutateFailed:
 @strawberry.input
 class CreateOrganizationInput:
     name: str
-    key: str | None = None
-    protected_symmetric_key: str | None = None
+    protected_symmetric_key: str
 
 
 @strawberry.input
