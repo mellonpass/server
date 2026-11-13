@@ -3,6 +3,7 @@ from uuid import UUID
 
 import strawberry
 from django.db import transaction
+from strawberry import relay
 
 from mp.apps.cipher.graphql.types import (
     Cipher,
@@ -22,9 +23,23 @@ from mp.apps.cipher.services import (
 )
 from mp.apps.organizations.models import Organization as OrganizationModel
 from mp.apps.organizations.services import get_organization_by_user_and_uuid
+from mp.core.exceptions import ServiceValidationError
 from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_global_id(
+    global_id: relay.GlobalID,
+    expected_type: str,
+) -> UUID | None:
+    """Validate Relay GlobalID type name and parse its node_id as a UUID."""
+    if global_id.type_name != expected_type:
+        return None
+    try:
+        return UUID(global_id.node_id)
+    except ValueError:
+        return None
 
 
 @strawberry.type
@@ -38,13 +53,17 @@ class CipherMutation:
         user = info.context.request.user
         org = None
         if input.organization_id:
+            org_uuid = _parse_global_id(input.organization_id, "Organization")
+            if org_uuid is None:
+                return CipherCreateFailed(
+                    message="Organization not found or access denied.",
+                )
             try:
-                org_uuid = UUID(input.organization_id.node_id)
                 org = get_organization_by_user_and_uuid(
                     user=user,
                     organization_uuid=org_uuid,
                 )
-            except (OrganizationModel.DoesNotExist, ValueError):
+            except (ServiceValidationError, OrganizationModel.DoesNotExist):
                 return CipherCreateFailed(
                     message="Organization not found or access denied.",
                 )
@@ -77,10 +96,14 @@ class CipherMutation:
         info: strawberry.Info,
         input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
+        cipher_uuid = _parse_global_id(input.id, "Cipher")
+        if cipher_uuid is None:
+            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+
         try:
             cipher = update_cipher(
                 owner=info.context.request.user,
-                uuid=UUID(input.id.node_id),
+                uuid=cipher_uuid,
                 is_favorite=input.is_favorite,
                 key=input.key,
                 name=input.name,
@@ -107,13 +130,17 @@ class CipherMutation:
         info: strawberry.Info,
         input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
+        cipher_uuid = _parse_global_id(input.id, "Cipher")
+        if cipher_uuid is None:
+            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+
         try:
             owner = info.context.request.user
 
             with transaction.atomic():
                 cipher = update_cipher(
                     owner=owner,
-                    uuid=UUID(input.id.node_id),
+                    uuid=cipher_uuid,
                     is_favorite=input.is_favorite,
                     key=input.key,
                     name=input.name,
@@ -145,13 +172,17 @@ class CipherMutation:
         info: strawberry.Info,
         input: UpdateCipherInput,
     ) -> CipherUpdatePayload:
+        cipher_uuid = _parse_global_id(input.id, "Cipher")
+        if cipher_uuid is None:
+            return CipherUpdateFailed(message=f"Resource not found for: {input.id}.")
+
         try:
             owner = info.context.request.user
 
             with transaction.atomic():
                 cipher = update_cipher(
                     owner=owner,
-                    uuid=UUID(input.id.node_id),
+                    uuid=cipher_uuid,
                     is_favorite=input.is_favorite,
                     key=input.key,
                     name=input.name,

@@ -15,6 +15,7 @@ from mp.apps.cipher.tests.factories import (
     CipherFactory,
     OrganizationCipherFactory,
 )
+from mp.apps.organizations.models import OrganizationMemberStatus
 from mp.apps.organizations.tests.factories import (
     OrganizationFactory,
     OrganizationMemberFactory,
@@ -727,3 +728,168 @@ def test_get_cipher_detail_organization_member_access():
         data = response.data["cipher"]
         assert data is not None
         assert data["organizationId"] == str(org.uuid)
+
+
+def test_get_cipher_detail_revoked_creator_denied():
+    creator = UserFactory()
+    org = OrganizationFactory()
+    membership = OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=creator,
+    )
+    org_cipher = OrganizationCipherFactory(
+        owner=creator,
+        organization=org,
+        type=CipherType.LOGIN,
+    )
+
+    # Revoke creator's membership
+    membership.status = OrganizationMemberStatus.REVOKED
+    membership.save(update_fields=["status"])
+
+    query = """
+        query GetCipher($id: GlobalID!) {
+            cipher(id: $id) {
+                id
+            }
+        }
+    """
+    cipher_global_id = relay.to_base64("Cipher", str(org_cipher.uuid))
+    client = TestClient("/graphql")
+
+    with client.login(creator):
+        response = client.query(query, variables={"id": cipher_global_id})
+        assert response.errors is None
+        assert response.data["cipher"] is None
+
+
+def test_create_cipher_with_wrong_global_id_type():
+    user = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+    wrong_type_id = relay.to_base64("Cipher", str(org.uuid))
+
+    query = """
+        mutation CreateCipher($input: CreateCipherInput!) {
+            cipher {
+                create(input: $input) {
+                    ... on CipherCreateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+    input_data = {
+        "type": CipherType.LOGIN,
+        "name": "Wrong ID Type",
+        "notes": "",
+        "key": "somekey",
+        "isFavorite": "false",
+        "status": "ACTIVE",
+        "data": {"username": "u", "password": "p"},
+        "organizationId": wrong_type_id,
+    }
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        response = client.query(query, variables={"input": input_data})
+        assert response.errors is None
+        assert (
+            "Organization not found or access denied"
+            in response.data["cipher"]["create"]["message"]
+        )
+
+
+def test_get_ciphers_with_wrong_global_id_type():
+    user = UserFactory()
+    org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+    OrganizationCipherFactory.create_batch(
+        2,
+        owner=user,
+        organization=org,
+        type=CipherType.LOGIN,
+    )
+    wrong_type_id = relay.to_base64("Cipher", str(org.uuid))
+
+    query = """
+        query GetCiphers($first: Int!, $organizationId: GlobalID) {
+            ciphers(first: $first, organizationId: $organizationId) {
+                edges {
+                    node {
+                        id
+                    }
+                }
+            }
+        }
+    """
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        response = client.query(
+            query,
+            variables={"first": 10, "organizationId": wrong_type_id},
+        )
+        assert response.errors is None
+        assert response.data["ciphers"]["edges"] == []
+
+
+def test_update_cipher_organization_member_and_revoked_denied():
+    creator = UserFactory()
+    other_member = UserFactory()
+    org = OrganizationFactory()
+    creator_membership = OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=creator,
+    )
+    OrganizationMemberFactory.create_confirmed(
+        organization=org,
+        user=other_member,
+    )
+    org_cipher = OrganizationCipherFactory(
+        owner=creator,
+        organization=org,
+        type=CipherType.LOGIN,
+    )
+
+    query = """
+        mutation UpdateCipher($input: UpdateCipherInput!) {
+            cipher {
+                update(input: $input) {
+                    ... on Cipher {
+                        id
+                        name
+                    }
+                    ... on CipherUpdateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+    cipher_global_id = relay.to_base64("Cipher", str(org_cipher.uuid))
+    input_data = {
+        "id": cipher_global_id,
+        "key": "updated-key",
+        "isFavorite": "false",
+        "status": "ACTIVE",
+        "name": "Updated Org Item",
+        "notes": "",
+        "data": {"username": "u", "password": "p"},
+    }
+
+    client = TestClient("/graphql")
+    # Confirmed org member can update
+    with client.login(other_member):
+        response = client.query(query, variables={"input": input_data})
+        assert response.errors is None
+        assert response.data["cipher"]["update"]["name"] == "Updated Org Item"
+
+    # Revoked creator cannot update
+    creator_membership.status = OrganizationMemberStatus.REVOKED
+    creator_membership.save(update_fields=["status"])
+    with client.login(creator):
+        response = client.query(query, variables={"input": input_data})
+        assert response.errors is None
+        assert "Resource not found" in response.data["cipher"]["update"]["message"]

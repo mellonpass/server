@@ -9,20 +9,30 @@ from strawberry import relay
 from mp.apps.cipher.graphql.types import Cipher, CipherConnection
 from mp.apps.cipher.models import Cipher as CipherModel
 from mp.apps.cipher.services import (
-    get_cipher_by_owner_and_uuid,
     get_ciphers_by_organization,
+    get_organization_cipher_by_member_and_uuid,
+    get_personal_cipher_by_owner_and_uuid,
     get_personal_ciphers_by_owner,
 )
-from mp.apps.organizations.models import (
-    Organization as OrganizationModel,
-)
-from mp.apps.organizations.models import (
-    OrganizationMemberStatus,
-)
+from mp.apps.organizations.models import Organization as OrganizationModel
 from mp.apps.organizations.services import get_organization_by_user_and_uuid
+from mp.core.exceptions import ServiceValidationError
 from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
+
+
+def _parse_global_id(
+    global_id: relay.GlobalID,
+    expected_type: str,
+) -> UUID | None:
+    """Validate Relay GlobalID type name and parse its node_id as a UUID."""
+    if global_id.type_name != expected_type:
+        return None
+    try:
+        return UUID(global_id.node_id)
+    except ValueError:
+        return None
 
 
 @strawberry.type
@@ -34,14 +44,13 @@ class CipherQuery:
         id: relay.GlobalID,
     ) -> Cipher | None:
         user = info.context.request.user
-        try:
-            cipher_uuid = UUID(id.node_id)
-        except ValueError:
+        cipher_uuid = _parse_global_id(id, "Cipher")
+        if cipher_uuid is None:
             return None
 
         # Check personal ciphers
         try:
-            cipher = get_cipher_by_owner_and_uuid(
+            cipher = get_personal_cipher_by_owner_and_uuid(
                 owner=user,
                 uuid=cipher_uuid,
             )
@@ -50,13 +59,12 @@ class CipherQuery:
             pass
 
         # Check organization cipher where user is a confirmed member
-        cipher = CipherModel.objects.filter(
+        org_cipher = get_organization_cipher_by_member_and_uuid(
+            user=user,
             uuid=cipher_uuid,
-            organization__members__user=user,
-            organization__members__status=OrganizationMemberStatus.CONFIRMED,
-        ).first()
-        if cipher:
-            return Cipher.from_model(cipher)
+        )
+        if org_cipher:
+            return Cipher.from_model(org_cipher)
 
         logger.warning(
             "Cipher resource not found for %s",
@@ -73,8 +81,10 @@ class CipherQuery:
         user = info.context.request.user
 
         if organization_id:
+            org_uuid = _parse_global_id(organization_id, "Organization")
+            if org_uuid is None:
+                return cast("Iterable", CipherModel.objects.none())
             try:
-                org_uuid = UUID(organization_id.node_id)
                 org = get_organization_by_user_and_uuid(
                     user=user,
                     organization_uuid=org_uuid,
@@ -83,7 +93,7 @@ class CipherQuery:
                     "Iterable",
                     get_ciphers_by_organization(organization=org),
                 )
-            except (OrganizationModel.DoesNotExist, ValueError):
+            except (ServiceValidationError, OrganizationModel.DoesNotExist):
                 return cast("Iterable", CipherModel.objects.none())
 
         return cast(
