@@ -19,7 +19,7 @@ from mp.apps.cipher.models import (
     CipherType,
     SecureNoteType,
 )
-from mp.apps.organizations.models import Organization
+from mp.apps.organizations.models import Organization, OrganizationMemberStatus
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
@@ -160,6 +160,26 @@ def create_cipher(
     )
 
 
+def _get_mutable_cipher_for_user(user: User, uuid: UUID) -> Cipher:
+    """Return a cipher if user owns it personally or is a confirmed org member."""
+    try:
+        return Cipher.objects.get(owner=user, organization__isnull=True, uuid=uuid)
+    except Cipher.DoesNotExist:
+        cipher = (
+            Cipher.objects.select_related("organization", "owner")
+            .filter(
+                uuid=uuid,
+                organization__members__user=user,
+                organization__members__status=OrganizationMemberStatus.CONFIRMED,
+            )
+            .distinct()
+            .first()
+        )
+        if cipher is None:
+            raise
+        return cipher
+
+
 @transaction.atomic
 def update_cipher(
     owner: User,
@@ -171,7 +191,7 @@ def update_cipher(
     data: dict | None = None,
     notes: str | None = None,
 ) -> Cipher:
-    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+    cipher = _get_mutable_cipher_for_user(user=owner, uuid=uuid)
     cipher.key = key
     cipher.is_favorite = is_favorite
     cipher.status = status
@@ -187,7 +207,7 @@ def update_cipher(
 
 
 def update_cipher_to_delete_state(owner: User, uuid: UUID) -> Cipher:
-    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+    cipher = _get_mutable_cipher_for_user(user=owner, uuid=uuid)
     cipher.delete_on = timezone.now() + timedelta(
         days=settings.CIPHER_DELETE_DAYS_PERIOD,
     )
@@ -196,7 +216,7 @@ def update_cipher_to_delete_state(owner: User, uuid: UUID) -> Cipher:
 
 
 def restore_cipher_from_delete_state(owner: User, uuid: UUID) -> Cipher:
-    cipher = Cipher.objects.get(owner=owner, uuid=uuid)
+    cipher = _get_mutable_cipher_for_user(user=owner, uuid=uuid)
     cipher.delete_on = None
     cipher.save(update_fields=["delete_on"])
     return cipher
@@ -228,14 +248,43 @@ def get_all_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
     return Cipher.objects.filter(owner=owner)
 
 
+def get_personal_cipher_by_owner_and_uuid(owner: User, uuid: UUID) -> Cipher:
+    return Cipher.objects.select_related("owner").get(
+        owner=owner,
+        organization__isnull=True,
+        uuid=uuid,
+    )
+
+
+def get_organization_cipher_by_member_and_uuid(
+    user: User,
+    uuid: UUID,
+) -> Cipher | None:
+    return (
+        Cipher.objects.select_related("organization", "owner")
+        .filter(
+            uuid=uuid,
+            organization__members__user=user,
+            organization__members__status=OrganizationMemberStatus.CONFIRMED,
+        )
+        .distinct()
+        .first()
+    )
+
+
 def get_personal_ciphers_by_owner(owner: User) -> QuerySet[Cipher]:
-    return Cipher.objects.filter(owner=owner, organization__isnull=True)
+    return Cipher.objects.select_related("owner").filter(
+        owner=owner,
+        organization__isnull=True,
+    )
 
 
 def get_ciphers_by_organization(
     organization: Organization,
 ) -> QuerySet[Cipher]:
-    return Cipher.objects.filter(organization=organization)
+    return Cipher.objects.select_related("organization", "owner").filter(
+        organization=organization,
+    )
 
 
 def get_cipher_by_organization_and_uuid(

@@ -7,6 +7,7 @@ from strawberry.scalars import JSON
 
 from mp.apps.cipher.models import Cipher as CipherModel
 from mp.apps.cipher.services import CipherTypeEnum
+from mp.apps.organizations.graphql.types import Organization
 
 # Types
 
@@ -25,12 +26,22 @@ class Cipher(relay.Node):
     created: datetime
     updated: datetime
     notes: str
+    organization_id: strawberry.ID | None = None
+    organization: Organization | None = None
 
     @classmethod
     def from_model(cls, model: CipherModel) -> "Cipher":
+        org = None
+        org_id = None
+        if model.organization:
+            org = Organization.from_model(model.organization)
+            org_id = cast("strawberry.ID", model.organization.uuid)
+
         return cls(
             uuid=cast("strawberry.ID", model.uuid),
             owner_id=cast("strawberry.ID", model.owner.uuid),
+            organization_id=org_id,
+            organization=org,
             type=CipherTypeEnum(model.type),
             key=model.key,
             is_favorite=model.is_favorite,
@@ -92,6 +103,7 @@ class CreateCipherInput:
     name: str
     notes: str
     data: JSON | None
+    organization_id: relay.GlobalID | None = None
 
 
 @strawberry.input
