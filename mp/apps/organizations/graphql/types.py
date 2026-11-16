@@ -90,6 +90,7 @@ class Organization(relay.Node):
     name: str
     created: datetime
     updated: datetime
+    key_version: int = 1
 
     @strawberry.field
     def current_user_membership(
@@ -117,6 +118,7 @@ class Organization(relay.Node):
         return cls(
             uuid=cast("strawberry.ID", model.uuid),
             name=model.name,
+            key_version=model.key_version,
             created=model.created,
             updated=model.updated,
         )
@@ -168,8 +170,23 @@ class ConfirmMemberInput:
 
 
 @strawberry.input
+class RotatedMemberKeyInput:
+    member_id: relay.GlobalID
+    protected_symmetric_key: str
+
+
+@strawberry.input
+class RotatedCipherKeyInput:
+    cipher_id: relay.GlobalID
+    key: str
+
+
+@strawberry.input
 class RevokeMemberInput:
     member_id: relay.GlobalID
+    expected_key_version: int | None = None
+    member_keys: list[RotatedMemberKeyInput] | None = None
+    cipher_keys: list[RotatedCipherKeyInput] | None = None
 
 
 CreateOrganizationPayload = Annotated[

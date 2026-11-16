@@ -67,6 +67,7 @@ def test_query_organizations_confirmed_with_membership():
             organizations {
                 id
                 name
+                keyVersion
                 currentUserMembership {
                     role
                     status
@@ -86,6 +87,7 @@ def test_query_organizations_confirmed_with_membership():
         assert names == {"Alpha Org", "Beta Org"}
 
         alpha = next(o for o in orgs if o["name"] == "Alpha Org")
+        assert alpha["keyVersion"] == 1
         assert alpha["currentUserMembership"]["role"] == "OWNER"
         assert alpha["currentUserMembership"]["status"] == "CONFIRMED"
         assert alpha["currentUserMembership"]["protectedSymmetricKey"] is not None
@@ -93,7 +95,7 @@ def test_query_organizations_confirmed_with_membership():
 
 def test_query_organization_detail():
     user = UserFactory()
-    org = OrganizationFactory(name="Delta Org")
+    org = OrganizationFactory(name="Delta Org", key_version=3)
     OrganizationMemberFactory.create_confirmed(
         organization=org,
         user=user,
@@ -106,6 +108,7 @@ def test_query_organization_detail():
             organization(id: $id) {
                 id
                 name
+                keyVersion
                 currentUserMembership {
                     role
                     status
@@ -121,6 +124,7 @@ def test_query_organization_detail():
         org_data = response.data["organization"]
         assert org_data is not None
         assert org_data["name"] == "Delta Org"
+        assert org_data["keyVersion"] == 3
         assert org_data["currentUserMembership"]["role"] == "ADMIN"
 
 

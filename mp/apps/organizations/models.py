@@ -12,6 +12,7 @@ from mp.core.model.fields import EncryptedTextField
 class Organization(models.Model):
     uuid = models.UUIDField(unique=True, default=uuid4, editable=False)
     name = models.CharField(max_length=150)
+    key_version = models.PositiveIntegerField(default=1)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 

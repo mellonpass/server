@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import QuerySet
 
 from mp.apps.authx.models import User
+from mp.apps.cipher.models import Cipher
 from mp.apps.organizations.models import (
     Organization,
     OrganizationMember,
@@ -273,29 +274,13 @@ def confirm_member(
     return member
 
 
-@transaction.atomic
-def revoke_member(
+def _validate_revoker_permissions(
     revoker: User,
-    member_uuid: UUID,
-) -> OrganizationMember:
-    """Revoke a member's access to an organization (soft revocation).
-
-    Requires revoker to be a confirmed OWNER or ADMIN.
-    """
-    try:
-        member = OrganizationMember.objects.select_related(
-            "organization",
-            "user",
-            "user__asymmetric_key",
-        ).get(uuid=member_uuid)
-    except OrganizationMember.DoesNotExist as err:
-        err_msg = "Organization member not found."
-        raise ServiceValidationError(err_msg) from err
-
-    # Lock organization to prevent concurrent race conditions on last owner revocation
-    Organization.objects.select_for_update().get(pk=member.organization_id)
-
-    revoker_membership = get_confirmed_membership(revoker, member.organization)
+    organization: Organization,
+    member: OrganizationMember,
+) -> None:
+    """Verify revoker role, target status, and last-owner protection."""
+    revoker_membership = get_confirmed_membership(revoker, organization)
     if revoker_membership.role not in ADMIN_ROLES:
         err_msg = "Only organization owners or admins can revoke members."
         raise ServiceValidationError(err_msg)
@@ -307,12 +292,16 @@ def revoke_member(
         err_msg = "Admins cannot revoke an organization owner."
         raise ServiceValidationError(err_msg)
 
+    if member.status == OrganizationMemberStatus.REVOKED:
+        err_msg = "Member is already revoked."
+        raise ServiceValidationError(err_msg)
+
     if (
         member.role == OrganizationMemberRole.OWNER
         and member.status == OrganizationMemberStatus.CONFIRMED
     ):
         confirmed_owners_count = OrganizationMember.objects.filter(
-            organization=member.organization,
+            organization=organization,
             role=OrganizationMemberRole.OWNER,
             status=OrganizationMemberStatus.CONFIRMED,
         ).count()
@@ -320,11 +309,138 @@ def revoke_member(
             err_msg = "Cannot revoke the last owner of an organization."
             raise ServiceValidationError(err_msg)
 
+
+def _validate_rotation_key_map(
+    provided_keys: dict[UUID, str] | None,
+    expected_uuids: set[UUID],
+    *,
+    entity_label: str,
+) -> dict[UUID, str]:
+    """Validate that rotation keys cover all expected UUIDs with non-empty strings."""
+    if provided_keys is None:
+        err_msg = f"Rotated {entity_label} keys must be provided."
+        raise ServiceValidationError(err_msg)
+
+    provided_uuids = set(provided_keys.keys())
+    if provided_uuids != expected_uuids:
+        missing_count = len(expected_uuids - provided_uuids)
+        extra_count = len(provided_uuids - expected_uuids)
+        err_msg = (
+            f"Incomplete or invalid rotated {entity_label} keys "
+            f"(missing={missing_count}, unexpected={extra_count})."
+        )
+        raise ServiceValidationError(err_msg)
+
+    cleaned: dict[UUID, str] = {}
+    for item_uuid, raw_key in provided_keys.items():
+        cleaned_key = raw_key.strip() if raw_key else ""
+        if not cleaned_key:
+            err_msg = f"Rotated {entity_label} key cannot be empty."
+            raise ServiceValidationError(err_msg)
+        cleaned[item_uuid] = cleaned_key
+    return cleaned
+
+
+@transaction.atomic
+def revoke_member(
+    revoker: User,
+    member_uuid: UUID,
+    *,
+    expected_key_version: int | None = None,
+    member_keys: dict[UUID, str] | None = None,
+    cipher_keys: dict[UUID, str] | None = None,
+) -> OrganizationMember:
+    """Revoke a member's access and atomically rotate organization keys.
+
+    Requires revoker to be a confirmed OWNER or ADMIN and supplies re-wrapped
+    organization symmetric keys for remaining confirmed members and re-wrapped
+    cipher keys for all organization ciphers.
+    """
+    try:
+        target_ref = OrganizationMember.objects.values(
+            "pk",
+            "organization_id",
+        ).get(uuid=member_uuid)
+    except OrganizationMember.DoesNotExist as err:
+        err_msg = "Organization member not found."
+        raise ServiceValidationError(err_msg) from err
+
+    # Lock organization first to serialize concurrent revocations & key rotations
+    organization = Organization.objects.select_for_update().get(
+        pk=target_ref["organization_id"],
+    )
+
+    try:
+        member = (
+            OrganizationMember.objects.select_for_update(of=("self",))
+            .select_related(
+                "organization",
+                "user",
+                "user__asymmetric_key",
+            )
+            .get(pk=target_ref["pk"])
+        )
+    except OrganizationMember.DoesNotExist as err:
+        err_msg = "Organization member not found."
+        raise ServiceValidationError(err_msg) from err
+
+    _validate_revoker_permissions(revoker, organization, member)
+
+    if (
+        expected_key_version is not None
+        and expected_key_version != organization.key_version
+    ):
+        err_msg = "Organization key version mismatch. Please refresh and try again."
+        raise ServiceValidationError(err_msg)
+
+    remaining_confirmed = list(
+        OrganizationMember.objects.select_for_update()
+        .filter(
+            organization=organization,
+            status=OrganizationMemberStatus.CONFIRMED,
+        )
+        .exclude(pk=member.pk)
+        .order_by("pk"),
+    )
+    org_ciphers = list(
+        Cipher.objects.select_for_update()
+        .filter(organization=organization)
+        .order_by("pk"),
+    )
+
+    cleaned_member_keys = _validate_rotation_key_map(
+        member_keys,
+        {m.uuid for m in remaining_confirmed},
+        entity_label="member",
+    )
+    effective_cipher_keys = (
+        cipher_keys if cipher_keys is not None else ({} if not org_ciphers else None)
+    )
+    cleaned_cipher_keys = _validate_rotation_key_map(
+        effective_cipher_keys,
+        {c.uuid for c in org_ciphers},
+        entity_label="cipher",
+    )
+
+    for remaining_member in remaining_confirmed:
+        remaining_member.protected_symmetric_key = cleaned_member_keys[
+            remaining_member.uuid
+        ]
+        remaining_member.save(update_fields=["protected_symmetric_key", "updated"])
+
+    for cipher in org_ciphers:
+        cipher.key = cleaned_cipher_keys[cipher.uuid]
+        cipher.save(update_fields=["key", "updated"])
+
     member.status = OrganizationMemberStatus.REVOKED
     member.invite_token = None
     member.protected_symmetric_key = None
     member.save()
 
+    organization.key_version += 1
+    organization.save(update_fields=["key_version", "updated"])
+
+    member.organization = organization
     return member
 
 

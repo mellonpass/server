@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Callable, Sequence
+from typing import TypeVar
 from uuid import UUID
 
 import strawberry
@@ -31,6 +33,8 @@ from mp.core.graphql.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
 
+TInput = TypeVar("TInput")
+
 
 def _parse_global_id(
     global_id: relay.GlobalID,
@@ -44,6 +48,29 @@ def _parse_global_id(
         return UUID(global_id.node_id)
     except ValueError:
         return OrganizationMutateFailed(message=f"Invalid {label} ID format.")
+
+
+def _parse_rotated_keys(
+    items: Sequence[TInput] | None,
+    *,
+    get_global_id: Callable[[TInput], relay.GlobalID],
+    get_key: Callable[[TInput], str],
+    expected_type: str,
+    label: str,
+    duplicate_message: str,
+) -> dict[UUID, str] | None | OrganizationMutateFailed:
+    """Parse rotated GlobalID-key pairs into a UUID mapping, rejecting duplicates."""
+    if items is None:
+        return None
+    parsed: dict[UUID, str] = {}
+    for item in items:
+        item_uuid = _parse_global_id(get_global_id(item), expected_type, label)
+        if isinstance(item_uuid, OrganizationMutateFailed):
+            return item_uuid
+        if item_uuid in parsed:
+            return OrganizationMutateFailed(message=duplicate_message)
+        parsed[item_uuid] = get_key(item)
+    return parsed
 
 
 @strawberry.type
@@ -171,10 +198,35 @@ class OrganizationMutation:
         if isinstance(member_uuid, OrganizationMutateFailed):
             return member_uuid
 
+        parsed_member_keys = _parse_rotated_keys(
+            input.member_keys,
+            get_global_id=lambda item: item.member_id,
+            get_key=lambda item: item.protected_symmetric_key,
+            expected_type="OrganizationMember",
+            label="member",
+            duplicate_message="Duplicate member ID in member keys.",
+        )
+        if isinstance(parsed_member_keys, OrganizationMutateFailed):
+            return parsed_member_keys
+
+        parsed_cipher_keys = _parse_rotated_keys(
+            input.cipher_keys,
+            get_global_id=lambda item: item.cipher_id,
+            get_key=lambda item: item.key,
+            expected_type="Cipher",
+            label="cipher",
+            duplicate_message="Duplicate cipher ID in cipher keys.",
+        )
+        if isinstance(parsed_cipher_keys, OrganizationMutateFailed):
+            return parsed_cipher_keys
+
         try:
             member = revoke_member(
                 revoker=user,
                 member_uuid=member_uuid,
+                expected_key_version=input.expected_key_version,
+                member_keys=parsed_member_keys,
+                cipher_keys=parsed_cipher_keys,
             )
             return OrganizationMember.from_model(member)
         except ServiceValidationError as err:
