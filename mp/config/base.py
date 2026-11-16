@@ -15,6 +15,7 @@ from pathlib import Path
 import dj_database_url
 import environ
 from corsheaders.defaults import default_headers
+from django.core.exceptions import ImproperlyConfigured
 from huey import SqliteHuey
 
 env = environ.Env()
@@ -61,6 +62,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "mp.core",
     "mp.apps.authx",
     "mp.apps.cipher",
     "mp.apps.organizations",
@@ -258,7 +260,18 @@ CIPHER_DELETE_DAYS_PERIOD = 30
 
 # FERNET
 # ------------------------------------------------------------
-DB_SYMMETRIC_KEY = env("DB_SYMMETRIC_KEY")
+DB_SYMMETRIC_KEYS = [
+    key.strip() for key in env.list("DB_SYMMETRIC_KEYS", default=[]) if key.strip()
+]
+DB_SYMMETRIC_KEY = env("DB_SYMMETRIC_KEY", default="").strip()
+if not DB_SYMMETRIC_KEYS and DB_SYMMETRIC_KEY:
+    DB_SYMMETRIC_KEYS = [
+        key.strip() for key in DB_SYMMETRIC_KEY.split(",") if key.strip()
+    ]
+if not DB_SYMMETRIC_KEYS:
+    err_msg = "Either DB_SYMMETRIC_KEYS or DB_SYMMETRIC_KEY must be set."
+    raise ImproperlyConfigured(err_msg)
+DB_SYMMETRIC_KEY = DB_SYMMETRIC_KEYS[0]
 
 # HUEY
 # ------------------------------------------------------------
