@@ -172,6 +172,7 @@ class OrganizationMutation:
                 confirmer=user,
                 member_uuid=member_uuid,
                 protected_symmetric_key=input.protected_symmetric_key,
+                expected_key_version=input.expected_key_version,
             )
             return OrganizationMember.from_model(member)
         except ServiceValidationError as err:

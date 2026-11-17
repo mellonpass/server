@@ -167,6 +167,7 @@ class AcceptOrganizationInviteInput:
 class ConfirmMemberInput:
     member_id: relay.GlobalID
     protected_symmetric_key: str
+    expected_key_version: int | None = None
 
 
 @strawberry.input

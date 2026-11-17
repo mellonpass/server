@@ -79,9 +79,13 @@ class CipherMutation:
                 is_favorite=input.isFavorite,
                 data=input.data,
                 notes=input.notes,
+                expected_key_version=input.expected_key_version,
             )
             return Cipher.from_model(cipher)
 
+        except ServiceValidationError as error:
+            logger.warning("Create cipher validation error: %s", error)
+            return CipherCreateFailed(message=str(error))
         except Exception as error:
             # log error with stacktrace do not reveal on API.
             logger.exception("Create cipher failed!", exc_info=error)
@@ -110,6 +114,7 @@ class CipherMutation:
                 status=input.status,
                 data=input.data,
                 notes=input.notes,
+                expected_key_version=input.expected_key_version,
             )
             return Cipher.from_model(cipher)
 
@@ -117,6 +122,9 @@ class CipherMutation:
             msg = f"Resource not found for: {input.id}."
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
+        except ServiceValidationError as error:
+            logger.warning("Update cipher validation error: %s", error)
+            return CipherUpdateFailed(message=str(error))
         except Exception as error:
             logger.exception("Unable to update a cipher!", exc_info=error)
 
@@ -147,6 +155,7 @@ class CipherMutation:
                     status=input.status,
                     data=input.data,
                     notes=input.notes,
+                    expected_key_version=input.expected_key_version,
                 )
                 cipher = update_cipher_to_delete_state(
                     owner=owner,
@@ -158,6 +167,9 @@ class CipherMutation:
             msg = f"Resource not found for: {input.id}."
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
+        except ServiceValidationError as error:
+            logger.warning("Delete cipher validation error: %s", error)
+            return CipherUpdateFailed(message=str(error))
         except Exception as error:
             # We don't really delete instantly, cipher will be deleted after
             # a set period of time via celery task.
@@ -189,6 +201,7 @@ class CipherMutation:
                     status=input.status,
                     data=input.data,
                     notes=input.notes,
+                    expected_key_version=input.expected_key_version,
                 )
                 cipher = restore_cipher_from_delete_state(
                     owner=owner,
@@ -199,6 +212,9 @@ class CipherMutation:
             msg = f"Resource not found for: {input.id}."
             logger.warning(msg, exc_info=error)
             return CipherUpdateFailed(message=msg)
+        except ServiceValidationError as error:
+            logger.warning("Restore cipher validation error: %s", error)
+            return CipherUpdateFailed(message=str(error))
         except Exception as error:
             logger.exception("Unable to restore cipher from delete.", exc_info=error)
             return CipherUpdateFailed(

@@ -5,6 +5,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import QuerySet
+from django.utils import timezone
 
 from mp.apps.authx.models import User
 from mp.apps.cipher.models import Cipher
@@ -224,6 +225,8 @@ def confirm_member(
     confirmer: User,
     member_uuid: UUID,
     protected_symmetric_key: str,
+    *,
+    expected_key_version: int | None = None,
 ) -> OrganizationMember:
     """Confirm an accepted member by providing the organization symmetric key.
 
@@ -235,20 +238,38 @@ def confirm_member(
         raise ServiceValidationError(err_msg)
 
     try:
-        member = OrganizationMember.objects.select_related(
-            "organization",
-            "user",
-            "user__asymmetric_key",
+        target_ref = OrganizationMember.objects.values(
+            "pk",
+            "organization_id",
         ).get(uuid=member_uuid)
     except OrganizationMember.DoesNotExist as err:
         err_msg = "Organization member not found."
         raise ServiceValidationError(err_msg) from err
 
-    if not is_org_admin_or_owner(confirmer, member.organization):
+    # Lock organization first to serialize with concurrent key rotations
+    organization = Organization.objects.select_for_update().get(
+        pk=target_ref["organization_id"],
+    )
+
+    try:
+        member = (
+            OrganizationMember.objects.select_for_update(of=("self",))
+            .select_related(
+                "organization",
+                "user",
+                "user__asymmetric_key",
+            )
+            .get(pk=target_ref["pk"])
+        )
+    except OrganizationMember.DoesNotExist as err:
+        err_msg = "Organization member not found."
+        raise ServiceValidationError(err_msg) from err
+
+    if not is_org_admin_or_owner(confirmer, organization):
         err_msg = "Only organization owners or admins can confirm members."
         raise ServiceValidationError(err_msg)
 
-    confirmer_membership = get_confirmed_membership(confirmer, member.organization)
+    confirmer_membership = get_confirmed_membership(confirmer, organization)
     if (
         confirmer_membership.role == OrganizationMemberRole.ADMIN
         and member.role == OrganizationMemberRole.OWNER
@@ -267,10 +288,18 @@ def confirm_member(
         err_msg = "Member must have an associated user account before confirmation."
         raise ServiceValidationError(err_msg)
 
+    if (
+        expected_key_version is not None
+        and expected_key_version != organization.key_version
+    ):
+        err_msg = "Organization key version mismatch. Please refresh and try again."
+        raise ServiceValidationError(err_msg)
+
     member.protected_symmetric_key = cleaned_key
     member.status = OrganizationMemberStatus.CONFIRMED
     member.save()
 
+    member.organization = organization
     return member
 
 
@@ -386,15 +415,17 @@ def revoke_member(
 
     _validate_revoker_permissions(revoker, organization, member)
 
-    if (
-        expected_key_version is not None
-        and expected_key_version != organization.key_version
-    ):
+    if expected_key_version is None:
+        err_msg = "Expected organization key version must be provided."
+        raise ServiceValidationError(err_msg)
+
+    if expected_key_version != organization.key_version:
         err_msg = "Organization key version mismatch. Please refresh and try again."
         raise ServiceValidationError(err_msg)
 
     remaining_confirmed = list(
-        OrganizationMember.objects.select_for_update()
+        OrganizationMember.objects.only("pk", "uuid")
+        .select_for_update()
         .filter(
             organization=organization,
             status=OrganizationMemberStatus.CONFIRMED,
@@ -403,7 +434,8 @@ def revoke_member(
         .order_by("pk"),
     )
     org_ciphers = list(
-        Cipher.objects.select_for_update()
+        Cipher.objects.only("pk", "uuid")
+        .select_for_update()
         .filter(organization=organization)
         .order_by("pk"),
     )
@@ -422,15 +454,30 @@ def revoke_member(
         entity_label="cipher",
     )
 
-    for remaining_member in remaining_confirmed:
-        remaining_member.protected_symmetric_key = cleaned_member_keys[
-            remaining_member.uuid
-        ]
-        remaining_member.save(update_fields=["protected_symmetric_key", "updated"])
+    now = timezone.now()
+    if remaining_confirmed:
+        for remaining_member in remaining_confirmed:
+            remaining_member.protected_symmetric_key = cleaned_member_keys[
+                remaining_member.uuid
+            ]
+            remaining_member.updated = now
+        member_update_fields = ("protected_symmetric_key", "updated")
+        OrganizationMember.objects.bulk_update(
+            remaining_confirmed,
+            member_update_fields,
+            batch_size=500,
+        )
 
-    for cipher in org_ciphers:
-        cipher.key = cleaned_cipher_keys[cipher.uuid]
-        cipher.save(update_fields=["key", "updated"])
+    if org_ciphers:
+        for cipher in org_ciphers:
+            cipher.key = cleaned_cipher_keys[cipher.uuid]
+            cipher.updated = now
+        cipher_update_fields = ("key", "updated")
+        Cipher.objects.bulk_update(
+            org_ciphers,
+            cipher_update_fields,
+            batch_size=500,
+        )
 
     member.status = OrganizationMemberStatus.REVOKED
     member.invite_token = None
