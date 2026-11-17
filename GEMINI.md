@@ -141,3 +141,4 @@ All vault (`cipher.*`) and organization (`organization.*`) operations execute ov
 - **Match client KDF parameters**: Server verification and seed utilities must remain aligned with the client's 720,000 PBKDF2 iterations and `Argon2PasswordHasher` (`time_cost=10`).
 - **Soft-delete lifecycle**: Do not hard-delete active ciphers directly in standard UX flows; soft-delete sets `delete_on = now + 30 days` so `delete_ciphers_task` handles permanent cleanup.
 - **Test coverage required**: Add `pytest` + `FactoryBoy` tests for all new domain services, REST views, and GraphQL resolvers.
+- **Pull Request Descriptions**: Link the ticket (`Closes #...`) and any companion PRs; structure changes as concise `**<what changed>**: <why it was needed>` bullets (avoiding long prose or heavy sub-headings); and include a **Verification** section with exact commands and results.
