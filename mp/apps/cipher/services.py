@@ -19,7 +19,11 @@ from mp.apps.cipher.models import (
     CipherType,
     SecureNoteType,
 )
-from mp.apps.organizations.models import Organization, OrganizationMemberStatus
+from mp.apps.organizations.models import (
+    Organization,
+    OrganizationMember,
+    OrganizationMemberStatus,
+)
 from mp.core.exceptions import ServiceValidationError
 
 CipherTypeEnum = CipherType
@@ -124,6 +128,29 @@ DATA_BUILDER_FACTORY: dict[CipherTypeEnum, CipherDataBuilder] = {
 }
 
 
+def _lock_org_and_check_membership(
+    organization_id: int,
+    user: User,
+    expected_key_version: int | None,
+) -> Organization | None:
+    """Lock organization row, verify confirmed membership, and check key_version."""
+    organization = Organization.objects.select_for_update().get(pk=organization_id)
+    is_confirmed = OrganizationMember.objects.filter(
+        organization=organization,
+        user=user,
+        status=OrganizationMemberStatus.CONFIRMED,
+    ).exists()
+    if not is_confirmed:
+        return None
+    if (
+        expected_key_version is not None
+        and expected_key_version != organization.key_version
+    ):
+        err_msg = "Organization key version mismatch. Please refresh and try again."
+        raise ServiceValidationError(err_msg)
+    return organization
+
+
 @transaction.atomic
 def create_cipher(
     owner: User,
@@ -135,6 +162,7 @@ def create_cipher(
     data: dict | None = None,
     notes: str | None = None,
     organization: Organization | None = None,
+    expected_key_version: int | None = None,
 ) -> Cipher:
     cipher_type = CipherTypeEnum(type)
 
@@ -143,6 +171,17 @@ def create_cipher(
     except KeyError as error:
         err_msg = f"Invalid CipherType {cipher_type}."
         raise ServiceValidationError(err_msg) from error
+
+    if organization is not None:
+        locked_org = _lock_org_and_check_membership(
+            organization.pk,
+            owner,
+            expected_key_version,
+        )
+        if locked_org is None:
+            err_msg = "Organization not found or access denied."
+            raise ServiceValidationError(err_msg)
+        organization = locked_org
 
     cipher_data: CipherData = data_builder.build_cipher_data(data)
     cipher_data.name = name
@@ -190,7 +229,22 @@ def update_cipher(
     status: str,
     data: dict | None = None,
     notes: str | None = None,
+    expected_key_version: int | None = None,
 ) -> Cipher:
+    cipher_ref = (
+        Cipher.objects.values("pk", "organization_id").filter(uuid=uuid).first()
+    )
+    if cipher_ref is None:
+        raise Cipher.DoesNotExist
+    if cipher_ref["organization_id"] is not None:
+        locked_org = _lock_org_and_check_membership(
+            cipher_ref["organization_id"],
+            owner,
+            expected_key_version,
+        )
+        if locked_org is None:
+            raise Cipher.DoesNotExist
+
     cipher = _get_mutable_cipher_for_user(user=owner, uuid=uuid)
     cipher.key = key
     cipher.is_favorite = is_favorite

@@ -564,7 +564,7 @@ def test_revoke_member_by_owner_success():
     owner = UserFactory()
     target_user = UserFactory()
     org = OrganizationFactory()
-    OrganizationMemberFactory.create_confirmed(
+    owner_member = OrganizationMemberFactory.create_confirmed(
         organization=org,
         user=owner,
         role=OrganizationMemberRole.OWNER,
@@ -576,12 +576,24 @@ def test_revoke_member_by_owner_success():
         role=OrganizationMemberRole.MEMBER,
     )
 
-    revoked = revoke_member(revoker=owner, member_uuid=target_member.uuid)
+    rotated_owner_key = base64.b64encode(os.urandom(64)).decode("utf-8")
+    revoked = revoke_member(
+        revoker=owner,
+        member_uuid=target_member.uuid,
+        expected_key_version=1,
+        member_keys={owner_member.uuid: rotated_owner_key},
+    )
 
     assert revoked.pk == target_member.pk
     assert revoked.status == OrganizationMemberStatus.REVOKED
     assert revoked.protected_symmetric_key is None
     assert revoked.invite_token is None
+    assert revoked.organization.key_version == 2
+
+    owner_member.refresh_from_db()
+    assert owner_member.protected_symmetric_key == rotated_owner_key
+    org.refresh_from_db()
+    assert org.key_version == 2
 
 
 def test_revoke_member_last_owner_forbidden():
@@ -601,7 +613,7 @@ def test_revoke_member_multiple_owners_allowed():
     owner1 = UserFactory()
     owner2 = UserFactory()
     org = OrganizationFactory()
-    OrganizationMemberFactory.create_confirmed(
+    owner1_member = OrganizationMemberFactory.create_confirmed(
         organization=org,
         user=owner1,
         role=OrganizationMemberRole.OWNER,
@@ -612,8 +624,17 @@ def test_revoke_member_multiple_owners_allowed():
         role=OrganizationMemberRole.OWNER,
     )
 
-    revoked = revoke_member(revoker=owner1, member_uuid=owner2_member.uuid)
+    rotated_owner1_key = base64.b64encode(os.urandom(64)).decode("utf-8")
+    revoked = revoke_member(
+        revoker=owner1,
+        member_uuid=owner2_member.uuid,
+        expected_key_version=1,
+        member_keys={owner1_member.uuid: rotated_owner1_key},
+    )
     assert revoked.status == OrganizationMemberStatus.REVOKED
+    assert revoked.organization.key_version == 2
+    owner1_member.refresh_from_db()
+    assert owner1_member.protected_symmetric_key == rotated_owner1_key
 
 
 def test_revoke_owner_by_admin_forbidden():

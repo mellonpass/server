@@ -893,3 +893,87 @@ def test_update_cipher_organization_member_and_revoked_denied():
         response = client.query(query, variables={"input": input_data})
         assert response.errors is None
         assert "Resource not found" in response.data["cipher"]["update"]["message"]
+
+
+
+def test_create_and_update_org_cipher_reject_stale_expected_key_version():
+    user = UserFactory()
+    org = OrganizationFactory(key_version=2)
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+    org_cipher = OrganizationCipherFactory(
+        organization=org,
+        owner=user,
+        type=CipherType.LOGIN,
+    )
+    original_key = org_cipher.key
+
+    create_query = """
+        mutation CreateCipher($input: CreateCipherInput!) {
+            cipher {
+                create(input: $input) {
+                    __typename
+                    ... on CipherCreateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+    update_query = """
+        mutation UpdateCipher($input: UpdateCipherInput!) {
+            cipher {
+                update(input: $input) {
+                    __typename
+                    ... on CipherUpdateFailed {
+                        message
+                    }
+                }
+            }
+        }
+    """
+
+    client = TestClient("/graphql")
+    with client.login(user):
+        create_res = client.query(
+            create_query,
+            variables={
+                "input": {
+                    "type": CipherType.LOGIN,
+                    "name": "Stale Org Item",
+                    "notes": "",
+                    "key": "stale-key",
+                    "isFavorite": "false",
+                    "status": "ACTIVE",
+                    "data": {"username": "u", "password": "p"},
+                    "organizationId": relay.to_base64("Organization", str(org.uuid)),
+                    "expectedKeyVersion": 1,
+                }
+            },
+        )
+        assert create_res.errors is None
+        create_payload = create_res.data["cipher"]["create"]
+        assert create_payload["__typename"] == "CipherCreateFailed"
+        assert "Organization key version mismatch" in create_payload["message"]
+
+        update_res = client.query(
+            update_query,
+            variables={
+                "input": {
+                    "id": relay.to_base64("Cipher", str(org_cipher.uuid)),
+                    "key": "stale-updated-key",
+                    "isFavorite": "false",
+                    "status": "ACTIVE",
+                    "name": "Updated Org Item",
+                    "notes": "",
+                    "data": {"username": "u", "password": "p"},
+                    "expectedKeyVersion": 1,
+                }
+            },
+        )
+        assert update_res.errors is None
+        update_payload = update_res.data["cipher"]["update"]
+        assert update_payload["__typename"] == "CipherUpdateFailed"
+        assert "Organization key version mismatch" in update_payload["message"]
+
+    org_cipher.refresh_from_db()
+    assert org_cipher.key == original_key

@@ -20,6 +20,7 @@ def test_organization_creation():
     org: Organization = OrganizationFactory(name="Acme Corp")
     assert org.pk is not None
     assert org.uuid is not None
+    assert org.key_version == 1
     assert str(org) == "Acme Corp"
 
 
