@@ -299,6 +299,7 @@ def confirm_member(
     member.status = OrganizationMemberStatus.CONFIRMED
     member.save()
 
+    # Keep in-memory relation aligned with locked row (harmless; org is unmodified)
     member.organization = organization
     return member
 
