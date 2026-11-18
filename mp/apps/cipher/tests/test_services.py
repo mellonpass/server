@@ -16,13 +16,18 @@ from mp.apps.cipher.services import (
     get_ciphers_by_organization,
     get_personal_ciphers_by_owner,
     restore_cipher_from_delete_state,
+    update_cipher,
     update_cipher_to_delete_state,
 )
 from mp.apps.cipher.tests.factories import (
     CipherFactory,
     OrganizationCipherFactory,
 )
-from mp.apps.organizations.tests.factories import OrganizationFactory
+from mp.apps.organizations.tests.factories import (
+    OrganizationFactory,
+    OrganizationMemberFactory,
+)
+from mp.core.exceptions import ServiceValidationError
 
 pytestmark = pytest.mark.django_db
 
@@ -45,6 +50,7 @@ def test_create_cipher_personal():
 def test_create_cipher_with_organization():
     user = UserFactory()
     org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
     cipher = create_cipher(
         owner=user,
         type=CipherType.LOGIN,
@@ -62,6 +68,7 @@ def test_create_cipher_with_organization():
 def test_organization_cipher_cascade_deletion():
     user = UserFactory()
     org = OrganizationFactory()
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
 
     org_cipher = create_cipher(
         owner=user,
@@ -175,3 +182,70 @@ def test_secure_note_data_builder():
     data_builder = CipherSecureNoteDataBuilder()
     secure_note = data_builder.build_cipher_data(data=None)
     assert secure_note.type == SecureNoteType.GENERIC
+
+
+
+def test_create_cipher_rejects_stale_expected_key_version():
+    user = UserFactory()
+    org = OrganizationFactory(key_version=2)
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+
+    with pytest.raises(
+        ServiceValidationError,
+        match="Organization key version mismatch",
+    ):
+        create_cipher(
+            owner=user,
+            type=CipherType.LOGIN,
+            name="Stale Org Login",
+            key="stale-key",
+            status="ACTIVE",
+            is_favorite="false",
+            data={"username": "orguser", "password": "orgpassword"},
+            organization=org,
+            expected_key_version=1,
+        )
+
+
+def test_update_cipher_rejects_stale_expected_key_version_and_accepts_current():
+    user = UserFactory()
+    org = OrganizationFactory(key_version=2)
+    OrganizationMemberFactory.create_confirmed(organization=org, user=user)
+    cipher = OrganizationCipherFactory(
+        organization=org,
+        owner=user,
+        type=CipherType.LOGIN,
+    )
+    original_key = cipher.key
+
+    with pytest.raises(
+        ServiceValidationError,
+        match="Organization key version mismatch",
+    ):
+        update_cipher(
+            owner=user,
+            uuid=cipher.uuid,
+            key="stale-v1-key",
+            is_favorite="false",
+            name="Updated",
+            status="ACTIVE",
+            data={"username": "u", "password": "p"},
+            notes="",
+            expected_key_version=1,
+        )
+
+    cipher.refresh_from_db()
+    assert cipher.key == original_key
+
+    updated = update_cipher(
+        owner=user,
+        uuid=cipher.uuid,
+        key="valid-v2-key",
+        is_favorite="false",
+        name="Updated",
+        status="ACTIVE",
+        data={"username": "u", "password": "p"},
+        notes="",
+        expected_key_version=2,
+    )
+    assert updated.key == "valid-v2-key"

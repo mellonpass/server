@@ -127,7 +127,7 @@ class EncryptedTextField(TextField):
     description = "Encrypts field value on the database."
 
     def get_db_prep_save(self, value, connection):  # noqa: ANN001
-        if hasattr(value, "as_sql"):
+        if hasattr(value, "resolve_expression") or hasattr(value, "as_sql"):
             return value
         value = super().get_db_prep_save(value, connection)
         if value is None or len(value) == 0:

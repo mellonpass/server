@@ -104,6 +104,7 @@ class CreateCipherInput:
     notes: str
     data: JSON | None
     organization_id: relay.GlobalID | None = None
+    expected_key_version: int | None = None
 
 
 @strawberry.input
@@ -115,3 +116,4 @@ class UpdateCipherInput:
     name: str
     notes: str
     data: JSON | None
+    expected_key_version: int | None = None

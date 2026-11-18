@@ -387,7 +387,7 @@ def test_revoke_member_mutation_success():
     owner = UserFactory()
     member_user = UserFactory()
     org = OrganizationFactory()
-    OrganizationMemberFactory.create_confirmed(
+    owner_member = OrganizationMemberFactory.create_confirmed(
         organization=org,
         user=owner,
         role=OrganizationMemberRole.OWNER,
@@ -416,7 +416,20 @@ def test_revoke_member_mutation_success():
         }
     """
     member_id = relay.to_base64("OrganizationMember", str(target_member.uuid))
-    variables = {"input": {"memberId": member_id}}
+    owner_member_id = relay.to_base64("OrganizationMember", str(owner_member.uuid))
+    rotated_owner_key = base64.b64encode(os.urandom(64)).decode("utf-8")
+    variables = {
+        "input": {
+            "memberId": member_id,
+            "expectedKeyVersion": 1,
+            "memberKeys": [
+                {
+                    "memberId": owner_member_id,
+                    "protectedSymmetricKey": rotated_owner_key,
+                }
+            ],
+        }
+    }
 
     with client.login(owner):
         response = client.query(query, variables=variables)
@@ -426,7 +439,12 @@ def test_revoke_member_mutation_success():
         assert payload["status"] == "REVOKED"
 
         target_member.refresh_from_db()
+        owner_member.refresh_from_db()
+        org.refresh_from_db()
         assert target_member.status == OrganizationMemberStatus.REVOKED
+        assert target_member.protected_symmetric_key is None
+        assert owner_member.protected_symmetric_key == rotated_owner_key
+        assert org.key_version == 2
 
 
 def test_revoke_member_mutation_last_owner_forbidden():
