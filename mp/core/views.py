@@ -1,0 +1,28 @@
+import logging
+from http import HTTPStatus
+
+from django.db import DatabaseError, connection
+from django.http import HttpRequest, JsonResponse
+from django.views.decorators.http import require_GET
+
+logger = logging.getLogger(__name__)
+
+
+@require_GET
+def healthz_view(request: HttpRequest) -> JsonResponse:  # noqa: ARG001
+    """Return 200 OK when the application and database are reachable."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            cursor.fetchone()
+    except DatabaseError:
+        logger.exception("Health check failed: database connectivity error.")
+        return JsonResponse(
+            {"status": "error"},
+            status=HTTPStatus.SERVICE_UNAVAILABLE,
+        )
+
+    return JsonResponse(
+        {"status": "ok"},
+        status=HTTPStatus.OK,
+    )

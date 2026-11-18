@@ -12,7 +12,7 @@ from mp.config.base import *
 # ------------------------------------------------------------
 DEBUG = False
 
-ALLOWED_HOSTS = [f".{DOMAIN}"]
+ALLOWED_HOSTS = [f".{DOMAIN}", "localhost", "127.0.0.1"]
 
 CORS_ALLOW_ALL_ORIGINS = False
 
