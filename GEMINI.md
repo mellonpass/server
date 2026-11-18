@@ -89,7 +89,9 @@ mp/
     test.py           # Test overrides (references tox env vars).
     urls.py           # Mounts /admin/, /accounts/*, and /graphql.
   core/
-    model/fields.py   # EncryptedTextField — transparent Fernet at-rest encryption layer.
+    management/commands/
+      rotate_db_encryption_key.py  # Online batched DB encryption key rotation command.
+    model/fields.py   # EncryptedTextField — transparent MultiFernet at-rest encryption layer.
     graphql/
       permissions.py  # IsAuthenticated Strawberry permission class.
     strawberry/
@@ -134,7 +136,7 @@ All vault (`cipher.*`) and organization (`organization.*`) operations execute ov
 ## Coding Standards & Security Invariants
 
 - **`EncryptedTextField` for all sensitive columns**: Any new model field storing client ciphertext, wrapped keys, or sensitive metadata must use `mp.core.model.fields.EncryptedTextField`.
-- **`DB_SYMMETRIC_KEY` is permanent**: Never alter `DB_SYMMETRIC_KEY` without an online data migration that decrypts and re-encrypts all existing rows.
+- **Zero-downtime DB key rotation (`DB_SYMMETRIC_KEYS` / `DB_SYMMETRIC_KEY`)**: `EncryptedTextField` uses a cached `MultiFernet` backed by `settings.DB_SYMMETRIC_KEYS` (index `0` is the active write key; trailing keys remain accepted for reads, and `DB_SYMMETRIC_KEY` remains supported for single-key setups). Never remove a retired key from `DB_SYMMETRIC_KEYS` without completing an online rotation across all existing rows (`python manage.py rotate_db_encryption_key`).
 - **Never expose other members' keys**: `OrganizationMember.protected_symmetric_key` must only be returned by GraphQL when `self.user.id == request.user.uuid`.
 - **Protect the last owner**: Organization member revocation must acquire row locks via `select_for_update()` and forbid revoking the last `CONFIRMED OWNER`.
 - **Enforce auth, CSRF, and GraphQL limits**: Keep `IsAuthenticated` on all GraphQL queries/mutations, `@csrf_protect` and `@ratelimit` on mutating REST views, `QueryDepthLimiter(max_depth=5)`, and production `NoSchemaIntrospectionCustomRule`.
@@ -142,3 +144,22 @@ All vault (`cipher.*`) and organization (`organization.*`) operations execute ov
 - **Soft-delete lifecycle**: Do not hard-delete active ciphers directly in standard UX flows; soft-delete sets `delete_on = now + 30 days` so `delete_ciphers_task` handles permanent cleanup.
 - **Test coverage required**: Add `pytest` + `FactoryBoy` tests for all new domain services, REST views, and GraphQL resolvers.
 - **Pull Request Descriptions**: Link the ticket (`Closes #...`) and any companion PRs; structure changes as concise `**<what changed>**: <why it was needed>` bullets (avoiding long prose or heavy sub-headings); and include a **Verification** section with exact commands and results.
+
+### Zero-Downtime DB Encryption Key Rotation Runbook
+
+Follow these steps whenever rotating `DB_SYMMETRIC_KEY` / `DB_SYMMETRIC_KEYS` in production without downtime:
+
+1. **Generate a new Fernet key**:
+   ```sh
+   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+   ```
+2. **Prepend the new key at index `0` of `DB_SYMMETRIC_KEYS` and deploy**:
+   Set `DB_SYMMETRIC_KEYS="<new_key>,<old_key>"` in the environment and roll the application containers. All new writes encrypt with `<new_key>`, while existing rows encrypted under `<old_key>` remain readable.
+3. **Dry-run and rotate all existing rows in batches**:
+   ```sh
+   python manage.py rotate_db_encryption_key --dry-run
+   python manage.py rotate_db_encryption_key --batch-size 500
+   ```
+   This verifies round-trip encryption/decryption and re-encrypts every `EncryptedTextField` column across `User`, `RSAOAEPKey`, `OrganizationMember`, `Cipher`, `CipherLoginData`, `CipherCardData`, `CipherSecureNoteData`, and `CipherDatabaseData`.
+4. **Remove the retired key and redeploy**:
+   Update `DB_SYMMETRIC_KEYS="<new_key>"` (removing `<old_key>`, and updating `DB_SYMMETRIC_KEY` if still defined) and deploy.
