@@ -11,6 +11,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.core.management import CommandError, call_command
 from django.db import connection, models
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 
 from mp.apps.authx.models import RSAOAEPKey, User
 from mp.apps.cipher.models import (
@@ -41,7 +42,9 @@ def _generate_fernet_key() -> str:
     return Fernet.generate_key().decode("utf-8")
 
 
-def _fetch_raw_column(model: type[models.Model], pk: int, field_name: str) -> str | None:
+def _fetch_raw_column(
+    model: type[models.Model], pk: int, field_name: str
+) -> str | None:
     table = model._meta.db_table
     field = model._meta.get_field(field_name)
     assert isinstance(field, models.Field)
@@ -59,7 +62,9 @@ def _decrypt_with_single_key(raw_ciphertext: str, key: str) -> str:
 
 def _load_base_settings_with_env(extra_env: dict[str, str]):
     base_path = Path(__file__).resolve().parents[2] / "config" / "base.py"
-    spec = importlib.util.spec_from_file_location("test_isolated_base_settings", base_path)
+    spec = importlib.util.spec_from_file_location(
+        "test_isolated_base_settings", base_path
+    )
     assert spec is not None
     assert spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -213,7 +218,9 @@ def test_rotate_db_encryption_key_dry_run():
 
     output = stdout.getvalue()
     assert "[DRY RUN]" in output
-    assert _fetch_raw_column(User, user.pk, "protected_symmetric_key") == raw_user_before
+    assert (
+        _fetch_raw_column(User, user.pk, "protected_symmetric_key") == raw_user_before
+    )
     assert _fetch_raw_column(CipherSecureNoteData, note.pk, "name") == raw_note_before
 
     # Removing old_key before actual rotation still fails to decrypt
@@ -396,7 +403,9 @@ def test_rotate_db_encryption_key_all_models_and_batches():
 
     assert _fetch_raw_column(User, user3.pk, "protected_symmetric_key") == ""
     assert (
-        _fetch_raw_column(OrganizationMember, member_invited.pk, "protected_symmetric_key")
+        _fetch_raw_column(
+            OrganizationMember, member_invited.pk, "protected_symmetric_key"
+        )
         is None
     )
     assert _fetch_raw_column(CipherSecureNoteData, note_empty_notes.pk, "notes") is None
@@ -511,3 +520,42 @@ def test_rotate_db_encryption_key_aborts_on_round_trip_failure():
         call_command("rotate_db_encryption_key", "--batch-size=2")
 
     assert _fetch_raw_column(CipherSecureNoteData, note.pk, "name") == raw_before
+
+
+def test_rotate_db_encryption_key_keyset_pagination_with_gaps_and_locking():
+    old_key = _generate_fernet_key()
+    new_key = _generate_fernet_key()
+
+    with override_settings(DB_SYMMETRIC_KEY=old_key):
+        notes = [
+            CipherSecureNoteData.objects.create(name=f"Note {i}", notes=f"Body {i}")
+            for i in range(5)
+        ]
+        # Delete middle rows so PKs have gaps across batches
+        notes[1].delete()
+        notes[3].delete()
+        remaining = [notes[0], notes[2], notes[4]]
+
+    with override_settings(DB_SYMMETRIC_KEYS=[new_key, old_key]):
+        with CaptureQueriesContext(connection) as dry_queries:
+            call_command("rotate_db_encryption_key", "--dry-run", "--batch-size=2")
+        assert not any("FOR UPDATE" in query["sql"].upper() for query in dry_queries)
+
+        with CaptureQueriesContext(connection) as write_queries:
+            call_command("rotate_db_encryption_key", "--batch-size=2")
+        assert any("FOR UPDATE" in query["sql"].upper() for query in write_queries)
+
+    for note_obj in remaining:
+        raw_name = _fetch_raw_column(CipherSecureNoteData, note_obj.pk, "name")
+        assert raw_name is not None
+        assert _decrypt_with_single_key(raw_name, new_key) == note_obj.name
+        with pytest.raises(InvalidToken):
+            _decrypt_with_single_key(raw_name, old_key)
+
+
+def test_rotate_db_encryption_key_fails_fast_on_invalid_key_empty_db():
+    with (
+        override_settings(DB_SYMMETRIC_KEYS=["not-a-valid-fernet-key"]),
+        pytest.raises(CommandError, match="Invalid DB encryption key configuration"),
+    ):
+        call_command("rotate_db_encryption_key", "--dry-run")

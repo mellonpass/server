@@ -1,49 +1,27 @@
-from collections.abc import Iterator
-from itertools import islice
-from typing import TypeVar
-
+from cryptography.fernet import InvalidToken
 from django.apps import apps
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import BaseCommand, CommandError, CommandParser
 from django.db import models, transaction
-from django.db.models import QuerySet
 
-from mp.apps.authx.models import RSAOAEPKey, User
-from mp.apps.cipher.models import (
-    Cipher,
-    CipherCardData,
-    CipherDatabaseData,
-    CipherLoginData,
-    CipherSecureNoteData,
-)
-from mp.apps.organizations.models import OrganizationMember
 from mp.core.model.fields import (
     EncryptedTextField,
     _decrypt_db_data,
     _encrypt_db_data,
+    _get_multi_fernet,
 )
 
-TModel = TypeVar("TModel", bound=models.Model)
-
-ROTATION_MODELS: tuple[type[models.Model], ...] = (
-    User,
-    RSAOAEPKey,
-    OrganizationMember,
-    Cipher,
-    CipherLoginData,
-    CipherCardData,
-    CipherSecureNoteData,
-    CipherDatabaseData,
-)
+_ROUND_TRIP_PROBE = "mellonpass-db-key-rotation-probe"
 
 
 def _get_target_models() -> list[tuple[type[models.Model], list[str]]]:
-    """Return models and their concrete EncryptedTextField column names."""
+    """Return installed models and their concrete EncryptedTextField columns."""
     targets: list[tuple[type[models.Model], list[str]]] = []
-    seen: set[type[models.Model]] = set()
-    for model in (*ROTATION_MODELS, *apps.get_models()):
-        if model in seen:
-            continue
-        seen.add(model)
+    installed_models = sorted(
+        apps.get_models(),
+        key=lambda model: model._meta.label,  # noqa: SLF001
+    )
+    for model in installed_models:
         encrypted_fields = [
             field.name
             for field in model._meta.concrete_fields  # noqa: SLF001
@@ -54,33 +32,19 @@ def _get_target_models() -> list[tuple[type[models.Model], list[str]]]:
     return targets
 
 
-def _iter_batches(
-    queryset: QuerySet[TModel],
-    batch_size: int,
-) -> Iterator[list[TModel]]:
-    iterator = queryset.iterator(chunk_size=batch_size)
-    while batch := list(islice(iterator, batch_size)):
-        yield batch
+def _verify_primary_key_round_trip() -> None:
+    """Validate configured keys and confirm the primary key round-trips."""
+    try:
+        _get_multi_fernet()
+        reencrypted = _encrypt_db_data(_ROUND_TRIP_PROBE)
+        decrypted = _decrypt_db_data(reencrypted)
+    except (ImproperlyConfigured, InvalidToken, ValueError, TypeError) as exc:
+        err_msg = f"Invalid DB encryption key configuration: {exc}"
+        raise CommandError(err_msg) from exc
 
-
-def _verify_batch_round_trip(
-    model: type[models.Model],
-    batch: list[TModel],
-    encrypted_fields: list[str],
-) -> None:
-    """Verify every non-empty field in the batch round-trips with the primary key."""
-    for obj in batch:
-        for field_name in encrypted_fields:
-            plaintext = getattr(obj, field_name)
-            if not plaintext:
-                continue
-            reencrypted = _encrypt_db_data(plaintext)
-            if _decrypt_db_data(reencrypted) != plaintext:
-                err_msg = (
-                    f"Round-trip encryption verification failed for "
-                    f"{model.__name__}(pk={obj.pk}).{field_name}."
-                )
-                raise CommandError(err_msg)
+    if decrypted != _ROUND_TRIP_PROBE:
+        err_msg = "Round-trip encryption verification failed for primary key."
+        raise CommandError(err_msg)
 
 
 class Command(BaseCommand):
@@ -111,6 +75,8 @@ class Command(BaseCommand):
         if batch_size <= 0:
             err_msg = "--batch-size must be greater than 0."
             raise CommandError(err_msg)
+
+        _verify_primary_key_round_trip()
 
         prefix = "[DRY RUN] " if dry_run else ""
         self.stdout.write(f"{prefix}Starting database encryption key rotation...")
@@ -151,15 +117,29 @@ class Command(BaseCommand):
     ) -> int:
         processed = 0
         manager = model._default_manager  # noqa: SLF001
-        queryset = manager.order_by("pk")
-        for batch in _iter_batches(queryset, batch_size):
-            _verify_batch_round_trip(model, batch, encrypted_fields)
-            if not dry_run:
+        last_pk: object = None
+
+        while True:
+            queryset = manager.only("pk", *encrypted_fields).order_by("pk")
+            if last_pk is not None:
+                queryset = queryset.filter(pk__gt=last_pk)
+
+            if dry_run:
+                batch = list(queryset[:batch_size])
+                if not batch:
+                    break
+            else:
                 with transaction.atomic():
+                    batch = list(queryset.select_for_update()[:batch_size])
+                    if not batch:
+                        break
                     manager.bulk_update(
                         batch,
                         encrypted_fields,
                         batch_size=batch_size,
                     )
+
+            last_pk = batch[-1].pk
             processed += len(batch)
+
         return processed
