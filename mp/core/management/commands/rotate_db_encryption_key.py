@@ -58,8 +58,8 @@ class Command(BaseCommand):
             "--dry-run",
             action="store_true",
             help=(
-                "Decrypt and verify round-trip re-encryption without modifying "
-                "database rows."
+                "Verify primary key round-trip and decrypt all rows without "
+                "modifying database rows."
             ),
         )
         parser.add_argument(
@@ -116,7 +116,8 @@ class Command(BaseCommand):
         dry_run: bool,
     ) -> int:
         processed = 0
-        manager = model._default_manager  # noqa: SLF001
+        # Use _base_manager so any custom filtering default manager never skips rows.
+        manager = model._base_manager  # noqa: SLF001
         last_pk: object = None
 
         while True:

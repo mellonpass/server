@@ -65,6 +65,9 @@ def _resolve_override_layer(
 
 def _resolve_db_symmetric_keys() -> tuple[str, ...]:
     """Resolve active Fernet keys, honoring nested override_settings layers."""
+    # Walk UserSettingsHolder layers because base settings define both
+    # DB_SYMMETRIC_KEYS and DB_SYMMETRIC_KEY, which would otherwise shadow
+    # override_settings(DB_SYMMETRIC_KEY=...) calls.
     # Touch settings so LazySettings runs _setup() before inspecting _wrapped layers.
     _ = getattr(settings, "DB_SYMMETRIC_KEY", None)
     holder: object = getattr(settings, "_wrapped", settings)

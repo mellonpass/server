@@ -110,6 +110,13 @@ def test_base_settings_db_symmetric_keys_parsing():
     assert both_mod.DB_SYMMETRIC_KEYS == [key_two, key_one]
     assert both_mod.DB_SYMMETRIC_KEY == key_two
 
+    # Comma-separated fallback in DB_SYMMETRIC_KEY when DB_SYMMETRIC_KEYS is unset
+    legacy_multi_mod = _load_base_settings_with_env(
+        {"DB_SYMMETRIC_KEY": f" {key_two} , {key_one} "},
+    )
+    assert legacy_multi_mod.DB_SYMMETRIC_KEYS == [key_two, key_one]
+    assert legacy_multi_mod.DB_SYMMETRIC_KEY == key_two
+
 
 def test_single_key_backward_compatibility():
     key_a = _generate_fernet_key()
@@ -129,6 +136,17 @@ def test_single_key_backward_compatibility():
 
         with override_settings(DB_SYMMETRIC_KEYS=[key_b, key_a]):
             assert User.objects.get(pk=user.pk).protected_symmetric_key == "legacy-psk"
+
+        # Within a single override layer, DB_SYMMETRIC_KEYS takes precedence over
+        # DB_SYMMETRIC_KEY.
+        with override_settings(
+            DB_SYMMETRIC_KEYS=[key_b, key_a],
+            DB_SYMMETRIC_KEY=key_a,
+        ):
+            inner_token = _encrypt_db_data("inner-precedence")
+            assert _decrypt_with_single_key(inner_token, key_b) == "inner-precedence"
+            with pytest.raises(InvalidToken):
+                _decrypt_with_single_key(inner_token, key_a)
 
         # Exiting inner DB_SYMMETRIC_KEYS override restores outer DB_SYMMETRIC_KEY=key_a
         token = _encrypt_db_data("outer-active")
@@ -559,3 +577,33 @@ def test_rotate_db_encryption_key_fails_fast_on_invalid_key_empty_db():
         pytest.raises(CommandError, match="Invalid DB encryption key configuration"),
     ):
         call_command("rotate_db_encryption_key", "--dry-run")
+
+
+def test_rotate_db_encryption_key_uses_base_manager():
+    old_key = _generate_fernet_key()
+    new_key = _generate_fernet_key()
+
+    with override_settings(DB_SYMMETRIC_KEY=old_key):
+        note = CipherSecureNoteData.objects.create(
+            name="Base Manager Note",
+            notes="Must not be skipped by custom default manager",
+        )
+
+    class _EmptyDefaultManager(models.Manager):
+        def get_queryset(self):
+            return super().get_queryset().none()
+
+    empty_manager = _EmptyDefaultManager()
+    empty_manager.model = CipherSecureNoteData
+
+    with (
+        override_settings(DB_SYMMETRIC_KEYS=[new_key, old_key]),
+        patch.object(CipherSecureNoteData._meta, "default_manager", empty_manager),
+    ):
+        call_command("rotate_db_encryption_key", "--batch-size=2")
+
+    raw_name = _fetch_raw_column(CipherSecureNoteData, note.pk, "name")
+    assert raw_name is not None
+    assert _decrypt_with_single_key(raw_name, new_key) == "Base Manager Note"
+    with pytest.raises(InvalidToken):
+        _decrypt_with_single_key(raw_name, old_key)
