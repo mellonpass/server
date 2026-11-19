@@ -2,7 +2,7 @@ from http import HTTPStatus
 from unittest.mock import MagicMock
 
 import pytest
-from django.db import DatabaseError, OperationalError, connection
+from django.db import DatabaseError, InterfaceError, OperationalError, connection
 from django.test import override_settings
 from django.test.client import Client
 from django.test.utils import CaptureQueriesContext
@@ -20,6 +20,7 @@ def test_healthz_returns_ok_and_checks_database(client: Client):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"status": "ok"}
+    assert "no-store" in response.headers["Cache-Control"]
     assert any("SELECT 1" in query["sql"] for query in queries)
 
 
@@ -31,10 +32,16 @@ def test_healthz_unauthenticated_with_csrf_checks(client: Client):
     assert response.json() == {"status": "ok"}
 
 
-def test_healthz_allows_localhost_and_loopback_hosts(client: Client):
+def test_healthz_allows_localhost_and_loopback_hosts(client: Client, monkeypatch):
+    monkeypatch.setenv("MAILGUN_API_KEY", "test-key")
+    monkeypatch.setenv("MAILGUN_SENDER_DOMAIN", "mg.example.com")
+    monkeypatch.delenv("SENTRY_DSN", raising=False)
+
+    import mp.config.production as prod_settings
+
     url = reverse("healthz")
-    with override_settings(ALLOWED_HOSTS=[".mellonpass.com", "localhost", "127.0.0.1"]):
-        for host in ("localhost:8000", "127.0.0.1:8000", "svc.mellonpass.com"):
+    with override_settings(ALLOWED_HOSTS=prod_settings.ALLOWED_HOSTS):
+        for host in ("localhost:8000", "127.0.0.1:8000", f"svc.{prod_settings.DOMAIN}"):
             response = client.get(url, HTTP_HOST=host)
             assert response.status_code == HTTPStatus.OK
             assert response.json() == {"status": "ok"}
@@ -51,6 +58,7 @@ def test_healthz_rejects_non_get_methods(client: Client, method: str):
     [
         OperationalError("database unavailable"),
         DatabaseError("database error"),
+        InterfaceError("connection already closed"),
     ],
 )
 def test_healthz_returns_503_when_database_unavailable(
