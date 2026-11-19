@@ -19,6 +19,9 @@ services:
       dockerfile: Dockerfile
     container_name: mellonpass_server
     restart: always
+    labels:
+      logging: "server"
+      logging_jobname: "containerlogs"
     stdin_open: true
     tty: true
     environment:

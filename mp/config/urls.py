@@ -19,7 +19,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from mp.core.views import healthz_view
+
 urlpatterns = [
+    path("healthz", view=healthz_view, name="healthz"),
     # API related views.
     # ------------------------------------------------------------------------
     path("accounts/", include("mp.apps.authx.urls")),
