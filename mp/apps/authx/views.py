@@ -1,6 +1,7 @@
 import json
 import logging
 from http import HTTPStatus
+from typing import NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -8,7 +9,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.http import Http404, HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 from django_ratelimit.core import get_usage
 from django_ratelimit.decorators import ratelimit
@@ -20,8 +21,10 @@ from mp.apps.authx.serializers import (
     AccountCreateSerializer,
     AccountSetupSerializer,
     AuthenticationSerializer,
+    ChangePasswordSerializer,
 )
 from mp.apps.authx.services import (
+    change_password,
     check_existing_email,
     create_account,
     get_user_rsa_keys,
@@ -31,7 +34,7 @@ from mp.apps.authx.services import (
 )
 from mp.apps.authx.tasks import send_account_verification_link_task
 from mp.cloudflare import validate_turnstile
-from mp.core.exceptions import ServiceValidationError
+from mp.core.exceptions import InvalidCredentialsError, ServiceValidationError
 from mp.core.utils.ip import rl_client_ip
 from mp.crypto import verify_jwt
 
@@ -44,6 +47,13 @@ def rl_email(group, request: HttpRequest):  # noqa: ARG001, ANN001
     serializer = AuthenticationSerializer()
     auth_data = serializer.load(json.loads(request.body))
     return auth_data["email"]
+
+
+def rl_user_or_ip(group: object, request: HttpRequest) -> str:
+    """Return a ratelimit key scoped to the authenticated user or client IP."""
+    if request.user.is_authenticated:
+        return str(request.user.pk)
+    return rl_client_ip(group, request) or "unknown"
 
 
 def _turnstile_view_validation(action: str, token: str | None) -> JsonResponse | None:
@@ -509,3 +519,88 @@ def public_key_view(request: HttpRequest):
             {"error": "Public key not found."},
             status=HTTPStatus.NOT_FOUND,
         )
+
+
+class _ChangePasswordPayload(TypedDict):
+    current_login_hash: str
+    new_login_hash: str
+    new_protected_symmetric_key: str
+    hint: NotRequired[str | None]
+
+
+def _load_change_password_payload(
+    request: HttpRequest,
+) -> tuple[_ChangePasswordPayload | None, JsonResponse | None]:
+    """Validate content-type, JSON body, and ChangePasswordSerializer fields."""
+    if request.content_type != "application/json":
+        return None, JsonResponse(
+            {"error": "Invalid request content-type."},
+            status=HTTPStatus.BAD_REQUEST,
+        )
+
+    try:
+        raw_body = json.loads(request.body)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None, JsonResponse(
+            {"error": "Invalid JSON payload."},
+            status=HTTPStatus.BAD_REQUEST,
+        )
+
+    try:
+        serializer = ChangePasswordSerializer()
+        loaded = cast("_ChangePasswordPayload", serializer.load(raw_body))
+    except ValidationError as error:
+        return None, JsonResponse(
+            {"error": error.messages},
+            status=HTTPStatus.BAD_REQUEST,
+        )
+
+    return loaded, None
+
+
+@csrf_protect
+@require_POST
+@ratelimit(key=rl_user_or_ip, rate="5/m", block=False)
+@ratelimit(key=rl_client_ip, rate="5/m", block=False)
+def change_password_view(request: HttpRequest):
+    """Change the authenticated user's master password hash, PSK, and optional hint."""
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"error": "Authentication required."},
+            status=HTTPStatus.UNAUTHORIZED,
+        )
+
+    if settings.RATELIMIT_ENABLE and getattr(request, "limited", False):
+        return JsonResponse(
+            {"error": "Blocked, try again later."},
+            status=HTTPStatus.TOO_MANY_REQUESTS,
+        )
+
+    data, error_response = _load_change_password_payload(request)
+    if error_response is not None or data is None:
+        return error_response
+
+    try:
+        user = change_password(
+            request=request,
+            user=request.user,
+            current_login_hash=data["current_login_hash"],
+            new_login_hash=data["new_login_hash"],
+            new_protected_symmetric_key=data["new_protected_symmetric_key"],
+            hint=data.get("hint"),
+        )
+    except InvalidCredentialsError as error:
+        return JsonResponse(
+            {"error": str(error)},
+            status=HTTPStatus.UNPROCESSABLE_ENTITY,
+        )
+
+    return JsonResponse(
+        {
+            "data": {
+                "user_email": user.email,
+                "message": "Master password updated successfully.",
+            },
+        },
+        status=HTTPStatus.OK,
+    )

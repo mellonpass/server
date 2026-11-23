@@ -20,6 +20,7 @@ from django.urls import path
 
 from mp.apps.authx.views import (
     account_create_view,
+    change_password_view,
     check_email_view,
     login_view,
     logout_view,
@@ -32,6 +33,7 @@ from mp.apps.authx.views import (
 
 app_name = "accounts"
 urlpatterns = [
+    path("change-password", view=change_password_view, name="change-password"),
     path("check-email", view=check_email_view, name="check-email"),
     path("create", view=account_create_view, name="create"),
     path("login", view=login_view, name="login"),
