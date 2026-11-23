@@ -95,12 +95,18 @@ def setup_account(
     return user
 
 
+_DB_BACKED_SESSION_ENGINES = {
+    "django.contrib.sessions.backends.db",
+    "django.contrib.sessions.backends.cached_db",
+}
+
+
 def _invalidate_other_user_sessions(
     user: User,
     current_session_key: str | None,
 ) -> None:
     """Delete other active database-backed sessions belonging to ``user``."""
-    if settings.SESSION_ENGINE != "django.contrib.sessions.backends.db":
+    if settings.SESSION_ENGINE not in _DB_BACKED_SESSION_ENGINES:
         return
 
     user_id_str = str(user.pk)
@@ -120,7 +126,6 @@ def _invalidate_other_user_sessions(
         Session.objects.filter(session_key__in=stale_keys).delete()
 
 
-@transaction.atomic
 def change_password(
     request: HttpRequest,
     user: User,
@@ -133,26 +138,29 @@ def change_password(
 
     Updates the Argon2id password hash, protected symmetric key, and optional
     hint inside a row-locked transaction, preserves the caller's session via
-    ``update_session_auth_hash``, and invalidates other active sessions.
+    ``update_session_auth_hash``, and invalidates other active sessions after
+    releasing the row lock.
     """
-    locked_user = UserModel.objects.select_for_update().get(pk=user.pk)
+    with transaction.atomic():
+        locked_user = UserModel.objects.select_for_update().get(pk=user.pk)
 
-    if not locked_user.check_password(current_login_hash):
-        err_msg = "Invalid current master password."
-        raise InvalidCredentialsError(err_msg)
+        if not locked_user.check_password(current_login_hash):
+            err_msg = "Invalid current master password."
+            raise InvalidCredentialsError(err_msg)
 
-    locked_user.set_password(new_login_hash)
-    locked_user.protected_symmetric_key = new_protected_symmetric_key
-    update_fields = ["password", "protected_symmetric_key", "updated"]
-    if hint is not None:
-        locked_user.hint = hint
-        update_fields.append("hint")
+        locked_user.set_password(new_login_hash)
+        locked_user.protected_symmetric_key = new_protected_symmetric_key
+        update_fields = ["password", "protected_symmetric_key", "updated"]
+        if hint is not None:
+            locked_user.hint = hint
+            update_fields.append("hint")
 
-    locked_user.save(update_fields=update_fields)
-    update_session_auth_hash(request, locked_user)
+        locked_user.save(update_fields=update_fields)
+        update_session_auth_hash(request, locked_user)
+        request.user = locked_user
+
     _invalidate_other_user_sessions(
         user=locked_user,
         current_session_key=request.session.session_key,
     )
-    request.user = locked_user
     return locked_user

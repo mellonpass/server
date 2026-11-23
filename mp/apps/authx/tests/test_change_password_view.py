@@ -150,6 +150,9 @@ def test_change_password_atomic_rollback_on_session_error(
     original_psk = user.protected_symmetric_key
 
     _login_client(client, user.email, TEST_USER_LOGIN_HASH)
+    invalidate_spy = mocker.patch(
+        "mp.apps.authx.services._invalidate_other_user_sessions",
+    )
     mocker.patch(
         "mp.apps.authx.services.update_session_auth_hash",
         side_effect=RuntimeError("simulated failure"),
@@ -166,6 +169,8 @@ def test_change_password_atomic_rollback_on_session_error(
                 "hint": "should rollback",
             },
         )
+
+    invalidate_spy.assert_not_called()
 
     user.refresh_from_db()
     assert user.password == original_password
@@ -248,6 +253,36 @@ def test_change_password_wrong_current_login_hash_rejected(
             "current_login_hash": TEST_USER_LOGIN_HASH,
             "new_login_hash": NEW_LOGIN_HASH,
             "new_protected_symmetric_key": "bad psk",
+        },
+        {
+            "current_login_hash": "a" * 1025,
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": "valid-psk",
+        },
+        {
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": "a" * 1025,
+            "new_protected_symmetric_key": "valid-psk",
+        },
+        {
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": "a" * 4097,
+        },
+        {
+            "current_login_hash": "abc\x00def",
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": "valid-psk",
+        },
+        {
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": "abc\x07def",
+            "new_protected_symmetric_key": "valid-psk",
+        },
+        {
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": "abc\x1fdef",
         },
         {
             "current_login_hash": 123,
@@ -458,6 +493,80 @@ def test_change_password_rate_limiting(client: Client, user: User):
         REMOTE_ADDR="198.51.100.42",
     )
     assert blocked_other_ip.status_code == HTTPStatus.TOO_MANY_REQUESTS
+
+
+@override_settings(RATELIMIT_ENABLE=True)
+def test_change_password_ip_rate_limit_isolated_and_shared_across_users(
+    user: User,
+):
+    cache.clear()
+    other_user: User = UserFactory(  # type: ignore[assignment]
+        is_active=True,
+        password=TEST_USER_LOGIN_HASH,
+    )
+    RSAOAEPKeyFactory(user=other_user)
+
+    user_a_client = Client()
+    user_b_client = Client()
+    anon_client = Client()
+    _login_client(user_a_client, user.email, TEST_USER_LOGIN_HASH)
+    _login_client(user_b_client, other_user.email, TEST_USER_LOGIN_HASH)
+
+    url = reverse("accounts:change-password")
+    shared_ip = "198.51.100.77"
+
+    # Unauthenticated probes increment the IP bucket once per request (not twice).
+    for _ in range(4):
+        anon_resp = anon_client.post(
+            path=url,
+            content_type="application/json",
+            data={
+                "current_login_hash": TEST_USER_LOGIN_HASH,
+                "new_login_hash": NEW_LOGIN_HASH,
+                "new_protected_symmetric_key": _make_psk(),
+            },
+            REMOTE_ADDR=shared_ip,
+        )
+        assert anon_resp.status_code == HTTPStatus.UNAUTHORIZED
+
+    # 5th request from shared_ip (first authenticated request for user A) succeeds.
+    user_a_resp = user_a_client.post(
+        path=url,
+        content_type="application/json",
+        data={
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": _make_psk(),
+        },
+        REMOTE_ADDR=shared_ip,
+    )
+    assert user_a_resp.status_code == HTTPStatus.OK
+
+    # 6th request from shared_ip (different authenticated user B) hits the IP limit.
+    user_b_blocked = user_b_client.post(
+        path=url,
+        content_type="application/json",
+        data={
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": _make_psk(),
+        },
+        REMOTE_ADDR=shared_ip,
+    )
+    assert user_b_blocked.status_code == HTTPStatus.TOO_MANY_REQUESTS
+
+    # User B from a clean IP is unaffected.
+    user_b_clean_ip = user_b_client.post(
+        path=url,
+        content_type="application/json",
+        data={
+            "current_login_hash": TEST_USER_LOGIN_HASH,
+            "new_login_hash": NEW_LOGIN_HASH,
+            "new_protected_symmetric_key": _make_psk(),
+        },
+        REMOTE_ADDR="198.51.100.78",
+    )
+    assert user_b_clean_ip.status_code == HTTPStatus.OK
 
 
 def test_change_password_invalidates_other_sessions_and_keeps_current(

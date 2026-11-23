@@ -560,8 +560,8 @@ def _load_change_password_payload(
 
 @csrf_protect
 @require_POST
-@ratelimit(key=rl_user_or_ip, rate="5/m", block=False)
-@ratelimit(key=rl_client_ip, rate="5/m", block=False)
+@ratelimit(group="change_password_user", key=rl_user_or_ip, rate="5/m", block=False)
+@ratelimit(group="change_password_ip", key=rl_client_ip, rate="5/m", block=False)
 def change_password_view(request: HttpRequest):
     """Change the authenticated user's master password hash, PSK, and optional hint."""
     if not request.user.is_authenticated:
