@@ -143,7 +143,8 @@ All vault (`cipher.*`) and organization (`organization.*`) operations execute ov
 - **Match client KDF parameters**: Server verification and seed utilities must remain aligned with the client's 720,000 PBKDF2 iterations and `Argon2PasswordHasher` (`time_cost=10`).
 - **Soft-delete lifecycle**: Do not hard-delete active ciphers directly in standard UX flows; soft-delete sets `delete_on = now + 30 days` so `delete_ciphers_task` handles permanent cleanup.
 - **Test coverage required**: Add `pytest` + `FactoryBoy` tests for all new domain services, REST views, and GraphQL resolvers.
-- **Pull Request Descriptions**: Link the ticket (`Closes #...`) and any companion PRs; structure changes as concise `**<what changed>**: <why it was needed>` bullets (avoiding long prose or heavy sub-headings); and include a **Verification** section with exact commands and results.
+- **Commits**: Follow Conventional Commits (`type(scope): description`). Avoid creating one huge commit: split larger changes into smaller, logical commits when necessary (small, straightforward changes do not need to be divided), and always include a commit message body explaining the change, not just a headline.
+- **Pull Requests**: Avoid creating one huge PR: split large changes into smaller, focused PRs with an explicit **merge order** to help reviewers, and ensure commits within each PR follow the commit rules above. Link the ticket (`Closes #...`) and any companion PRs; structure changes as concise `**<what changed>**: <why it was needed>` bullets (avoiding long prose or heavy sub-headings); and include a **Verification** section with exact commands and results.
 
 ### Zero-Downtime DB Encryption Key Rotation Runbook
 
