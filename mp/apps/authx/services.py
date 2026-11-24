@@ -1,10 +1,21 @@
 import logging
 
-from django.contrib.auth import authenticate, get_user_model, login, logout
+from django.conf import settings
+from django.contrib.auth import (
+    SESSION_KEY,
+    authenticate,
+    get_user_model,
+    login,
+    logout,
+    update_session_auth_hash,
+)
+from django.contrib.sessions.models import Session
+from django.db import transaction
 from django.http import HttpRequest
+from django.utils import timezone
 
 from mp.apps.authx.models import RSAOAEPKey, User
-from mp.core.exceptions import ServiceValidationError
+from mp.core.exceptions import InvalidCredentialsError, ServiceValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -82,3 +93,74 @@ def setup_account(
     )
 
     return user
+
+
+_DB_BACKED_SESSION_ENGINES = {
+    "django.contrib.sessions.backends.db",
+    "django.contrib.sessions.backends.cached_db",
+}
+
+
+def _invalidate_other_user_sessions(
+    user: User,
+    current_session_key: str | None,
+) -> None:
+    """Delete other active database-backed sessions belonging to ``user``."""
+    if settings.SESSION_ENGINE not in _DB_BACKED_SESSION_ENGINES:
+        return
+
+    user_id_str = str(user.pk)
+    active_sessions = Session.objects.filter(expire_date__gt=timezone.now())
+    if current_session_key:
+        active_sessions = active_sessions.exclude(session_key=current_session_key)
+
+    stale_keys = [
+        session.session_key
+        for session in active_sessions.only("session_key", "session_data").iterator(
+            chunk_size=500,
+        )
+        if session.get_decoded().get(SESSION_KEY) == user_id_str
+    ]
+
+    if stale_keys:
+        Session.objects.filter(session_key__in=stale_keys).delete()
+
+
+def change_password(
+    request: HttpRequest,
+    user: User,
+    current_login_hash: str,
+    new_login_hash: str,
+    new_protected_symmetric_key: str,
+    hint: str | None = None,
+) -> User:
+    """Atomically verify current login hash and update user credentials.
+
+    Updates the Argon2id password hash, protected symmetric key, and optional
+    hint inside a row-locked transaction, preserves the caller's session via
+    ``update_session_auth_hash``, and invalidates other active sessions after
+    releasing the row lock.
+    """
+    with transaction.atomic():
+        locked_user = UserModel.objects.select_for_update().get(pk=user.pk)
+
+        if not locked_user.check_password(current_login_hash):
+            err_msg = "Invalid current master password."
+            raise InvalidCredentialsError(err_msg)
+
+        locked_user.set_password(new_login_hash)
+        locked_user.protected_symmetric_key = new_protected_symmetric_key
+        update_fields = ["password", "protected_symmetric_key", "updated"]
+        if hint is not None:
+            locked_user.hint = hint
+            update_fields.append("hint")
+
+        locked_user.save(update_fields=update_fields)
+        update_session_auth_hash(request, locked_user)
+        request.user = locked_user
+
+    _invalidate_other_user_sessions(
+        user=locked_user,
+        current_session_key=request.session.session_key,
+    )
+    return locked_user
