@@ -394,13 +394,13 @@ def test_change_password_csrf_protection(user: User):
     }
 
     # Cross-origin POST is rejected by CsrfViewMiddleware.
-    bad_origin_response = csrf_client.post(
+    cross_origin_response = csrf_client.post(
         path=url,
         content_type="application/json",
         data=payload,
-        HTTP_ORIGIN="https://evil.example.com",
+        HTTP_ORIGIN="https://untrusted.example.com",
     )
-    assert bad_origin_response.status_code == HTTPStatus.FORBIDDEN
+    assert cross_origin_response.status_code == HTTPStatus.FORBIDDEN
 
     # Missing CSRF cookie even with valid session cookie is rejected.
     saved_csrf_cookie = csrf_client.cookies.pop("csrftoken")
